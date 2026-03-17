@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc } from '../firebase';
+import { db, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, setDoc } from '../firebase';
 import { X, Briefcase, Coffee, Car, Home, ShoppingBag, Utensils, Code, Camera, Music, Heart, Image as ImageIcon, Type as TypeIcon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRENCIES, cn } from '../lib/utils';
@@ -86,6 +86,15 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
           ...jobData,
           createdAt: Timestamp.now()
         });
+
+        // Increment total jobs stat
+        const statsRef = doc(db, 'stats', 'global');
+        const statsSnap = await getDoc(doc(db, 'stats', 'global'));
+        if (statsSnap.exists()) {
+          await updateDoc(statsRef, { totalJobs: (statsSnap.data().totalJobs || 0) + 1 });
+        } else {
+          await setDoc(statsRef, { totalJobs: 1 }, { merge: true });
+        }
       }
       onClose();
     } catch (error) {

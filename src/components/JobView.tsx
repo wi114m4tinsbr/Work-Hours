@@ -17,6 +17,7 @@ interface JobViewProps {
   userId: string;
   onBack: () => void;
   t: any;
+  lang: string;
 }
 
 const JobIcon = ({ job }: { job: Job }) => {
@@ -31,7 +32,7 @@ const JobIcon = ({ job }: { job: Job }) => {
   return <IconComponent className="w-5 h-5" />;
 };
 
-export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
+export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
   const [job, setJob] = useState<Job | null>(null);
   const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
@@ -93,7 +94,7 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
 
   const handleShare = () => {
     if (!job) return;
-    const report = generateWhatsAppReport(job.name, sessions, totalHours, totalEarnings, job.currency, t);
+    const report = generateWhatsAppReport(job.name, sessions, totalHours, totalEarnings, job.currency, t, lang);
     window.open(`https://wa.me/?text=${report}`, '_blank');
   };
 
@@ -178,21 +179,21 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-stone-200 rounded-xl transition-colors"
+            className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-xl transition-colors text-stone-900 dark:text-stone-100"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary-light rounded-xl flex items-center justify-center text-primary overflow-hidden">
+            <div className="w-10 h-10 bg-primary-light dark:bg-primary/10 rounded-xl flex items-center justify-center text-primary overflow-hidden">
               <JobIcon job={job} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">{job.name}</h2>
-              <p className="text-stone-500 text-sm">{t.period}</p>
+              <h2 className="text-2xl font-bold tracking-tight dark:text-white">{job.name}</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">{t.period}</p>
             </div>
             <button
               onClick={() => setIsJobModalOpen(true)}
-              className="p-2 text-stone-400 hover:text-primary transition-colors"
+              className="p-2 text-stone-400 dark:text-stone-600 hover:text-primary transition-colors"
               title={t.edit}
             >
               <Edit2 className="w-4 h-4" />
@@ -202,14 +203,14 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsPDFModalOpen(true)}
-            className="p-3 bg-stone-100 text-stone-600 rounded-2xl hover:bg-stone-200 transition-all"
+            className="p-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-2xl hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
             title={t.downloadPDF}
           >
             <FileDown className="w-5 h-5" />
           </button>
           <button
             onClick={handleShare}
-            className="p-3 bg-primary-light text-primary rounded-2xl hover:bg-stone-200 transition-all"
+            className="p-3 bg-primary-light dark:bg-primary/10 text-primary rounded-2xl hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
             title={t.generateReport}
           >
             <Share2 className="w-5 h-5" />
@@ -226,29 +227,29 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
           </div>
           <div className="text-3xl font-bold tracking-tight">{formatCurrency(totalEarnings, job.currency)}</div>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-black/5 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-2 mb-3 text-stone-400">
+        <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
             <Clock className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t.totalHours}</span>
           </div>
-          <div className="text-3xl font-bold text-stone-900 tracking-tight">{formatDuration(totalHours)}</div>
+          <div className="text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{formatDuration(totalHours)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-6 rounded-[2rem] border border-black/5 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-2 mb-3 text-stone-400">
+        <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
             <TrendingUp className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t.hourlyRate}</span>
           </div>
-          <div className="text-2xl font-bold text-stone-900 tracking-tight">{formatCurrency(job.hourlyRate, job.currency)}</div>
+          <div className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{formatCurrency(job.hourlyRate, job.currency)}</div>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-black/5 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-2 mb-3 text-stone-400">
+        <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
             <Calendar className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t.daysWorked}</span>
           </div>
-          <div className="text-2xl font-bold text-stone-900 tracking-tight">{sessions.length}</div>
+          <div className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{sessions.length}</div>
         </div>
       </div>
 
@@ -276,22 +277,22 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
               <motion.div
                 layout
                 key={session.id}
-                className="bg-white p-5 rounded-3xl border border-black/5 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group"
+                className="bg-white dark:bg-stone-900 p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-stone-50 rounded-2xl flex flex-col items-center justify-center text-stone-500 group-hover:bg-primary-light group-hover:text-primary transition-colors">
+                  <div className="w-12 h-12 bg-stone-50 dark:bg-stone-800 rounded-2xl flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 group-hover:bg-primary-light dark:group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                     <span className="text-[10px] font-bold uppercase leading-none">
                       {format(parseISO(session.date), 'MMM', { locale: getLocale() })}
                     </span>
-                    <span className="text-lg font-bold leading-none">
+                    <span className="text-lg font-bold leading-none dark:text-white">
                       {format(parseISO(session.date), 'dd')}
                     </span>
                   </div>
                   <div>
-                    <div className="font-bold text-stone-900">
+                    <div className="font-bold text-stone-900 dark:text-stone-100">
                       {session.startTime} - {session.endTime}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-stone-500">
+                    <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {formatDuration(duration)}
@@ -301,8 +302,8 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
                           onClick={(e) => toggleBreakVisibility(e, session.id)}
                           className={`flex items-center gap-1.5 px-2 py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 ${
                             session.isBreakPaid 
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                              : 'bg-red-100 text-red-700 hover:bg-red-200'
+                              ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/20' 
+                              : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/20'
                           }`}
                         >
                           <Coffee className="w-3 h-3" />
@@ -332,14 +333,14 @@ export function JobView({ jobId, userId, onBack, t }: JobViewProps) {
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleEditSession(session)}
-                      className="p-2 text-stone-300 hover:text-primary transition-colors"
+                      className="p-2 text-stone-300 dark:text-stone-600 hover:text-primary transition-colors"
                       title={t.edit}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteSession(session.id)}
-                      className="p-2 text-stone-300 hover:text-red-500 transition-colors"
+                      className="p-2 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors"
                       title={t.delete}
                     >
                       <Trash2 className="w-4 h-4" />

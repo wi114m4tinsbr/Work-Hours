@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
 import { JobView } from './components/JobView';
 import { AdminSettings } from './components/AdminSettings';
 import { ThemeModal } from './components/ThemeModal';
+import { Intro } from './components/Intro';
 import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette } from 'lucide-react';
 import { cn } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,10 +18,34 @@ export default function App() {
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
   const [settings, setSettings] = useState({
     appName: 'WorkHours',
-    primaryColor: '#000000'
+    primaryColor: '#000000',
+    creatorPhoto: ''
   });
+  
+  const isTogglingRef = useRef(false);
+
+  // Apply dark mode class to html element and save to localStorage
+  useEffect(() => {
+    console.log('[Theme] Applying theme classes. Dark mode:', isDarkMode);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     // Fetch global settings
@@ -30,7 +55,8 @@ export default function App() {
         const data = snap.data() as any;
         setSettings({
           appName: data.appName || 'WorkHours',
-          primaryColor: data.primaryColor || '#000000'
+          primaryColor: data.primaryColor || '#000000',
+          creatorPhoto: data.creatorPhoto || ''
         });
       }
     });
@@ -49,7 +75,24 @@ export default function App() {
             language: 'pt',
             createdAt: Timestamp.now()
           });
+          
+          // Increment total users stat
+          const statsRef = doc(db, 'stats', 'global');
+          const statsSnap = await getDoc(statsRef);
+          if (statsSnap.exists()) {
+            await updateDoc(statsRef, { totalUsers: (statsSnap.data().totalUsers || 0) + 1 });
+          } else {
+            await setDoc(statsRef, { totalUsers: 1, totalLogins: 1 });
+          }
         }
+
+        // Increment total logins stat
+        const statsRef = doc(db, 'stats', 'global');
+        const statsSnap = await getDoc(statsRef);
+        if (statsSnap.exists()) {
+          await updateDoc(statsRef, { totalLogins: (statsSnap.data().totalLogins || 0) + 1 });
+        }
+
         setUser(user);
       } else {
         setUser(null);
@@ -70,13 +113,27 @@ export default function App() {
 
   // Separate effect for user data/theme to avoid blocking auth
   useEffect(() => {
-    if (!user) return;
+    if (!user?.uid) return;
 
     const userRef = doc(db, 'users', user.uid);
-    const unsubscribeUser = onSnapshot(userRef, (snap) => {
+    console.log('[Theme] Attaching user data listener for:', user.uid);
+    
+    const unsubscribeUser = onSnapshot(userRef, { includeMetadataChanges: true }, (snap) => {
       if (snap.exists()) {
         const userData = snap.data();
-        setLang(userData.language || 'pt');
+        if (userData.language) setLang(userData.language);
+        
+        // Only update if the value is explicitly set in DB and no pending writes
+        // to avoid reverting local optimistic updates
+        if (userData.isDarkMode !== undefined && !snap.metadata.hasPendingWrites && !isTogglingRef.current) {
+          setIsDarkMode(prev => {
+            if (prev !== userData.isDarkMode) {
+              console.log('[Theme] Syncing from Firestore snapshot:', userData.isDarkMode);
+              return userData.isDarkMode;
+            }
+            return prev;
+          });
+        }
         
         // Apply user theme or fallback to global
         const themeColor = userData.primaryColor || settings.primaryColor || '#000000';
@@ -86,8 +143,11 @@ export default function App() {
       }
     });
 
-    return () => unsubscribeUser();
-  }, [user, settings.primaryColor]);
+    return () => {
+      console.log('[Theme] Detaching user data listener');
+      unsubscribeUser();
+    };
+  }, [user?.uid, settings.primaryColor]);
 
   const handleLanguageChange = async (newLang: Language) => {
     if (!user) return;
@@ -115,6 +175,33 @@ export default function App() {
     }
   };
 
+  const handleToggleDarkMode = async () => {
+    isTogglingRef.current = true;
+    setIsDarkMode(prev => {
+      const next = !prev;
+      console.log('[Theme] Toggling dark mode to:', next);
+      
+      // Immediate local persistence
+      localStorage.setItem('theme', next ? 'dark' : 'light');
+      
+      if (user) {
+        console.log('[Theme] Syncing with Firestore...');
+        updateDoc(doc(db, 'users', user.uid), { 
+          isDarkMode: next 
+        }).catch(error => {
+          console.error("[Theme] Firestore update failed:", error);
+        });
+      }
+      
+      return next;
+    });
+
+    // Release the lock after a delay to allow Firestore to sync
+    setTimeout(() => {
+      isTogglingRef.current = false;
+    }, 2000);
+  };
+
   const t = translations[lang];
   const isOwner = user?.email === "martinswilliam2004@gmail.com";
 
@@ -133,37 +220,29 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-stone-50 flex flex-col items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center border border-black/5"
-        >
-          <div className="w-20 h-20 bg-primary-light rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Clock className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-3xl font-sans font-bold text-stone-900 mb-2 tracking-tight">
-            {settings.appName}
-          </h1>
-          <p className="text-stone-500 mb-8 font-sans">
-            Gerencie seus trabalhos e calcule seus ganhos de forma simples e rápida.
-          </p>
-          <button
-            onClick={handleLogin}
-            className="w-full bg-primary hover:bg-primary-hover text-white font-sans font-medium py-4 px-6 rounded-2xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-primary-light"
-          >
-            <LogIn className="w-5 h-5" />
-            {t.loginGoogle}
-          </button>
-        </motion.div>
-      </div>
+      <Intro 
+        onLogin={handleLogin} 
+        appName={settings.appName} 
+        creatorPhoto={settings.creatorPhoto}
+        t={t} 
+        lang={lang}
+        onLanguageChange={setLang}
+        isDarkMode={isDarkMode}
+        onThemeToggle={handleToggleDarkMode}
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 font-sans text-stone-900">
+    <div 
+      className={cn(
+        "min-h-screen bg-stone-50 dark:bg-stone-950 font-sans text-stone-900 dark:text-stone-100 transition-colors",
+        isDarkMode ? "dark" : ""
+      )}
+      data-theme={isDarkMode ? 'dark' : 'light'}
+    >
       {/* Header */}
-      <header className="bg-white border-bottom border-black/5 sticky top-0 z-10">
+      <header className="bg-white dark:bg-stone-900 border-b border-black/5 dark:border-white/5 sticky top-0 z-10 transition-colors">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <div 
             className="flex items-center gap-2 cursor-pointer"
@@ -173,68 +252,67 @@ export default function App() {
             <span className="font-bold text-lg tracking-tight">{settings.appName}</span>
           </div>
           
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsThemeModalOpen(true)}
-              className="p-2 text-stone-400 hover:text-primary transition-colors"
-              title={t.theme}
-            >
-              <Palette className="w-5 h-5" />
-            </button>
-
-            {isOwner && (
-              <button 
-                onClick={() => setIsAdminModalOpen(true)}
-                className="p-2 text-stone-400 hover:text-primary transition-colors"
-                title="Admin Settings"
-              >
-                <ShieldCheck className="w-5 h-5" />
-              </button>
-            )}
-
-            <div className="relative group">
-              <button className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1">
-                <Languages className="w-5 h-5" />
-                <span className="text-xs font-bold uppercase">{lang}</span>
-              </button>
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-black/5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all p-2 min-w-[120px]">
+            <div className="flex items-center gap-3">
+              {/* Language Switcher Pill */}
+              <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
                 {(['pt', 'en', 'es'] as Language[]).map((l) => (
                   <button
                     key={l}
                     onClick={() => handleLanguageChange(l)}
                     className={cn(
-                      "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
-                      lang === l ? "bg-primary-light text-primary font-bold" : "hover:bg-stone-50"
+                      "w-7 h-7 flex items-center justify-center rounded-full text-[10px] font-bold uppercase transition-all",
+                      lang === l 
+                        ? "bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm" 
+                        : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
                     )}
                   >
-                    {l === 'pt' ? 'Português' : l === 'en' ? 'English' : 'Español'}
+                    {l}
                   </button>
                 ))}
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {user.photoURL ? (
-                <img 
-                  src={user.photoURL} 
-                  alt={user.displayName || ''} 
-                  className="w-8 h-8 rounded-full border border-black/10"
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
-                  <UserIcon className="w-4 h-4 text-stone-500" />
-                </div>
+              <div className="h-6 w-px bg-stone-200 dark:bg-stone-800 mx-1" />
+
+              <button 
+                onClick={() => setIsThemeModalOpen(true)}
+                className="p-2 text-stone-400 hover:text-primary transition-colors"
+                title={t.theme}
+              >
+                <Palette className="w-5 h-5" />
+              </button>
+
+              {isOwner && (
+                <button 
+                  onClick={() => setIsAdminModalOpen(true)}
+                  className="p-2 text-stone-400 hover:text-primary transition-colors"
+                  title="Admin Settings"
+                >
+                  <ShieldCheck className="w-5 h-5" />
+                </button>
               )}
+
+              <div className="flex items-center gap-2 ml-2">
+                {user.photoURL ? (
+                  <img 
+                    src={user.photoURL} 
+                    alt={user.displayName || ''} 
+                    className="w-8 h-8 rounded-full border border-black/10"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
+                    <UserIcon className="w-4 h-4 text-stone-500" />
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="p-2 text-stone-400 hover:text-red-500 transition-colors"
+                title={t.logout}
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
-            <button 
-              onClick={handleLogout}
-              className="p-2 text-stone-400 hover:text-red-500 transition-colors"
-              title={t.logout}
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
         </div>
       </header>
 
@@ -261,6 +339,7 @@ export default function App() {
                 userId={user.uid} 
                 onBack={() => setCurrentJobId(null)} 
                 t={t}
+                lang={lang}
               />
             </motion.div>
           )}

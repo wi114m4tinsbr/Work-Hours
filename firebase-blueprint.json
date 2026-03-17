@@ -10,6 +10,8 @@
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
         "language": { "type": "string", "enum": ["pt", "en", "es"] },
+        "isDarkMode": { "type": "boolean" },
+        "primaryColor": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email", "language"]

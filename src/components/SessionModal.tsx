@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc } from '../firebase';
+import { db, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, setDoc } from '../firebase';
 import { X, Clock, Calendar, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { WorkSession } from '../types';
@@ -58,6 +58,15 @@ export function SessionModal({ isOpen, onClose, userId, jobId, sessionToEdit, t 
           ...sessionData,
           createdAt: Timestamp.now()
         });
+
+        // Increment total entries stat
+        const statsRef = doc(db, 'stats', 'global');
+        const statsSnap = await getDoc(doc(db, 'stats', 'global'));
+        if (statsSnap.exists()) {
+          await updateDoc(statsRef, { totalEntries: (statsSnap.data().totalEntries || 0) + 1 });
+        } else {
+          await setDoc(statsRef, { totalEntries: 1 }, { merge: true });
+        }
       }
       onClose();
     } catch (error) {

@@ -78,11 +78,11 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
       </div>
 
       {jobs.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-stone-300">
-          <div className="w-16 h-16 bg-stone-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Briefcase className="w-8 h-8 text-stone-300" />
+        <div className="bg-white dark:bg-stone-900 rounded-3xl p-12 text-center border border-dashed border-stone-300 dark:border-stone-700 transition-colors">
+          <div className="w-16 h-16 bg-stone-50 dark:bg-stone-800 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors">
+            <Briefcase className="w-8 h-8 text-stone-300 dark:text-stone-600" />
           </div>
-          <p className="text-stone-500">{t.noJobs}</p>
+          <p className="text-stone-500 dark:text-stone-400">{t.noJobs}</p>
           <button
             onClick={handleNewJob}
             className="mt-4 text-primary font-medium hover:underline"
@@ -97,15 +97,15 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
               layout
               key={job.id}
               onClick={() => onSelectJob(job.id)}
-              className="bg-white p-5 rounded-3xl border border-black/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between"
+              className="bg-white dark:bg-stone-900 p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between"
             >
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-primary-light rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all group-hover:rotate-3 overflow-hidden">
+                <div className="w-14 h-14 bg-primary-light dark:bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all group-hover:rotate-3 overflow-hidden">
                   <JobIcon job={job} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">{job.name}</h3>
-                  <div className="flex items-center gap-1 text-stone-500 text-sm">
+                  <h3 className="font-bold text-lg dark:text-white">{job.name}</h3>
+                  <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-sm">
                     <DollarSign className="w-3 h-3" />
                     <span>{formatCurrency(job.hourlyRate, job.currency)} / {t.hourlyRate.toLowerCase()}</span>
                   </div>
@@ -115,19 +115,19 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={(e) => handleEditJob(e, job)}
-                  className="p-2 text-stone-300 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-2 text-stone-300 dark:text-stone-600 hover:text-primary dark:hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                   title={t.edit}
                 >
                   <Edit2 className="w-5 h-5" />
                 </button>
                 <button
                   onClick={(e) => handleDeleteJob(e, job.id)}
-                  className="p-2 text-stone-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-2 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                   title={t.delete}
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
-                <ChevronRight className="w-5 h-5 text-stone-300" />
+                <ChevronRight className="w-5 h-5 text-stone-300 dark:text-stone-700" />
               </div>
             </motion.div>
           ))}

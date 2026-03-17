@@ -11,6 +11,9 @@ rules_version = '2';
 //   - email: string (required)
 //   - displayName: string (optional)
 //   - photoURL: string (optional)
+//   - language: string (required)
+//   - isDarkMode: bool (optional)
+//   - primaryColor: string (optional)
 //   - createdAt: timestamp (required)
 //
 // Collection: jobs
@@ -76,7 +79,9 @@ service cloud.firestore {
       return data.keys().hasAll(['uid', 'email', 'language']) &&
              data.uid == request.auth.uid &&
              isValidEmail(data.email) &&
-             data.language in ['pt', 'en', 'es'];
+             data.language in ['pt', 'en', 'es'] &&
+             (!('isDarkMode' in data) || data.isDarkMode is bool) &&
+             (!('primaryColor' in data) || (data.primaryColor is string && data.primaryColor.size() == 7));
     }
 
     function isValidJob(data) {
@@ -131,6 +136,11 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isValidSession(request.resource.data);
       allow update: if isAuthenticated() && isDocOwner() && isValidSession(request.resource.data);
       allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    match /stats/global {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
     
     match /test/connection {

@@ -62,16 +62,16 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-8"
+            className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-2xl p-8 transition-colors"
           >
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary-light rounded-xl">
+                <div className="p-2 bg-primary-light dark:bg-primary/10 rounded-xl">
                   <Palette className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold">{t.theme}</h3>
+                <h3 className="text-xl font-bold dark:text-white">{t.theme}</h3>
               </div>
-              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 transition-colors">
+              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
