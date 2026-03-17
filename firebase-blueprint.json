@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "language": { "type": "string", "enum": ["pt", "en", "es"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "language"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "A work project or employer",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "hourlyRate": { "type": "number" },
+        "currency": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "hourlyRate", "currency"]
+    },
+    "WorkSession": {
+      "title": "Work Session",
+      "description": "A single shift or work period",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" },
+        "breakMinutes": { "type": "number" },
+        "isBreakPaid": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "jobId", "date", "startTime", "endTime", "breakMinutes", "isBreakPaid"]
+    },
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "appName": { "type": "string" },
+        "primaryColor": { "type": "string" }
+      },
+      "required": ["appName", "primaryColor"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "User's jobs"
+    },
+    "/sessions/{sessionId}": {
+      "schema": "WorkSession",
+      "description": "Work sessions for jobs"
+    },
+    "/settings/global": {
+      "schema": "AppSettings",
+      "description": "Global app settings"
+    }
+  }
+}

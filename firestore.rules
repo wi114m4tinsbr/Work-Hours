@@ -1,0 +1,140 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId}
+// Fields:
+//   - uid: string (required)
+//   - email: string (required)
+//   - displayName: string (optional)
+//   - photoURL: string (optional)
+//   - createdAt: timestamp (required)
+//
+// Collection: jobs
+// Document ID: {jobId}
+// Fields:
+//   - userId: string (required) - Owner of the job
+//   - name: string (required) - Name of the job
+//   - hourlyRate: number (required) - Value per hour
+//   - createdAt: timestamp (required)
+//
+// Collection: sessions
+// Document ID: {sessionId}
+// Fields:
+//   - userId: string (required) - Owner of the session
+//   - jobId: string (required) - Reference to the job
+//   - date: string (required) - YYYY-MM-DD
+//   - startTime: string (required) - HH:mm
+//   - endTime: string (required) - HH:mm
+//   - breakMinutes: number (required)
+//   - isBreakPaid: bool (required)
+//   - createdAt: timestamp (required)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email == "martinswilliam2004@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'language']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.language in ['pt', 'en', 'es'];
+    }
+
+    function isValidJob(data) {
+      return data.keys().hasAll(['userId', 'name', 'hourlyRate', 'currency']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.name, 1, 100) &&
+             data.hourlyRate is number && data.hourlyRate >= 0 &&
+             isValidString(data.currency, 3, 3);
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['userId', 'jobId', 'date', 'startTime', 'endTime', 'breakMinutes', 'isBreakPaid']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.jobId, 1, 100) &&
+             isValidString(data.date, 10, 10) &&
+             isValidString(data.startTime, 5, 5) &&
+             isValidString(data.endTime, 5, 5) &&
+             data.breakMinutes is number && data.breakMinutes >= 0 &&
+             data.isBreakPaid is bool;
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['appName', 'primaryColor']) &&
+             isValidString(data.appName, 1, 50) &&
+             isValidString(data.primaryColor, 7, 7); // Hex color
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidJob(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidJob(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidSession(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidSession(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+    
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
