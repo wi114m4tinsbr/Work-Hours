@@ -39,6 +39,21 @@ export function formatDuration(decimalHours: number): string {
 
 import { format, parseISO } from 'date-fns';
 
+export function hexToRgb(hex: string): { r: number, g: number, b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+export function generateTintedDark(hex: string, opacity: number = 0.05): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '#0c0a09'; // stone-950 fallback
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+}
+
 export function generateWhatsAppReport(jobName: string, sessions: any[], totalHours: number, totalEarnings: number, currency: string, t: any, lang: string): string {
   let report = `*${t.reportTitle}*\n`;
   report += `*${t.jobName}:* ${jobName}\n\n`;

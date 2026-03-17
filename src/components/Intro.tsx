@@ -7,7 +7,6 @@ import { cn } from '../lib/utils';
 interface IntroProps {
   onLogin: () => void;
   appName: string;
-  creatorPhoto?: string;
   t: any;
   lang: Language;
   onLanguageChange: (lang: Language) => void;
@@ -15,38 +14,38 @@ interface IntroProps {
   onThemeToggle: () => void;
 }
 
-export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChange, isDarkMode, onThemeToggle }: IntroProps) {
+export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode, onThemeToggle }: IntroProps) {
   const features = [
     {
       icon: <Clock className="w-6 h-6 text-emerald-500" />,
-      title: t.feature1Title,
-      desc: t.feature1Desc,
+      title: "Controle de Tempo",
+      desc: "Registre suas horas de trabalho com precisão cirúrgica.",
       color: "bg-emerald-500/10"
     },
     {
       icon: <BarChart3 className="w-6 h-6 text-blue-500" />,
-      title: t.feature2Title,
-      desc: t.feature2Desc,
+      title: "Ganhos em Tempo Real",
+      desc: "Saiba exatamente quanto você está ganhando a cada minuto.",
       color: "bg-blue-500/10"
     },
     {
       icon: <Shield className="w-6 h-6 text-purple-500" />,
-      title: t.feature3Title,
-      desc: t.feature3Desc,
+      title: "Dados Seguros",
+      desc: "Seus registros estão protegidos e sincronizados na nuvem.",
       color: "bg-purple-500/10"
     },
     {
       icon: <Zap className="w-6 h-6 text-amber-500" />,
-      title: t.feature4Title,
-      desc: t.feature4Desc,
+      title: "Relatórios Instantâneos",
+      desc: "Gere PDFs e relatórios para WhatsApp em segundos.",
       color: "bg-amber-500/10"
     }
   ];
 
   return (
     <div className={cn(
-      "min-h-screen font-sans flex flex-col transition-colors duration-500",
-      isDarkMode ? "bg-stone-950 text-white dark" : "bg-white text-stone-900"
+      "min-h-screen font-sans overflow-hidden transition-colors duration-500",
+      isDarkMode ? "bg-bg-dark text-white" : "bg-white text-stone-900"
     )}>
       {/* Background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -84,15 +83,14 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
         </div>
         
         <button
-          type="button"
           onClick={onThemeToggle}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-xl hover:scale-110 active:scale-95 transition-all"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-xl hover:scale-110 transition-all"
         >
           {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-blue-400" />}
         </button>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-12 lg:py-24 grid lg:grid-cols-2 gap-16 items-center flex-grow">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-12 lg:py-24 grid lg:grid-cols-2 gap-16 items-center min-h-screen">
         {/* Left Side: Hero Content */}
         <div className="space-y-8">
           <motion.div
@@ -102,28 +100,28 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
           >
             <div className={cn(
               "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-8 shadow-sm border",
-              isDarkMode ? "bg-stone-900 border-stone-800 text-emerald-400" : "bg-emerald-50 border-emerald-100 text-emerald-600"
+              isDarkMode ? "bg-bg-card-dark border-white/10 text-emerald-400" : "bg-emerald-50 border-emerald-100 text-emerald-600"
             )}>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              {t.newReport}
+              Novo: Relatórios em PDF & WhatsApp
             </div>
             
             <h1 className={cn(
-              "text-7xl lg:text-9xl font-black tracking-tight leading-[1.1] mb-8",
+              "text-7xl lg:text-9xl font-black tracking-tighter leading-[0.85] mb-8",
               isDarkMode ? "text-white" : "text-stone-900"
             )}>
-              {t.heroTitle1}{' '}
-              <span className="bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 bg-clip-text text-transparent">{t.heroTitle2}</span>
+              Domine seu <br />
+              <span className="bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 bg-clip-text text-transparent">Tempo.</span>
             </h1>
             
             <p className={cn(
               "text-xl max-w-lg leading-relaxed font-medium",
               isDarkMode ? "text-stone-400" : "text-stone-500"
             )}>
-              {t.heroSubtitle}
+              A ferramenta definitiva para freelancers e profissionais autônomos que valorizam cada segundo do seu dia.
             </p>
           </motion.div>
 
@@ -154,8 +152,8 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
                 ))}
               </div>
               <div className="flex flex-col">
-                <span className={cn("text-sm font-black", isDarkMode ? "text-white" : "text-stone-900")}>{t.activeUsers}</span>
-                <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{t.realUsers}</span>
+                <span className={cn("text-sm font-black", isDarkMode ? "text-white" : "text-stone-900")}>+2.5k Ativos</span>
+                <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">Usuários Reais</span>
               </div>
             </div>
           </motion.div>
@@ -171,11 +169,11 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
           >
             <div>
               <div className="text-4xl font-black text-emerald-500">100%</div>
-              <div className="text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">{t.freeJoke}</div>
+              <div className="text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">Gratuito</div>
             </div>
             <div>
               <div className="text-4xl font-black text-blue-500">Cloud</div>
-              <div className="text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">{t.synced}</div>
+              <div className="text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">Sincronizado</div>
             </div>
           </motion.div>
         </div>
@@ -206,7 +204,7 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
                 className={cn(
                   "group p-8 rounded-[3rem] border transition-all duration-300 space-y-5",
                   isDarkMode 
-                    ? "bg-stone-900/80 border-stone-800 hover:border-emerald-500/50 shadow-2xl shadow-black/50" 
+                    ? "bg-bg-card-dark border-white/10 hover:border-emerald-500/50 shadow-2xl shadow-black/50" 
                     : "bg-white/90 border-stone-100 hover:border-emerald-500/30 shadow-2xl shadow-stone-200/50"
                 )}
               >
@@ -237,8 +235,8 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
               ease: "easeInOut"
             }}
             className={cn(
-              "absolute -top-24 -right-12 p-6 rounded-[2.5rem] shadow-2xl border hidden lg:block z-20",
-              isDarkMode ? "bg-stone-900 border-stone-800" : "bg-white border-stone-100"
+              "absolute -top-12 -right-6 p-8 rounded-[2.5rem] shadow-2xl border hidden lg:block z-20",
+              isDarkMode ? "bg-bg-card-dark border-white/10" : "bg-white border-stone-100"
             )}
           >
             <div className="flex items-center gap-5">
@@ -246,8 +244,8 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
                 <CheckCircle2 className="w-7 h-7 text-emerald-500" />
               </div>
               <div>
-                <div className="text-lg font-black tracking-tight">{t.productivity}</div>
-                <div className="text-xs text-emerald-500 font-bold uppercase tracking-widest">{t.thisMonth}</div>
+                <div className="text-lg font-black tracking-tight">Produtividade</div>
+                <div className="text-xs text-emerald-500 font-bold uppercase tracking-widest">+32% este mês</div>
               </div>
             </div>
           </motion.div>
@@ -256,44 +254,10 @@ export function Intro({ onLogin, appName, creatorPhoto, t, lang, onLanguageChang
 
       {/* Footer */}
       <footer className={cn(
-        "relative z-10 py-16 border-t mt-auto",
-        isDarkMode ? "border-stone-800 bg-stone-950/50" : "border-stone-100 bg-stone-50/50"
+        "absolute bottom-8 left-0 w-full text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
+        isDarkMode ? "text-white" : "text-stone-900"
       )}>
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="flex flex-col items-center md:items-start gap-4">
-            <div className="flex items-center gap-3">
-              <Clock className="w-8 h-8 text-emerald-500" />
-              <span className="font-black text-2xl tracking-tighter">{appName}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-40 px-3 py-1.5 rounded-full border border-current">
-                {t.professionalEdition} - 2026
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6 group bg-white/5 dark:bg-black/5 p-4 rounded-[2.5rem] border border-black/5 dark:border-white/5 backdrop-blur-sm transition-all hover:scale-105">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500 to-blue-500 rounded-full blur-md opacity-40 group-hover:opacity-100 transition-opacity" />
-              <img 
-                src={creatorPhoto || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?fit=facearea&facepad=2&w=256&h=256&q=100"} 
-                alt="William Martins"
-                className="w-16 h-16 rounded-full border-2 border-white dark:border-stone-800 relative z-10 object-cover shadow-2xl transition-transform group-hover:rotate-6"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <div className="text-left">
-              <div className="text-[10px] text-stone-400 uppercase font-bold tracking-widest mb-1">{t.developedBy}</div>
-              <div className="text-xl font-black tracking-tight">William Martins</div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center md:items-end gap-2">
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-30">
-              &copy; 2026 &bull; {appName}
-            </div>
-          </div>
-        </div>
+        {appName} &bull; Professional Edition &bull; 2026
       </footer>
     </div>
   );

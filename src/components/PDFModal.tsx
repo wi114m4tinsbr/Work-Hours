@@ -36,21 +36,21 @@ export function PDFModal({ isOpen, onClose, onConfirm, defaultTitle, defaultWork
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6"
+            className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-3xl shadow-2xl p-6 transition-colors"
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <FileText className="w-6 h-6 text-emerald-600" />
-                <h3 className="text-xl font-bold">{t.downloadPDF}</h3>
+                <h3 className="text-xl font-bold dark:text-white">{t.downloadPDF}</h3>
               </div>
-              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600">
+              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                   {t.reportTitle}
                 </label>
                 <input
@@ -58,12 +58,12 @@ export function PDFModal({ isOpen, onClose, onConfirm, defaultTitle, defaultWork
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-stone-700 mb-1">
+                <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
                   {t.worker}
                 </label>
                 <input
@@ -71,13 +71,13 @@ export function PDFModal({ isOpen, onClose, onConfirm, defaultTitle, defaultWork
                   required
                   value={workerName}
                   onChange={(e) => setWorkerName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-200 mt-4"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 mt-4"
               >
                 {t.downloadPDF}
               </button>

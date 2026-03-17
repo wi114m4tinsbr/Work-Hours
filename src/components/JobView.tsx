@@ -179,7 +179,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-xl transition-colors text-stone-900 dark:text-stone-100"
+            className="p-2 hover:bg-stone-200 dark:hover:bg-white/5 rounded-xl transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
@@ -193,7 +193,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
             </div>
             <button
               onClick={() => setIsJobModalOpen(true)}
-              className="p-2 text-stone-400 dark:text-stone-600 hover:text-primary transition-colors"
+              className="p-2 text-stone-400 hover:text-primary transition-colors"
               title={t.edit}
             >
               <Edit2 className="w-4 h-4" />
@@ -203,14 +203,14 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsPDFModalOpen(true)}
-            className="p-3 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 rounded-2xl hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+            className="p-3 bg-stone-100 dark:bg-bg-card-dark text-stone-600 dark:text-stone-400 rounded-2xl hover:bg-stone-200 dark:hover:bg-white/5 transition-all"
             title={t.downloadPDF}
           >
             <FileDown className="w-5 h-5" />
           </button>
           <button
             onClick={handleShare}
-            className="p-3 bg-primary-light dark:bg-primary/10 text-primary rounded-2xl hover:bg-stone-200 dark:hover:bg-stone-700 transition-all"
+            className="p-3 bg-primary-light dark:bg-primary/10 text-primary rounded-2xl hover:bg-stone-200 dark:hover:bg-white/5 transition-all"
             title={t.generateReport}
           >
             <Share2 className="w-5 h-5" />
@@ -227,37 +227,37 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
           </div>
           <div className="text-3xl font-bold tracking-tight">{formatCurrency(totalEarnings, job.currency)}</div>
         </div>
-        <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+        <div className="bg-white dark:bg-bg-card-dark p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
             <Clock className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t.totalHours}</span>
           </div>
-          <div className="text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{formatDuration(totalHours)}</div>
+          <div className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight">{formatDuration(totalHours)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+        <div className="bg-white dark:bg-bg-card-dark p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
             <TrendingUp className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t.hourlyRate}</span>
           </div>
-          <div className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{formatCurrency(job.hourlyRate, job.currency)}</div>
+          <div className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">{formatCurrency(job.hourlyRate, job.currency)}</div>
         </div>
-        <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+        <div className="bg-white dark:bg-bg-card-dark p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
             <Calendar className="w-5 h-5" />
             <span className="text-xs font-bold uppercase tracking-widest">{t.daysWorked}</span>
           </div>
-          <div className="text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">{sessions.length}</div>
+          <div className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">{sessions.length}</div>
         </div>
       </div>
 
       <div className="flex items-center justify-between pt-4">
-        <h3 className="text-lg font-bold">{t.workSessions}</h3>
+        <h3 className="text-lg font-bold dark:text-white">{t.workSessions}</h3>
         <button
           onClick={handleAddSession}
-          className="bg-stone-900 hover:bg-stone-800 text-white p-2 rounded-xl flex items-center gap-2 px-4 text-sm font-medium transition-all"
+          className="bg-stone-900 dark:bg-white dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-stone-100 p-2 rounded-xl flex items-center gap-2 px-4 text-sm font-medium transition-all"
         >
           <Plus className="w-4 h-4" />
           {t.addDay}
@@ -265,9 +265,9 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
       </div>
 
       {sessions.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-dashed border-stone-300">
-          <Calendar className="w-8 h-8 text-stone-300 mx-auto mb-2" />
-          <p className="text-stone-500">{t.noSessions}</p>
+        <div className="bg-white dark:bg-bg-card-dark rounded-3xl p-12 text-center border border-dashed border-stone-300 dark:border-white/10">
+          <Calendar className="w-8 h-8 text-stone-300 dark:text-stone-600 mx-auto mb-2" />
+          <p className="text-stone-500 dark:text-stone-400">{t.noSessions}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -277,33 +277,33 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
               <motion.div
                 layout
                 key={session.id}
-                className="bg-white dark:bg-stone-900 p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group"
+                className="bg-white dark:bg-bg-card-dark p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group"
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-stone-50 dark:bg-stone-800 rounded-2xl flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 group-hover:bg-primary-light dark:group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                  <div className="w-12 h-12 bg-stone-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 group-hover:bg-primary-light dark:group-hover:bg-primary/20 group-hover:text-primary transition-colors">
                     <span className="text-[10px] font-bold uppercase leading-none">
                       {format(parseISO(session.date), 'MMM', { locale: getLocale() })}
                     </span>
-                    <span className="text-lg font-bold leading-none dark:text-white">
+                    <span className="text-lg font-bold leading-none">
                       {format(parseISO(session.date), 'dd')}
                     </span>
                   </div>
                   <div>
-                    <div className="font-bold text-stone-900 dark:text-stone-100">
+                    <div className="font-bold text-stone-900 dark:text-white">
                       {session.startTime} - {session.endTime}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {formatDuration(duration)}
+                        {formatDuration(duration) || '0h'}
                       </span>
                       {session.breakMinutes > 0 && (
                         <button 
                           onClick={(e) => toggleBreakVisibility(e, session.id)}
                           className={`flex items-center gap-1.5 px-2 py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 ${
                             session.isBreakPaid 
-                              ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/20' 
-                              : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-500/20'
+                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                              : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400'
                           }`}
                         >
                           <Coffee className="w-3 h-3" />

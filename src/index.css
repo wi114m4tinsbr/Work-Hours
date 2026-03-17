@@ -4,10 +4,14 @@
   --color-primary: var(--primary-color, #10b981);
   --color-primary-hover: var(--primary-color-hover, #059669);
   --color-primary-light: var(--primary-color-light, #d1fae5);
+  --color-bg-dark: var(--bg-dark, #0c0a09);
+  --color-bg-card-dark: var(--bg-card-dark, #1c1917);
 }
 
 :root {
   --primary-color: #10b981;
   --primary-color-hover: #059669;
   --primary-color-light: #ecfdf5;
+  --bg-dark: #0c0a09;
+  --bg-card-dark: #1c1917;
 }

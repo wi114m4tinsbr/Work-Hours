@@ -62,7 +62,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-2xl p-8 transition-colors"
+            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-[2.5rem] shadow-2xl p-8"
           >
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
@@ -71,7 +71,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
                 </div>
                 <h3 className="text-xl font-bold dark:text-white">{t.theme}</h3>
               </div>
-              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors">
+              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -79,7 +79,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
             <div className="space-y-8">
               {/* Monochromatic */}
               <div>
-                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">{t.monochromatic}</h4>
+                <h4 className="text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-4">{t.monochromatic}</h4>
                 <div className="flex flex-wrap gap-3">
                   {monoTheme && (
                     <button
@@ -98,7 +98,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
               {/* Vivid Themes */}
               <div>
-                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">{t.vividThemes}</h4>
+                <h4 className="text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-4">{t.vividThemes}</h4>
                 <div className="grid grid-cols-5 gap-3">
                   {vividThemes.map((theme) => (
                     <button
@@ -118,7 +118,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
               {/* Custom Color */}
               <div>
-                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-4">{t.customColor}</h4>
+                <h4 className="text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-4">{t.customColor}</h4>
                 <div className="flex gap-4 items-center">
                   <input
                     type="color"
@@ -126,7 +126,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
                     onChange={(e) => handleSave(e.target.value)}
                     className="w-14 h-14 rounded-2xl cursor-pointer border-none p-0 bg-transparent"
                   />
-                  <div className="flex-1 px-4 py-3 rounded-2xl border border-stone-200 bg-stone-50 font-mono text-sm">
+                  <div className="flex-1 px-4 py-3 rounded-2xl border border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-white/5 font-mono text-sm dark:text-stone-300">
                     {selectedColor.toUpperCase()}
                   </div>
                 </div>
@@ -135,7 +135,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
             <button
               onClick={onClose}
-              className="w-full bg-stone-900 text-white font-bold py-4 rounded-2xl mt-8 hover:bg-stone-800 transition-all"
+              className="w-full bg-stone-900 dark:bg-white dark:text-stone-900 font-bold py-4 rounded-2xl mt-8 hover:bg-stone-800 dark:hover:bg-stone-100 transition-all"
             >
               {t.back}
             </button>

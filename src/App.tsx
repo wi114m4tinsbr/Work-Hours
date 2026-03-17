@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
@@ -6,8 +6,8 @@ import { JobView } from './components/JobView';
 import { AdminSettings } from './components/AdminSettings';
 import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette } from 'lucide-react';
-import { cn } from './lib/utils';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon } from 'lucide-react';
+import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
 
@@ -18,34 +18,51 @@ export default function App() {
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved) return saved === 'dark';
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
     appName: 'WorkHours',
-    primaryColor: '#000000',
-    creatorPhoto: ''
+    primaryColor: '#000000'
   });
-  
-  const isTogglingRef = useRef(false);
 
-  // Apply dark mode class to html element and save to localStorage
+  // Apply dark mode class to html element
   useEffect(() => {
-    console.log('[Theme] Applying theme classes. Dark mode:', isDarkMode);
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark');
     }
   }, [isDarkMode]);
+
+  const toggleDarkMode = async () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (user) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { isDarkMode: newMode });
+      } catch (error) {
+        console.error("Error updating dark mode:", error);
+      }
+    }
+  };
+
+  const applyTheme = (themeColor: string) => {
+    document.documentElement.style.setProperty('--primary-color', themeColor);
+    document.documentElement.style.setProperty('--primary-color-hover', themeColor + 'ee');
+    document.documentElement.style.setProperty('--primary-color-light', themeColor + '15');
+    
+    // Add dynamic background variables
+    const rgb = hexToRgb(themeColor);
+    if (rgb) {
+      // Very dark version of the primary color for background
+      const bgDark = `rgba(${Math.round(rgb.r * 0.06)}, ${Math.round(rgb.g * 0.06)}, ${Math.round(rgb.b * 0.06)}, 1)`;
+      const bgCardDark = `rgba(${Math.round(rgb.r * 0.1)}, ${Math.round(rgb.g * 0.1)}, ${Math.round(rgb.b * 0.1)}, 1)`;
+      document.documentElement.style.setProperty('--bg-dark', bgDark);
+      document.documentElement.style.setProperty('--bg-card-dark', bgCardDark);
+    } else {
+      document.documentElement.style.setProperty('--bg-dark', '#0c0a09');
+      document.documentElement.style.setProperty('--bg-card-dark', '#1c1917');
+    }
+  };
 
   useEffect(() => {
     // Fetch global settings
@@ -55,8 +72,7 @@ export default function App() {
         const data = snap.data() as any;
         setSettings({
           appName: data.appName || 'WorkHours',
-          primaryColor: data.primaryColor || '#000000',
-          creatorPhoto: data.creatorPhoto || ''
+          primaryColor: data.primaryColor || '#000000'
         });
       }
     });
@@ -98,9 +114,7 @@ export default function App() {
         setUser(null);
         // Reset to global theme when logged out
         const themeColor = settings.primaryColor || '#000000';
-        document.documentElement.style.setProperty('--primary-color', themeColor);
-        document.documentElement.style.setProperty('--primary-color-hover', themeColor + 'ee');
-        document.documentElement.style.setProperty('--primary-color-light', themeColor + '15');
+        applyTheme(themeColor);
       }
       setLoading(false);
     });
@@ -113,41 +127,23 @@ export default function App() {
 
   // Separate effect for user data/theme to avoid blocking auth
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user) return;
 
     const userRef = doc(db, 'users', user.uid);
-    console.log('[Theme] Attaching user data listener for:', user.uid);
-    
-    const unsubscribeUser = onSnapshot(userRef, { includeMetadataChanges: true }, (snap) => {
+    const unsubscribeUser = onSnapshot(userRef, (snap) => {
       if (snap.exists()) {
         const userData = snap.data();
-        if (userData.language) setLang(userData.language);
-        
-        // Only update if the value is explicitly set in DB and no pending writes
-        // to avoid reverting local optimistic updates
-        if (userData.isDarkMode !== undefined && !snap.metadata.hasPendingWrites && !isTogglingRef.current) {
-          setIsDarkMode(prev => {
-            if (prev !== userData.isDarkMode) {
-              console.log('[Theme] Syncing from Firestore snapshot:', userData.isDarkMode);
-              return userData.isDarkMode;
-            }
-            return prev;
-          });
-        }
+        setLang(userData.language || 'pt');
+        setIsDarkMode(!!userData.isDarkMode);
         
         // Apply user theme or fallback to global
         const themeColor = userData.primaryColor || settings.primaryColor || '#000000';
-        document.documentElement.style.setProperty('--primary-color', themeColor);
-        document.documentElement.style.setProperty('--primary-color-hover', themeColor + 'ee');
-        document.documentElement.style.setProperty('--primary-color-light', themeColor + '15');
+        applyTheme(themeColor);
       }
     });
 
-    return () => {
-      console.log('[Theme] Detaching user data listener');
-      unsubscribeUser();
-    };
-  }, [user?.uid, settings.primaryColor]);
+    return () => unsubscribeUser();
+  }, [user, settings.primaryColor]);
 
   const handleLanguageChange = async (newLang: Language) => {
     if (!user) return;
@@ -175,33 +171,6 @@ export default function App() {
     }
   };
 
-  const handleToggleDarkMode = async () => {
-    isTogglingRef.current = true;
-    setIsDarkMode(prev => {
-      const next = !prev;
-      console.log('[Theme] Toggling dark mode to:', next);
-      
-      // Immediate local persistence
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-      
-      if (user) {
-        console.log('[Theme] Syncing with Firestore...');
-        updateDoc(doc(db, 'users', user.uid), { 
-          isDarkMode: next 
-        }).catch(error => {
-          console.error("[Theme] Firestore update failed:", error);
-        });
-      }
-      
-      return next;
-    });
-
-    // Release the lock after a delay to allow Firestore to sync
-    setTimeout(() => {
-      isTogglingRef.current = false;
-    }, 2000);
-  };
-
   const t = translations[lang];
   const isOwner = user?.email === "martinswilliam2004@gmail.com";
 
@@ -223,26 +192,25 @@ export default function App() {
       <Intro 
         onLogin={handleLogin} 
         appName={settings.appName} 
-        creatorPhoto={settings.creatorPhoto}
         t={t} 
         lang={lang}
         onLanguageChange={setLang}
         isDarkMode={isDarkMode}
-        onThemeToggle={handleToggleDarkMode}
+        onThemeToggle={toggleDarkMode}
       />
     );
   }
 
   return (
-    <div 
-      className={cn(
-        "min-h-screen bg-stone-50 dark:bg-stone-950 font-sans text-stone-900 dark:text-stone-100 transition-colors",
-        isDarkMode ? "dark" : ""
-      )}
-      data-theme={isDarkMode ? 'dark' : 'light'}
-    >
+    <div className={cn(
+      "min-h-screen font-sans transition-colors duration-300",
+      isDarkMode ? "bg-bg-dark text-stone-100" : "bg-stone-50 text-stone-900"
+    )}>
       {/* Header */}
-      <header className="bg-white dark:bg-stone-900 border-b border-black/5 dark:border-white/5 sticky top-0 z-10 transition-colors">
+      <header className={cn(
+        "border-bottom sticky top-0 z-10 transition-colors duration-300",
+        isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
+      )}>
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <div 
             className="flex items-center gap-2 cursor-pointer"
@@ -252,67 +220,81 @@ export default function App() {
             <span className="font-bold text-lg tracking-tight">{settings.appName}</span>
           </div>
           
-            <div className="flex items-center gap-3">
-              {/* Language Switcher Pill */}
-              <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 text-stone-400 hover:text-primary transition-colors"
+              title={isDarkMode ? "Light Mode" : "Dark Mode"}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            <button 
+              onClick={() => setIsThemeModalOpen(true)}
+              className="p-2 text-stone-400 hover:text-primary transition-colors"
+              title={t.theme}
+            >
+              <Palette className="w-5 h-5" />
+            </button>
+
+            {isOwner && (
+              <button 
+                onClick={() => setIsAdminModalOpen(true)}
+                className="p-2 text-stone-400 hover:text-primary transition-colors"
+                title="Admin Settings"
+              >
+                <ShieldCheck className="w-5 h-5" />
+              </button>
+            )}
+
+            <div className="relative group">
+              <button className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1">
+                <Languages className="w-5 h-5" />
+                <span className="text-xs font-bold uppercase">{lang}</span>
+              </button>
+              <div className={cn(
+                "absolute right-0 top-full mt-1 rounded-xl shadow-xl border transition-all p-2 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible",
+                isDarkMode ? "bg-stone-900 border-white/5" : "bg-white border-black/5"
+              )}>
                 {(['pt', 'en', 'es'] as Language[]).map((l) => (
                   <button
                     key={l}
                     onClick={() => handleLanguageChange(l)}
                     className={cn(
-                      "w-7 h-7 flex items-center justify-center rounded-full text-[10px] font-bold uppercase transition-all",
+                      "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
                       lang === l 
-                        ? "bg-white dark:bg-stone-700 text-stone-900 dark:text-white shadow-sm" 
-                        : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+                        ? "bg-primary-light text-primary font-bold" 
+                        : isDarkMode ? "hover:bg-stone-800 text-stone-400" : "hover:bg-stone-50 text-stone-600"
                     )}
                   >
-                    {l}
+                    {l === 'pt' ? 'Português' : l === 'en' ? 'English' : 'Español'}
                   </button>
                 ))}
               </div>
-
-              <div className="h-6 w-px bg-stone-200 dark:bg-stone-800 mx-1" />
-
-              <button 
-                onClick={() => setIsThemeModalOpen(true)}
-                className="p-2 text-stone-400 hover:text-primary transition-colors"
-                title={t.theme}
-              >
-                <Palette className="w-5 h-5" />
-              </button>
-
-              {isOwner && (
-                <button 
-                  onClick={() => setIsAdminModalOpen(true)}
-                  className="p-2 text-stone-400 hover:text-primary transition-colors"
-                  title="Admin Settings"
-                >
-                  <ShieldCheck className="w-5 h-5" />
-                </button>
-              )}
-
-              <div className="flex items-center gap-2 ml-2">
-                {user.photoURL ? (
-                  <img 
-                    src={user.photoURL} 
-                    alt={user.displayName || ''} 
-                    className="w-8 h-8 rounded-full border border-black/10"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
-                    <UserIcon className="w-4 h-4 text-stone-500" />
-                  </div>
-                )}
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="p-2 text-stone-400 hover:text-red-500 transition-colors"
-                title={t.logout}
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
             </div>
+
+            <div className="flex items-center gap-2">
+              {user.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName || ''} 
+                  className="w-8 h-8 rounded-full border border-black/10"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
+                  <UserIcon className="w-4 h-4 text-stone-500" />
+                </div>
+              )}
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="p-2 text-stone-400 hover:text-red-500 transition-colors"
+              title={t.logout}
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 

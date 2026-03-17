@@ -91,18 +91,18 @@ export function SessionModal({ isOpen, onClose, userId, jobId, sessionToEdit, t 
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="relative w-full max-w-md bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl p-6 sm:p-8"
+            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl p-6 sm:p-8"
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">{sessionToEdit ? t.editSession : t.addDay}</h3>
-              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600">
+              <h3 className="text-xl font-bold dark:text-white">{sessionToEdit ? t.editSession : t.addDay}</h3>
+              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-stone-500 uppercase tracking-wider mb-2">
+                <label className="flex items-center gap-2 text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
                   <Calendar className="w-4 h-4" />
                   {t.date}
                 </label>
@@ -111,13 +111,13 @@ export function SessionModal({ isOpen, onClose, userId, jobId, sessionToEdit, t 
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-4 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50"
+                  className="w-full px-4 py-4 rounded-2xl border border-stone-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50 dark:bg-white/5 dark:text-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-stone-500 uppercase tracking-wider mb-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
                     <Clock className="w-4 h-4" />
                     {t.entry}
                   </label>
@@ -126,11 +126,11 @@ export function SessionModal({ isOpen, onClose, userId, jobId, sessionToEdit, t 
                     required
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-4 py-4 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50"
+                    className="w-full px-4 py-4 rounded-2xl border border-stone-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50 dark:bg-white/5 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-bold text-stone-500 uppercase tracking-wider mb-2">
+                  <label className="flex items-center gap-2 text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
                     <Clock className="w-4 h-4" />
                     {t.exit}
                   </label>
@@ -139,13 +139,13 @@ export function SessionModal({ isOpen, onClose, userId, jobId, sessionToEdit, t 
                     required
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-4 py-4 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50"
+                    className="w-full px-4 py-4 rounded-2xl border border-stone-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50 dark:bg-white/5 dark:text-white"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-stone-500 uppercase tracking-wider mb-2">
+                <label className="flex items-center gap-2 text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
                   <Coffee className="w-4 h-4" />
                   {t.break}
                 </label>
@@ -155,15 +155,15 @@ export function SessionModal({ isOpen, onClose, userId, jobId, sessionToEdit, t 
                     required
                     value={breakMinutes}
                     onChange={(e) => setBreakMinutes(e.target.value)}
-                    className="flex-1 px-4 py-4 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50"
+                    className="flex-1 px-4 py-4 rounded-2xl border border-stone-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-stone-50 dark:bg-white/5 dark:text-white"
                   />
                   <button
                     type="button"
                     onClick={() => setIsBreakPaid(!isBreakPaid)}
                     className={`px-4 rounded-2xl border transition-all font-bold text-xs uppercase tracking-widest ${
                       isBreakPaid 
-                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200' 
-                        : 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-200'
+                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20' 
+                        : 'bg-red-500 border-red-500 text-white shadow-lg shadow-red-200 dark:shadow-red-900/20'
                     }`}
                   >
                     {isBreakPaid ? t.paidBreak : t.unpaidBreak}
