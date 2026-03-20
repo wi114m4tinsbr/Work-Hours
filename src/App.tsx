@@ -20,9 +20,9 @@ export default function App() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
-    appName: 'Work Hours',
+    appName: 'Shift Hours',
     primaryColor: '#000000',
-    footerText: 'Work Hours • Professional Edition • 2026'
+    footerText: 'SHIFTHOURS • Professional Edition • 2026'
   });
 
   // Apply dark mode class to html element
@@ -72,9 +72,9 @@ export default function App() {
       if (snap.exists()) {
         const data = snap.data() as any;
         setSettings({
-          appName: data.appName || 'WorkHours',
+          appName: data.appName || 'Shift Hours',
           primaryColor: data.primaryColor || '#000000',
-          footerText: data.footerText || 'WorkHours • Professional Edition • 2026'
+          footerText: data.footerText || 'SHIFTHOURS • Professional Edition • 2026'
         });
       }
     });
@@ -346,12 +346,10 @@ export default function App() {
       />
 
       <footer className={cn(
-        "py-8 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
+        "pt-48 pb-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>
-        {settings.footerText === 'WorkHours • Professional Edition • 2026' 
-          ? `${settings.appName} • ${t.professionalEdition} • 2026` 
-          : settings.footerText}
+        {settings.footerText.replace(/WORKHOURS/gi, 'SHIFTHOURS')}
       </footer>
     </div>
   );

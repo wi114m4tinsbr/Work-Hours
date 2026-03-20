@@ -1,6 +1,6 @@
 export const translations = {
   pt: {
-    appName: "Calculadora de Horas",
+    appName: "Shift Hours",
     welcome: "Bem-vindo",
     loginGoogle: "Entrar com Google",
     logout: "Sair",
@@ -84,7 +84,7 @@ export const translations = {
     withoutBreak: "Sem Pausa"
   },
   en: {
-    appName: "Work Hours Calculator",
+    appName: "Shift Hours Calculator",
     welcome: "Welcome",
     loginGoogle: "Sign in with Google",
     logout: "Logout",
@@ -168,7 +168,7 @@ export const translations = {
     withoutBreak: "Without Break"
   },
   es: {
-    appName: "Calculadora de Horas",
+    appName: "Shift Hours",
     welcome: "Bienvenido",
     loginGoogle: "Iniciar sesión con Google",
     logout: "Cerrar sesión",

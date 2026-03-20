@@ -16,7 +16,7 @@ export function AdminSettings({ isOpen, onClose, currentSettings, t }: AdminSett
   const [activeTab, setActiveTab] = useState<'settings' | 'stats'>('settings');
   const [appName, setAppName] = useState(currentSettings.appName);
   const [primaryColor, setPrimaryColor] = useState(currentSettings.primaryColor);
-  const [footerText, setFooterText] = useState(currentSettings.footerText);
+  const [footerText, setFooterText] = useState(currentSettings.footerText.replace(/WORKHOURS/gi, 'SHIFTHOURS'));
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -134,7 +134,7 @@ export function AdminSettings({ isOpen, onClose, currentSettings, t }: AdminSett
                         type="text"
                         required
                         value={footerText}
-                        onChange={(e) => setFooterText(e.target.value)}
+                        onChange={(e) => setFooterText(e.target.value.replace(/WORKHOURS/gi, 'SHIFTHOURS'))}
                         className="w-full px-4 sm:px-5 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-stone-50 dark:bg-white/5 border-none focus:ring-2 focus:ring-primary transition-all font-bold dark:text-white text-sm sm:text-base"
                       />
                     </div>
