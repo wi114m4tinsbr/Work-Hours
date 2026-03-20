@@ -107,7 +107,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -119,16 +119,16 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-3xl shadow-2xl p-6"
+            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-t-[2rem] sm:rounded-3xl shadow-2xl p-5 sm:p-6"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold dark:text-white">{jobToEdit ? t.edit : t.newJob}</h3>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-bold dark:text-white">{jobToEdit ? t.edit : t.newJob}</h3>
               <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+            <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] sm:max-h-[70vh] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
               <div>
                 <label className="block text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
                   {t.selectIcon}

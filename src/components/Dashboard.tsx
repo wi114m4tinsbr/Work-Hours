@@ -66,14 +66,14 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">{t.myJobs}</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{t.myJobs}</h2>
         <button
           onClick={handleNewJob}
-          className="bg-primary hover:bg-primary-hover text-white p-2 rounded-xl transition-all shadow-lg shadow-primary-light flex items-center gap-2 px-4 active:scale-95"
+          className="bg-primary hover:bg-primary-hover text-white p-2 rounded-xl transition-all shadow-lg shadow-primary-light flex items-center gap-2 px-3 sm:px-4 active:scale-95 shrink-0"
         >
           <Plus className="w-5 h-5" />
-          <span className="font-medium">{t.newJob}</span>
+          <span className="font-medium text-sm sm:text-base">{t.newJob}</span>
         </button>
       </div>
 
@@ -97,37 +97,37 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
               layout
               key={job.id}
               onClick={() => onSelectJob(job.id)}
-              className="bg-white dark:bg-bg-card-dark p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between"
+              className="bg-white dark:bg-bg-card-dark p-4 sm:p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between gap-4"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-primary-light dark:bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all group-hover:rotate-3 overflow-hidden">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-light dark:bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all group-hover:rotate-3 overflow-hidden shrink-0">
                   <JobIcon job={job} />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg dark:text-white">{job.name}</h3>
-                  <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-sm">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base sm:text-lg dark:text-white truncate">{job.name}</h3>
+                  <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs sm:text-sm">
                     <DollarSign className="w-3 h-3" />
-                    <span>{formatCurrency(job.hourlyRate, job.currency)} / {t.hourlyRate.toLowerCase()}</span>
+                    <span className="truncate">{formatCurrency(job.hourlyRate, job.currency)} / {t.hourlyRate.toLowerCase()}</span>
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 <button
                   onClick={(e) => handleEditJob(e, job)}
-                  className="p-2 text-stone-300 dark:text-stone-600 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-2 text-stone-300 dark:text-stone-600 hover:text-primary transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                   title={t.edit}
                 >
-                  <Edit2 className="w-5 h-5" />
+                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
                   onClick={(e) => handleDeleteJob(e, job.id)}
-                  className="p-2 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  className="p-2 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
                   title={t.delete}
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-                <ChevronRight className="w-5 h-5 text-stone-300 dark:text-stone-700" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-stone-300 dark:text-stone-700" />
               </div>
             </motion.div>
           ))}

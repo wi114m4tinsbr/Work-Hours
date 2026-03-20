@@ -48,6 +48,7 @@ export const translations = {
     appNameLabel: "Nome do Aplicativo",
     primaryColorLabel: "Cor Primária",
     saveSettings: "Salvar Configurações",
+    footerTextLabel: "Texto do Rodapé",
     theme: "Tema",
     customColor: "Cor Personalizada",
     vividThemes: "Temas Vibrantes",
@@ -78,7 +79,9 @@ export const translations = {
     thisMonth: "+32% este mês",
     creator: "Criador do Site",
     professionalEdition: "Edição Profissional",
-    developedBy: "Desenvolvido por"
+    developedBy: "Desenvolvido por",
+    withBreak: "Com Pausa",
+    withoutBreak: "Sem Pausa"
   },
   en: {
     appName: "Work Hours Calculator",
@@ -129,6 +132,7 @@ export const translations = {
     appNameLabel: "App Name",
     primaryColorLabel: "Primary Color",
     saveSettings: "Save Settings",
+    footerTextLabel: "Footer Text",
     theme: "Theme",
     customColor: "Custom Color",
     vividThemes: "Vivid Themes",
@@ -159,7 +163,9 @@ export const translations = {
     thisMonth: "+32% this month",
     creator: "Site Creator",
     professionalEdition: "Professional Edition",
-    developedBy: "Developed by"
+    developedBy: "Developed by",
+    withBreak: "With Break",
+    withoutBreak: "Without Break"
   },
   es: {
     appName: "Calculadora de Horas",
@@ -210,6 +216,7 @@ export const translations = {
     appNameLabel: "Nombre de la Aplicación",
     primaryColorLabel: "Color Primario",
     saveSettings: "Guardar Configuraciones",
+    footerTextLabel: "Texto del Pie de Página",
     theme: "Tema",
     customColor: "Color Personalizado",
     vividThemes: "Temas Vibrantes",
@@ -240,7 +247,9 @@ export const translations = {
     thisMonth: "+32% este mes",
     creator: "Creador del Sitio",
     professionalEdition: "Edición Profesional",
-    developedBy: "Desarrollado por"
+    developedBy: "Desarrollado por",
+    withBreak: "Con Pausa",
+    withoutBreak: "Sin Pausa"
   }
 };
 

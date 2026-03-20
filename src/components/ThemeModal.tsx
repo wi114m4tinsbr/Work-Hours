@@ -50,7 +50,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -62,35 +62,35 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-[2.5rem] shadow-2xl p-8"
+            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl p-6 sm:p-8"
           >
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary-light dark:bg-primary/10 rounded-xl">
-                  <Palette className="w-6 h-6 text-primary" />
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 bg-primary-light dark:bg-primary/10 rounded-xl">
+                  <Palette className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold dark:text-white">{t.theme}</h3>
+                <h3 className="text-lg sm:text-xl font-bold dark:text-white">{t.theme}</h3>
               </div>
               <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors">
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8 max-h-[70vh] overflow-y-auto pr-1 sm:pr-0 custom-scrollbar">
               {/* Monochromatic */}
               <div>
-                <h4 className="text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-4">{t.monochromatic}</h4>
-                <div className="flex flex-wrap gap-3">
+                <h4 className="text-[10px] sm:text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3 sm:mb-4">{t.monochromatic}</h4>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {monoTheme && (
                     <button
                       onClick={() => handleSave(monoTheme.primary)}
                       className={cn(
-                        "w-12 h-12 rounded-2xl border-2 transition-all flex items-center justify-center relative overflow-hidden",
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center justify-center relative overflow-hidden",
                         selectedColor === monoTheme.primary ? "border-primary scale-110 shadow-lg" : "border-transparent hover:scale-105"
                       )}
                       style={{ backgroundColor: monoTheme.primary }}
                     >
-                      {selectedColor === monoTheme.primary && <Check className="w-5 h-5 text-white" />}
+                      {selectedColor === monoTheme.primary && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
                     </button>
                   )}
                 </div>
@@ -98,19 +98,19 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
               {/* Vivid Themes */}
               <div>
-                <h4 className="text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-4">{t.vividThemes}</h4>
-                <div className="grid grid-cols-5 gap-3">
+                <h4 className="text-[10px] sm:text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3 sm:mb-4">{t.vividThemes}</h4>
+                <div className="grid grid-cols-5 gap-2 sm:gap-3">
                   {vividThemes.map((theme) => (
                     <button
                       key={theme.id}
                       onClick={() => handleSave(theme.primary)}
                       className={cn(
-                        "aspect-square rounded-2xl border-2 transition-all flex items-center justify-center relative overflow-hidden",
+                        "aspect-square rounded-xl sm:rounded-2xl border-2 transition-all flex items-center justify-center relative overflow-hidden",
                         selectedColor === theme.primary ? "border-primary scale-110 shadow-lg" : "border-transparent hover:scale-105"
                       )}
                       style={{ backgroundColor: theme.primary }}
                     >
-                      {selectedColor === theme.primary && <Check className="w-5 h-5 text-white" />}
+                      {selectedColor === theme.primary && <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />}
                     </button>
                   ))}
                 </div>
@@ -118,15 +118,15 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
               {/* Custom Color */}
               <div>
-                <h4 className="text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-4">{t.customColor}</h4>
-                <div className="flex gap-4 items-center">
+                <h4 className="text-[10px] sm:text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3 sm:mb-4">{t.customColor}</h4>
+                <div className="flex gap-3 sm:gap-4 items-center">
                   <input
                     type="color"
                     value={selectedColor}
                     onChange={(e) => handleSave(e.target.value)}
-                    className="w-14 h-14 rounded-2xl cursor-pointer border-none p-0 bg-transparent"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl cursor-pointer border-none p-0 bg-transparent"
                   />
-                  <div className="flex-1 px-4 py-3 rounded-2xl border border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-white/5 font-mono text-sm dark:text-stone-300">
+                  <div className="flex-1 px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl border border-stone-200 dark:border-white/5 bg-stone-50 dark:bg-white/5 font-mono text-xs sm:text-sm dark:text-stone-300">
                     {selectedColor.toUpperCase()}
                   </div>
                 </div>
@@ -135,7 +135,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
             <button
               onClick={onClose}
-              className="w-full bg-stone-900 dark:bg-white dark:text-stone-900 font-bold py-4 rounded-2xl mt-8 hover:bg-stone-800 dark:hover:bg-stone-100 transition-all"
+              className="w-full bg-stone-900 dark:bg-white dark:text-stone-900 font-bold py-4 rounded-xl sm:rounded-2xl mt-6 sm:mt-8 hover:bg-stone-800 dark:hover:bg-stone-100 transition-all text-sm sm:text-base"
             >
               {t.back}
             </button>

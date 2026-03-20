@@ -62,7 +62,8 @@ export function generateWhatsAppReport(jobName: string, sessions: any[], totalHo
     const duration = calculateDuration(s.startTime, s.endTime, s.breakMinutes, s.isBreakPaid);
     const dateObj = parseISO(s.date);
     const formattedDate = lang === 'en' ? format(dateObj, 'MM/dd/yyyy') : format(dateObj, 'dd/MM/yyyy');
-    report += `• ${formattedDate}: ${s.startTime} - ${s.endTime} (${formatDuration(duration)})\n`;
+    const breakStatus = s.breakMinutes > 0 ? ` (${t.withBreak})` : ` (${t.withoutBreak})`;
+    report += `• ${formattedDate}: ${s.startTime} - ${s.endTime} (${formatDuration(duration)})${breakStatus}\n`;
   });
   
   report += `\n*${t.totalHours}:* ${formatDuration(totalHours)}\n`;
@@ -90,4 +91,13 @@ export function calculateDuration(startTime: string, endTime: string, breakMinut
   }
   
   return Math.max(0, totalMinutes / 60);
+}
+
+export function resolveFooterPlaceholders(text: string, appName: string, t: any): string {
+  const year = new Date().getFullYear().toString();
+  return text
+    .replace(/{{appName}}/g, appName)
+    .replace(/{{professionalEdition}}/g, t.professionalEdition)
+    .replace(/{{developedBy}}/g, t.developedBy)
+    .replace(/{{year}}/g, year);
 }

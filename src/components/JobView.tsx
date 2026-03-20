@@ -125,9 +125,11 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
     // Table
     const tableData = sessions.map(s => {
       const duration = calculateDuration(s.startTime, s.endTime, s.breakMinutes, s.isBreakPaid);
+      const breakInfo = s.breakMinutes > 0 ? `${s.breakMinutes}m (${s.isBreakPaid ? t.paidBreak : t.unpaidBreak})` : '-';
       return [
         format(parseISO(s.date), 'dd/MM/yyyy'),
         `${s.startTime} - ${s.endTime}`,
+        breakInfo,
         formatDuration(duration),
         formatCurrency(duration * job.hourlyRate, job.currency)
       ];
@@ -144,7 +146,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
 
     autoTable(doc, {
       startY: 60,
-      head: [[t.date, t.period, t.totalHours, t.subtotal]],
+      head: [[t.date, t.period, t.break, t.totalHours, t.subtotal]],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: rgb },
@@ -175,42 +177,42 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-stone-200 dark:hover:bg-white/5 rounded-xl transition-colors"
+            className="p-2 hover:bg-stone-200 dark:hover:bg-white/5 rounded-xl transition-colors shrink-0"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-primary-light dark:bg-primary/10 rounded-xl flex items-center justify-center text-primary overflow-hidden">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-10 h-10 bg-primary-light dark:bg-primary/10 rounded-xl flex items-center justify-center text-primary overflow-hidden shrink-0">
               <JobIcon job={job} />
             </div>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight dark:text-white">{job.name}</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">{t.period}</p>
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight dark:text-white truncate">{job.name}</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-xs sm:text-sm">{t.period}</p>
             </div>
             <button
               onClick={() => setIsJobModalOpen(true)}
-              className="p-2 text-stone-400 hover:text-primary transition-colors"
+              className="p-2 text-stone-400 hover:text-primary transition-colors shrink-0"
               title={t.edit}
             >
               <Edit2 className="w-4 h-4" />
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
             onClick={() => setIsPDFModalOpen(true)}
-            className="p-3 bg-stone-100 dark:bg-bg-card-dark text-stone-600 dark:text-stone-400 rounded-2xl hover:bg-stone-200 dark:hover:bg-white/5 transition-all"
+            className="p-2 sm:p-3 bg-stone-100 dark:bg-bg-card-dark text-stone-600 dark:text-stone-400 rounded-xl sm:rounded-2xl hover:bg-stone-200 dark:hover:bg-white/5 transition-all"
             title={t.downloadPDF}
           >
             <FileDown className="w-5 h-5" />
           </button>
           <button
             onClick={handleShare}
-            className="p-3 bg-primary-light dark:bg-primary/10 text-primary rounded-2xl hover:bg-stone-200 dark:hover:bg-white/5 transition-all"
+            className="p-2 sm:p-3 bg-primary-light dark:bg-primary/10 text-primary rounded-xl sm:rounded-2xl hover:bg-stone-200 dark:hover:bg-white/5 transition-all"
             title={t.generateReport}
           >
             <Share2 className="w-5 h-5" />
@@ -219,37 +221,37 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-primary to-primary-hover text-white p-6 rounded-[2rem] shadow-xl shadow-primary-light transform hover:scale-[1.02] transition-transform">
-          <div className="flex items-center gap-2 mb-3 opacity-80">
-            <Calculator className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">{t.totalToReceive}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-gradient-to-br from-primary to-primary-hover text-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl shadow-primary-light transform hover:scale-[1.02] transition-transform">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3 opacity-80">
+            <Calculator className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{t.totalToReceive}</span>
           </div>
-          <div className="text-3xl font-bold tracking-tight">{formatCurrency(totalEarnings, job.currency)}</div>
+          <div className="text-2xl sm:text-3xl font-bold tracking-tight">{formatCurrency(totalEarnings, job.currency)}</div>
         </div>
-        <div className="bg-white dark:bg-bg-card-dark p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
-            <Clock className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">{t.totalHours}</span>
+        <div className="bg-white dark:bg-bg-card-dark p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3 text-stone-400 dark:text-stone-500">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{t.totalHours}</span>
           </div>
-          <div className="text-3xl font-bold text-stone-900 dark:text-white tracking-tight">{formatDuration(totalHours)}</div>
+          <div className="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white tracking-tight">{formatDuration(totalHours)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-bg-card-dark p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
-            <TrendingUp className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">{t.hourlyRate}</span>
+        <div className="bg-white dark:bg-bg-card-dark p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3 text-stone-400 dark:text-stone-500">
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{t.hourlyRate}</span>
           </div>
-          <div className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">{formatCurrency(job.hourlyRate, job.currency)}</div>
+          <div className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight truncate">{formatCurrency(job.hourlyRate, job.currency)}</div>
         </div>
-        <div className="bg-white dark:bg-bg-card-dark p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
-          <div className="flex items-center gap-2 mb-3 text-stone-400 dark:text-stone-500">
-            <Calendar className="w-5 h-5" />
-            <span className="text-xs font-bold uppercase tracking-widest">{t.daysWorked}</span>
+        <div className="bg-white dark:bg-bg-card-dark p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3 text-stone-400 dark:text-stone-500">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{t.daysWorked}</span>
           </div>
-          <div className="text-2xl font-bold text-stone-900 dark:text-white tracking-tight">{sessions.length}</div>
+          <div className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white tracking-tight">{sessions.length}</div>
         </div>
       </div>
 
@@ -277,30 +279,30 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
               <motion.div
                 layout
                 key={session.id}
-                className="bg-white dark:bg-bg-card-dark p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group"
+                className="bg-white dark:bg-bg-card-dark p-4 sm:p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group gap-4"
               >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-stone-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 group-hover:bg-primary-light dark:group-hover:bg-primary/20 group-hover:text-primary transition-colors">
-                    <span className="text-[10px] font-bold uppercase leading-none">
+                <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-stone-50 dark:bg-white/5 rounded-2xl flex flex-col items-center justify-center text-stone-500 dark:text-stone-400 group-hover:bg-primary-light dark:group-hover:bg-primary/20 group-hover:text-primary transition-colors shrink-0">
+                    <span className="text-[8px] sm:text-[10px] font-bold uppercase leading-none">
                       {format(parseISO(session.date), 'MMM', { locale: getLocale() })}
                     </span>
-                    <span className="text-lg font-bold leading-none">
+                    <span className="text-base sm:text-lg font-bold leading-none">
                       {format(parseISO(session.date), 'dd')}
                     </span>
                   </div>
-                  <div>
-                    <div className="font-bold text-stone-900 dark:text-white">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm sm:text-base text-stone-900 dark:text-white truncate">
                       {session.startTime} - {session.endTime}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400">
-                      <span className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 text-[10px] sm:text-xs text-stone-500 dark:text-stone-400">
+                      <span className="flex items-center gap-1 shrink-0">
                         <Clock className="w-3 h-3" />
                         {formatDuration(duration) || '0h'}
                       </span>
                       {session.breakMinutes > 0 && (
                         <button 
                           onClick={(e) => toggleBreakVisibility(e, session.id)}
-                          className={`flex items-center gap-1.5 px-2 py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 ${
+                          className={`flex items-center gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-bold text-[8px] sm:text-[10px] uppercase tracking-wider transition-all active:scale-95 shrink-0 ${
                             session.isBreakPaid 
                               ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400' 
                               : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400'
@@ -312,7 +314,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
                             <motion.span
                               initial={{ opacity: 0, w: 0 }}
                               animate={{ opacity: 1, w: 'auto' }}
-                              className="border-l border-current pl-1.5 ml-0.5"
+                              className="border-l border-current pl-1.5 ml-0.5 hidden sm:inline"
                             >
                               {session.isBreakPaid ? t.paidBreak : t.unpaidBreak}
                             </motion.span>
@@ -324,23 +326,23 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                   <div className="text-right">
-                    <div className="font-bold text-primary">
+                    <div className="font-bold text-sm sm:text-base text-primary">
                       {formatCurrency(duration * job.hourlyRate, job.currency)}
                     </div>
                   </div>
-                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleEditSession(session)}
-                      className="p-2 text-stone-300 dark:text-stone-600 hover:text-primary transition-colors"
+                      className="p-1.5 sm:p-2 text-stone-300 dark:text-stone-600 hover:text-primary transition-colors"
                       title={t.edit}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteSession(session.id)}
-                      className="p-2 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors"
+                      className="p-1.5 sm:p-2 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors"
                       title={t.delete}
                     >
                       <Trash2 className="w-4 h-4" />

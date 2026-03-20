@@ -21,7 +21,8 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
     appName: 'WorkHours',
-    primaryColor: '#000000'
+    primaryColor: '#000000',
+    footerText: 'WorkHours • Professional Edition • 2026'
   });
 
   // Apply dark mode class to html element
@@ -72,7 +73,8 @@ export default function App() {
         const data = snap.data() as any;
         setSettings({
           appName: data.appName || 'WorkHours',
-          primaryColor: data.primaryColor || '#000000'
+          primaryColor: data.primaryColor || '#000000',
+          footerText: data.footerText || 'WorkHours • Professional Edition • 2026'
         });
       }
     });
@@ -192,6 +194,7 @@ export default function App() {
       <Intro 
         onLogin={handleLogin} 
         appName={settings.appName} 
+        footerText={settings.footerText}
         t={t} 
         lang={lang}
         onLanguageChange={setLang}
@@ -203,35 +206,35 @@ export default function App() {
 
   return (
     <div className={cn(
-      "min-h-screen font-sans transition-colors duration-300",
+      "min-h-screen font-sans flex flex-col transition-colors duration-300 custom-scrollbar",
       isDarkMode ? "bg-bg-dark text-stone-100" : "bg-stone-50 text-stone-900"
     )}>
       {/* Header */}
       <header className={cn(
-        "border-bottom sticky top-0 z-10 transition-colors duration-300",
+        "border-bottom sticky top-0 z-50 transition-colors duration-300",
         isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
       )}>
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div 
-            className="flex items-center gap-2 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer shrink-0"
             onClick={() => setCurrentJobId(null)}
           >
-            <Clock className="w-6 h-6 text-primary" />
-            <span className="font-bold text-lg tracking-tight">{settings.appName}</span>
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+            <span className="font-bold text-base sm:text-lg tracking-tight truncate max-w-[120px] sm:max-w-none">{settings.appName}</span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 sm:gap-3">
             <button
               onClick={toggleDarkMode}
               className="p-2 text-stone-400 hover:text-primary transition-colors"
               title={isDarkMode ? "Light Mode" : "Dark Mode"}
             >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
             <button 
               onClick={() => setIsThemeModalOpen(true)}
-              className="p-2 text-stone-400 hover:text-primary transition-colors"
+              className="p-2 text-stone-400 hover:text-primary transition-colors hidden sm:block"
               title={t.theme}
             >
               <Palette className="w-5 h-5" />
@@ -243,14 +246,14 @@ export default function App() {
                 className="p-2 text-stone-400 hover:text-primary transition-colors"
                 title="Admin Settings"
               >
-                <ShieldCheck className="w-5 h-5" />
+                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}
 
             <div className="relative group">
               <button className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1">
-                <Languages className="w-5 h-5" />
-                <span className="text-xs font-bold uppercase">{lang}</span>
+                <Languages className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-[10px] sm:text-xs font-bold uppercase">{lang}</span>
               </button>
               <div className={cn(
                 "absolute right-0 top-full mt-1 rounded-xl shadow-xl border transition-all p-2 min-w-[120px] opacity-0 invisible group-hover:opacity-100 group-hover:visible",
@@ -278,12 +281,12 @@ export default function App() {
                 <img 
                   src={user.photoURL} 
                   alt={user.displayName || ''} 
-                  className="w-8 h-8 rounded-full border border-black/10"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
-                  <UserIcon className="w-4 h-4 text-stone-500" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
+                  <UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500" />
                 </div>
               )}
             </div>
@@ -292,13 +295,13 @@ export default function App() {
               className="p-2 text-stone-400 hover:text-red-500 transition-colors"
               title={t.logout}
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto p-4 pb-24">
+      <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">
         <AnimatePresence mode="wait">
           {!currentJobId ? (
             <motion.div
@@ -341,6 +344,15 @@ export default function App() {
         userId={user.uid}
         t={t}
       />
+
+      <footer className={cn(
+        "py-8 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
+        isDarkMode ? "text-white" : "text-stone-900"
+      )}>
+        {settings.footerText === 'WorkHours • Professional Edition • 2026' 
+          ? `${settings.appName} • ${t.professionalEdition} • 2026` 
+          : settings.footerText}
+      </footer>
     </div>
   );
 }

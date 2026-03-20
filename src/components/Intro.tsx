@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 interface IntroProps {
   onLogin: () => void;
   appName: string;
+  footerText: string;
   t: any;
   lang: Language;
   onLanguageChange: (lang: Language) => void;
@@ -14,37 +15,37 @@ interface IntroProps {
   onThemeToggle: () => void;
 }
 
-export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode, onThemeToggle }: IntroProps) {
+export function Intro({ onLogin, appName, footerText, t, lang, onLanguageChange, isDarkMode, onThemeToggle }: IntroProps) {
   const features = [
     {
       icon: <Clock className="w-6 h-6 text-emerald-500" />,
-      title: "Controle de Tempo",
-      desc: "Registre suas horas de trabalho com precisão cirúrgica.",
+      title: t.feature1Title,
+      desc: t.feature1Desc,
       color: "bg-emerald-500/10"
     },
     {
       icon: <BarChart3 className="w-6 h-6 text-blue-500" />,
-      title: "Ganhos em Tempo Real",
-      desc: "Saiba exatamente quanto você está ganhando a cada minuto.",
+      title: t.feature2Title,
+      desc: t.feature2Desc,
       color: "bg-blue-500/10"
     },
     {
       icon: <Shield className="w-6 h-6 text-purple-500" />,
-      title: "Dados Seguros",
-      desc: "Seus registros estão protegidos e sincronizados na nuvem.",
+      title: t.feature3Title,
+      desc: t.feature3Desc,
       color: "bg-purple-500/10"
     },
     {
       icon: <Zap className="w-6 h-6 text-amber-500" />,
-      title: "Relatórios Instantâneos",
-      desc: "Gere PDFs e relatórios para WhatsApp em segundos.",
+      title: t.feature4Title,
+      desc: t.feature4Desc,
       color: "bg-amber-500/10"
     }
   ];
 
   return (
     <div className={cn(
-      "min-h-screen font-sans overflow-hidden transition-colors duration-500",
+      "min-h-screen font-sans relative flex flex-col transition-colors duration-500 custom-scrollbar",
       isDarkMode ? "bg-bg-dark text-white" : "bg-white text-stone-900"
     )}>
       {/* Background elements */}
@@ -64,8 +65,8 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
       </div>
 
       {/* Top Controls */}
-      <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md p-1 rounded-full border border-white/20 shadow-xl">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1 sm:gap-2 bg-white/10 backdrop-blur-md p-1 rounded-full border border-white/20 shadow-xl">
           {(['pt', 'en', 'es'] as Language[]).map((l) => (
             <button
               key={l}
@@ -90,38 +91,38 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
         </button>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-12 lg:py-24 grid lg:grid-cols-2 gap-16 items-center min-h-screen">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-24 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center flex-1">
         {/* Left Side: Hero Content */}
-        <div className="space-y-8">
+        <div className="space-y-6 lg:space-y-8 text-center lg:text-left">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <div className={cn(
-              "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-8 shadow-sm border",
+              "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-6 lg:mb-8 shadow-sm border mx-auto lg:mx-0",
               isDarkMode ? "bg-bg-card-dark border-white/10 text-emerald-400" : "bg-emerald-50 border-emerald-100 text-emerald-600"
             )}>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              Novo: Relatórios em PDF & WhatsApp
+              {t.newReport}
             </div>
             
             <h1 className={cn(
-              "text-7xl lg:text-9xl font-black tracking-tighter leading-[0.85] mb-8",
+              "text-5xl sm:text-7xl lg:text-9xl font-black tracking-tighter leading-[0.9] lg:leading-[0.85] mb-6 lg:mb-8",
               isDarkMode ? "text-white" : "text-stone-900"
             )}>
-              Domine seu <br />
-              <span className="bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 bg-clip-text text-transparent">Tempo.</span>
+              {t.heroTitle1} <br />
+              <span className="bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 bg-clip-text text-transparent">{t.heroTitle2}</span>
             </h1>
             
             <p className={cn(
-              "text-xl max-w-lg leading-relaxed font-medium",
+              "text-lg sm:text-xl max-w-lg leading-relaxed font-medium mx-auto lg:mx-0",
               isDarkMode ? "text-stone-400" : "text-stone-500"
             )}>
-              A ferramenta definitiva para freelancers e profissionais autônomos que valorizam cada segundo do seu dia.
+              {t.heroSubtitle}
             </p>
           </motion.div>
 
@@ -129,13 +130,13 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col sm:flex-row gap-6"
+            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6"
           >
             <button
               onClick={onLogin}
-              className="group relative inline-flex items-center justify-center gap-4 bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-10 py-6 rounded-[2rem] font-black text-xl transition-all hover:scale-[1.05] active:scale-[0.98] shadow-[0_20px_50px_rgba(16,185,129,0.3)]"
+              className="w-full sm:w-auto group relative inline-flex items-center justify-center gap-4 bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-8 lg:px-10 py-5 lg:py-6 rounded-[1.5rem] lg:rounded-[2rem] font-black text-lg lg:text-xl transition-all hover:scale-[1.05] active:scale-[0.98] shadow-[0_20px_50px_rgba(16,185,129,0.3)]"
             >
-              <LogIn className="w-7 h-7 transition-transform group-hover:translate-x-1" />
+              <LogIn className="w-6 h-6 lg:w-7 lg:h-7 transition-transform group-hover:translate-x-1" />
               {t.loginGoogle}
             </button>
             
@@ -152,8 +153,8 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
                 ))}
               </div>
               <div className="flex flex-col">
-                <span className={cn("text-sm font-black", isDarkMode ? "text-white" : "text-stone-900")}>+2.5k Ativos</span>
-                <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">Usuários Reais</span>
+                <span className={cn("text-sm font-black", isDarkMode ? "text-white" : "text-stone-900")}>{t.activeUsers}</span>
+                <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{t.realUsers}</span>
               </div>
             </div>
           </motion.div>
@@ -163,23 +164,23 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
             className={cn(
-              "grid grid-cols-2 gap-12 pt-10 border-t",
+              "grid grid-cols-2 gap-8 lg:gap-12 pt-10 border-t",
               isDarkMode ? "border-stone-800" : "border-stone-100"
             )}
           >
             <div>
-              <div className="text-4xl font-black text-emerald-500">100%</div>
-              <div className="text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">Gratuito</div>
+              <div className="text-3xl lg:text-4xl font-black text-emerald-500">100%</div>
+              <div className="text-[10px] lg:text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">{t.free}</div>
             </div>
             <div>
-              <div className="text-4xl font-black text-blue-500">Cloud</div>
-              <div className="text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">Sincronizado</div>
+              <div className="text-3xl lg:text-4xl font-black text-blue-500">Cloud</div>
+              <div className="text-[10px] lg:text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">{t.synced}</div>
             </div>
           </motion.div>
         </div>
 
         {/* Right Side: Visual/Features */}
-        <div className="relative lg:pl-10">
+        <div className="relative lg:pl-10 pb-20 lg:pb-0">
           <div className={cn(
             "absolute inset-0 bg-gradient-to-tr from-emerald-500/20 to-blue-500/20 blur-[100px] rounded-full",
             isDarkMode ? "opacity-30" : "opacity-50"
@@ -235,7 +236,7 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
               ease: "easeInOut"
             }}
             className={cn(
-              "absolute -top-12 -right-6 p-8 rounded-[2.5rem] shadow-2xl border hidden lg:block z-20",
+              "absolute -top-24 -right-12 p-8 rounded-[2.5rem] shadow-2xl border hidden lg:block z-20",
               isDarkMode ? "bg-bg-card-dark border-white/10" : "bg-white border-stone-100"
             )}
           >
@@ -244,8 +245,8 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
                 <CheckCircle2 className="w-7 h-7 text-emerald-500" />
               </div>
               <div>
-                <div className="text-lg font-black tracking-tight">Produtividade</div>
-                <div className="text-xs text-emerald-500 font-bold uppercase tracking-widest">+32% este mês</div>
+                <div className="text-lg font-black tracking-tight">{t.productivity}</div>
+                <div className="text-xs text-emerald-500 font-bold uppercase tracking-widest">{t.thisMonth}</div>
               </div>
             </div>
           </motion.div>
@@ -254,10 +255,12 @@ export function Intro({ onLogin, appName, t, lang, onLanguageChange, isDarkMode,
 
       {/* Footer */}
       <footer className={cn(
-        "absolute bottom-8 left-0 w-full text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
+        "relative py-12 lg:absolute lg:bottom-8 left-0 w-full text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 z-20",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>
-        {appName} &bull; Professional Edition &bull; 2026
+        {footerText === 'WorkHours • Professional Edition • 2026' 
+          ? `${appName} • ${t.professionalEdition} • 2026` 
+          : footerText}
       </footer>
     </div>
   );
