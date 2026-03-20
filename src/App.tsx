@@ -20,9 +20,9 @@ export default function App() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
-    appName: 'WorkHours',
+    appName: 'Work Hours',
     primaryColor: '#000000',
-    footerText: 'WorkHours • Professional Edition • 2026'
+    footerText: 'Work Hours • Professional Edition • 2026'
   });
 
   // Apply dark mode class to html element

@@ -258,7 +258,7 @@ export function Intro({ onLogin, appName, footerText, t, lang, onLanguageChange,
         "relative py-12 lg:absolute lg:bottom-8 left-0 w-full text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 z-20",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>
-        {footerText === 'WorkHours • Professional Edition • 2026' 
+        {footerText === 'Work Hours • Professional Edition • 2026' 
           ? `${appName} • ${t.professionalEdition} • 2026` 
           : footerText}
       </footer>
