@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogIn, Clock, CheckCircle2, BarChart3, Shield, Zap, Moon, Sun, Languages } from 'lucide-react';
+import { LogIn, Clock, CheckCircle2, BarChart3, Shield, Zap, Moon, Sun, Languages, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Language } from '../lib/i18n';
 import { cn } from '../lib/utils';
@@ -13,9 +13,22 @@ interface IntroProps {
   onLanguageChange: (lang: Language) => void;
   isDarkMode: boolean;
   onThemeToggle: () => void;
+  loginLoading?: boolean;
+  loginError?: string | null;
 }
 
-export function Intro({ onLogin, appName, footerText, t, lang, onLanguageChange, isDarkMode, onThemeToggle }: IntroProps) {
+export function Intro({ 
+  onLogin, 
+  appName, 
+  footerText, 
+  t, 
+  lang, 
+  onLanguageChange, 
+  isDarkMode, 
+  onThemeToggle,
+  loginLoading = false,
+  loginError = null
+}: IntroProps) {
   const features = [
     {
       icon: <Clock className="w-6 h-6 text-emerald-500" />,
@@ -133,12 +146,36 @@ export function Intro({ onLogin, appName, footerText, t, lang, onLanguageChange,
             className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6"
           >
             <button
-              onClick={onLogin}
-              className="w-full sm:w-auto group relative inline-flex items-center justify-center gap-4 bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-8 lg:px-10 py-5 lg:py-6 rounded-[1.5rem] lg:rounded-[2rem] font-black text-lg lg:text-xl transition-all hover:scale-[1.05] active:scale-[0.98] shadow-[0_20px_50px_rgba(16,185,129,0.3)]"
+              type="button"
+              disabled={loginLoading}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Login button clicked");
+                onLogin();
+              }}
+              className={cn(
+                "w-full sm:w-auto group relative inline-flex items-center justify-center gap-4 bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-8 lg:px-10 py-5 lg:py-6 rounded-[1.5rem] lg:rounded-[2rem] font-black text-lg lg:text-xl transition-all hover:scale-[1.05] active:scale-[0.98] shadow-[0_20px_50px_rgba(16,185,129,0.3)] cursor-pointer z-40",
+                loginLoading && "opacity-70 cursor-not-allowed"
+              )}
             >
-              <LogIn className="w-6 h-6 lg:w-7 lg:h-7 transition-transform group-hover:translate-x-1" />
-              {t.loginGoogle}
+              {loginLoading ? (
+                <Loader2 className="w-6 h-6 lg:w-7 lg:h-7 animate-spin" />
+              ) : (
+                <LogIn className="w-6 h-6 lg:w-7 lg:h-7 transition-transform group-hover:translate-x-1" />
+              )}
+              {loginLoading ? "Entrando..." : t.loginGoogle}
             </button>
+
+            {loginError && (
+              <motion.p 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-red-500 text-sm font-medium mt-2 text-center lg:text-left"
+              >
+                {loginError}
+              </motion.p>
+            )}
             
             <div className="flex items-center gap-4 px-2">
               <div className="flex -space-x-3">
@@ -255,7 +292,7 @@ export function Intro({ onLogin, appName, footerText, t, lang, onLanguageChange,
 
       {/* Footer */}
       <footer className={cn(
-        "relative pt-96 pb-12 lg:absolute lg:bottom-8 left-0 w-full text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 z-20",
+        "mt-auto py-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 z-10 select-none pointer-events-none",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>
         {footerText.replace(/WORKHOURS/gi, 'SHIFTHOURS')}

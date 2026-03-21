@@ -84,7 +84,7 @@ export const translations = {
     withoutBreak: "Sem Pausa"
   },
   en: {
-    appName: "Shift Hours Calculator",
+    appName: "Shift Hours",
     welcome: "Welcome",
     loginGoogle: "Sign in with Google",
     logout: "Logout",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
+import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
 import { JobView } from './components/JobView';
@@ -14,6 +14,8 @@ import { translations, Language } from './lib/i18n';
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -158,10 +160,33 @@ export default function App() {
   };
 
   const handleLogin = async () => {
+    console.log("handleLogin called");
+    setLoginLoading(true);
+    setLoginError(null);
     try {
+      // Try popup first
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Login error:", error);
+      console.log("Login successful with popup");
+    } catch (error: any) {
+      console.error("Login popup error:", error);
+      // If popup is blocked or fails, try redirect as fallback
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        try {
+          console.log("Attempting redirect login...");
+          // Note: signInWithRedirect might not work perfectly in all iframe environments,
+          // but it's a good fallback to try.
+          await signInWithRedirect(auth, googleProvider);
+        } catch (redirectError: any) {
+          console.error("Login redirect error:", redirectError);
+          setLoginError("O login foi bloqueado pelo navegador. Por favor, permita popups ou tente novamente.");
+        }
+      } else {
+        setLoginError(error.message || "Erro ao entrar com Google");
+      }
+    } finally {
+      // Don't set loading to false if we're redirecting, as the page will reload
+      // But for popup it's fine.
+      setLoginLoading(false);
     }
   };
 
@@ -200,6 +225,8 @@ export default function App() {
         onLanguageChange={setLang}
         isDarkMode={isDarkMode}
         onThemeToggle={toggleDarkMode}
+        loginLoading={loginLoading}
+        loginError={loginError}
       />
     );
   }
