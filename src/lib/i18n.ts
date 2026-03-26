@@ -122,7 +122,18 @@ export const translations = {
     linkCopied: "Link da fatura copiado! Pode colar no WhatsApp.",
     linkError: "Erro ao gerar link de partilha. Tente novamente.",
     internalName: "Identificação Interna",
-    internalNamePlaceholder: "Ex: Cliente X - Março (Apenas para organização)"
+    internalNamePlaceholder: "Ex: Cliente X - Março (Apenas para organização)",
+    templates: "Templates",
+    customStyles: "Estilos Personalizados",
+    backgroundColor: "Cor de Fundo",
+    textColor: "Cor do Texto",
+    bold: "Negrito",
+    italic: "Itálico",
+    title: "Título",
+    labels: "Etiquetas",
+    content: "Conteúdo",
+    tableHeader: "Cabeçalho da Tabela",
+    tableBody: "Corpo da Tabela"
   },
   en: {
     appName: "Shift Hours",
@@ -247,7 +258,18 @@ export const translations = {
     linkCopied: "Invoice link copied! You can paste it in WhatsApp.",
     linkError: "Error generating sharing link. Try again.",
     internalName: "Internal Identification",
-    internalNamePlaceholder: "e.g., Client X - March (Internal only)"
+    internalNamePlaceholder: "e.g., Client X - March (Internal only)",
+    templates: "Templates",
+    customStyles: "Custom Styles",
+    backgroundColor: "Background Color",
+    textColor: "Text Color",
+    bold: "Bold",
+    italic: "Italic",
+    title: "Title",
+    labels: "Labels",
+    content: "Content",
+    tableHeader: "Table Header",
+    tableBody: "Table Body"
   },
   es: {
     appName: "Shift Hours",
@@ -372,7 +394,18 @@ export const translations = {
     linkCopied: "¡Enlace de factura copiado! Puedes pegarlo en WhatsApp.",
     linkError: "Error al generar el enlace de compartición. Inténtalo de novo.",
     internalName: "Identificación Interna",
-    internalNamePlaceholder: "Ej: Cliente X - Marzo (Solo para organización)"
+    internalNamePlaceholder: "Ej: Cliente X - Marzo (Solo para organización)",
+    templates: "Plantillas",
+    customStyles: "Estilos Personalizados",
+    backgroundColor: "Color de Fondo",
+    textColor: "Color del Texto",
+    bold: "Negrita",
+    italic: "Itálica",
+    title: "Título",
+    labels: "Etiquetas",
+    content: "Contenido",
+    tableHeader: "Encabezado de Tabla",
+    tableBody: "Cuerpo de Tabla"
   }
 };
 

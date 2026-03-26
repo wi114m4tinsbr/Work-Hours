@@ -47,11 +47,131 @@ interface InvoiceItem {
   unitPrice: number;
 }
 
+interface TextStyle {
+  color: string;
+  bold: boolean;
+  italic: boolean;
+  fontSize: number;
+}
+
 interface InvoiceStyles {
   font: string;
   primaryColor: string;
-  fontSize: number;
+  backgroundColor: string;
+  titleStyle: TextStyle;
+  labelStyle: TextStyle;
+  contentStyle: TextStyle;
+  tableHeaderStyle: TextStyle;
+  tableBodyStyle: TextStyle;
+  totalStyle: TextStyle;
+  template: string;
 }
+
+const DEFAULT_TEXT_STYLE: TextStyle = {
+  color: '#000000',
+  bold: false,
+  italic: false,
+  fontSize: 10
+};
+
+const TEMPLATES = [
+  {
+    id: 'modern',
+    name: 'Modern',
+    styles: {
+      font: 'helvetica',
+      primaryColor: '#3b82f6',
+      backgroundColor: '#ffffff',
+      titleStyle: { ...DEFAULT_TEXT_STYLE, color: '#3b82f6', fontSize: 20, bold: true },
+      labelStyle: { ...DEFAULT_TEXT_STYLE, color: '#6b7280', fontSize: 9, bold: true },
+      contentStyle: { ...DEFAULT_TEXT_STYLE, color: '#111827', fontSize: 10 },
+      tableHeaderStyle: { ...DEFAULT_TEXT_STYLE, color: '#ffffff', fontSize: 10, bold: true },
+      tableBodyStyle: { ...DEFAULT_TEXT_STYLE, color: '#111827', fontSize: 10 },
+      totalStyle: { ...DEFAULT_TEXT_STYLE, color: '#111827', fontSize: 12, bold: true },
+      template: 'modern'
+    }
+  },
+  {
+    id: 'classic',
+    name: 'Classic',
+    styles: {
+      font: 'times',
+      primaryColor: '#1f2937',
+      backgroundColor: '#ffffff',
+      titleStyle: { ...DEFAULT_TEXT_STYLE, color: '#1f2937', fontSize: 24, bold: true, italic: true },
+      labelStyle: { ...DEFAULT_TEXT_STYLE, color: '#374151', fontSize: 10, bold: true },
+      contentStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 11 },
+      tableHeaderStyle: { ...DEFAULT_TEXT_STYLE, color: '#ffffff', fontSize: 11, bold: true },
+      tableBodyStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 11 },
+      totalStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 14, bold: true },
+      template: 'classic'
+    }
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    styles: {
+      font: 'helvetica',
+      primaryColor: '#000000',
+      backgroundColor: '#ffffff',
+      titleStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 18, bold: false },
+      labelStyle: { ...DEFAULT_TEXT_STYLE, color: '#9ca3af', fontSize: 8, bold: false },
+      contentStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 9 },
+      tableHeaderStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 9, bold: true },
+      tableBodyStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 9 },
+      totalStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 11, bold: true },
+      template: 'minimal'
+    }
+  },
+  {
+    id: 'bold',
+    name: 'Bold',
+    styles: {
+      font: 'helvetica',
+      primaryColor: '#ef4444',
+      backgroundColor: '#fef2f2',
+      titleStyle: { ...DEFAULT_TEXT_STYLE, color: '#ef4444', fontSize: 28, bold: true },
+      labelStyle: { ...DEFAULT_TEXT_STYLE, color: '#7f1d1d', fontSize: 10, bold: true },
+      contentStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 11, bold: true },
+      tableHeaderStyle: { ...DEFAULT_TEXT_STYLE, color: '#ffffff', fontSize: 11, bold: true },
+      tableBodyStyle: { ...DEFAULT_TEXT_STYLE, color: '#000000', fontSize: 11 },
+      totalStyle: { ...DEFAULT_TEXT_STYLE, color: '#ef4444', fontSize: 16, bold: true },
+      template: 'bold'
+    }
+  },
+  {
+    id: 'elegant',
+    name: 'Elegant',
+    styles: {
+      font: 'times',
+      primaryColor: '#854d0e',
+      backgroundColor: '#fffbeb',
+      titleStyle: { ...DEFAULT_TEXT_STYLE, color: '#854d0e', fontSize: 22, bold: true, italic: true },
+      labelStyle: { ...DEFAULT_TEXT_STYLE, color: '#92400e', fontSize: 9, italic: true },
+      contentStyle: { ...DEFAULT_TEXT_STYLE, color: '#451a03', fontSize: 10 },
+      tableHeaderStyle: { ...DEFAULT_TEXT_STYLE, color: '#ffffff', fontSize: 10, bold: true },
+      tableBodyStyle: { ...DEFAULT_TEXT_STYLE, color: '#451a03', fontSize: 10 },
+      totalStyle: { ...DEFAULT_TEXT_STYLE, color: '#854d0e', fontSize: 13, bold: true },
+      template: 'elegant'
+    }
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    styles: {
+      font: 'helvetica',
+      primaryColor: '#1e3a8a',
+      backgroundColor: '#f8fafc',
+      titleStyle: { ...DEFAULT_TEXT_STYLE, color: '#1e3a8a', fontSize: 20, bold: true },
+      labelStyle: { ...DEFAULT_TEXT_STYLE, color: '#475569', fontSize: 9, bold: true },
+      contentStyle: { ...DEFAULT_TEXT_STYLE, color: '#0f172a', fontSize: 10 },
+      tableHeaderStyle: { ...DEFAULT_TEXT_STYLE, color: '#ffffff', fontSize: 10, bold: true },
+      tableBodyStyle: { ...DEFAULT_TEXT_STYLE, color: '#0f172a', fontSize: 10 },
+      totalStyle: { ...DEFAULT_TEXT_STYLE, color: '#1e3a8a', fontSize: 12, bold: true },
+      template: 'professional'
+    }
+  }
+];
 
 interface InvoiceCreatorProps {
   language: Language;
@@ -74,11 +194,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     { id: '1', description: '', quantity: 1, unitPrice: 0 }
   ]);
   
-  const [styles, setStyles] = useState<InvoiceStyles>({
-    font: 'helvetica',
-    primaryColor: '#3b82f6',
-    fontSize: 10
-  });
+  const [styles, setStyles] = useState<InvoiceStyles>(TEMPLATES[0].styles);
 
   const [labels, setLabels] = useState({
     invoice: t.invoice,
@@ -181,33 +297,52 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
   const generatePDF = async (action: 'download' | 'share' = 'download') => {
     const doc = new jsPDF();
     
-    // Set font
-    doc.setFont(styles.font);
+    const setTextStyle = (style: TextStyle) => {
+      doc.setTextColor(style.color);
+      doc.setFontSize(style.fontSize);
+      let fontType = 'normal';
+      if (style.bold && style.italic) fontType = 'bolditalic';
+      else if (style.bold) fontType = 'bold';
+      else if (style.italic) fontType = 'italic';
+      doc.setFont(styles.font, fontType);
+    };
+
+    // Background Color
+    if (styles.backgroundColor && styles.backgroundColor !== '#ffffff') {
+      doc.setFillColor(styles.backgroundColor);
+      doc.rect(0, 0, 210, 297, 'F');
+    }
     
     // Header
-    doc.setFontSize(20);
-    doc.setTextColor(styles.primaryColor);
+    setTextStyle(styles.titleStyle);
     doc.text(labels.invoice.toUpperCase(), 105, 20, { align: 'center' });
     
-    doc.setFontSize(styles.fontSize);
-    doc.setTextColor(0, 0, 0);
-    
     // Issuer & Receiver
+    setTextStyle(styles.labelStyle);
     doc.text(`${labels.issuer}:`, 20, 40);
+    doc.text(`${labels.receiver}:`, 120, 40);
+
+    setTextStyle(styles.contentStyle);
     doc.text(issuer.name, 20, 45);
     doc.text(issuer.taxId, 20, 50);
     doc.text(issuer.address, 20, 55);
     
-    doc.text(`${labels.receiver}:`, 120, 40);
     doc.text(receiver.name, 120, 45);
     doc.text(receiver.taxId, 120, 50);
     doc.text(receiver.address, 120, 55);
     
     // Details
-    doc.text(`${labels.invoiceNumber}: ${invoiceNumber}`, 20, 75);
-    doc.text(`${labels.date}: ${date}`, 20, 80);
-    if (dueDate) doc.text(`${labels.dueDate}: ${dueDate}`, 20, 85);
-    if (orderNumber) doc.text(`${labels.orderNumber}: ${orderNumber}`, 20, 90);
+    setTextStyle(styles.labelStyle);
+    doc.text(`${labels.invoiceNumber}:`, 20, 75);
+    doc.text(`${labels.date}:`, 20, 80);
+    if (dueDate) doc.text(`${labels.dueDate}:`, 20, 85);
+    if (orderNumber) doc.text(`${labels.orderNumber}:`, 20, 90);
+
+    setTextStyle(styles.contentStyle);
+    doc.text(invoiceNumber, 60, 75);
+    doc.text(date, 60, 80);
+    if (dueDate) doc.text(dueDate, 60, 85);
+    if (orderNumber) doc.text(orderNumber, 60, 90);
     
     // Table
     const tableData = items.map(item => [
@@ -221,13 +356,27 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
       startY: 100,
       head: [[labels.description, labels.quantity, labels.unitPrice, labels.total]],
       body: tableData,
-      headStyles: { fillColor: styles.primaryColor },
+      headStyles: { 
+        fillColor: styles.primaryColor,
+        textColor: styles.tableHeaderStyle.color,
+        fontSize: styles.tableHeaderStyle.fontSize,
+        fontStyle: styles.tableHeaderStyle.bold && styles.tableHeaderStyle.italic ? 'bolditalic' : 
+                   styles.tableHeaderStyle.bold ? 'bold' : 
+                   styles.tableHeaderStyle.italic ? 'italic' : 'normal'
+      },
+      bodyStyles: {
+        textColor: styles.tableBodyStyle.color,
+        fontSize: styles.tableBodyStyle.fontSize,
+        fontStyle: styles.tableBodyStyle.bold && styles.tableBodyStyle.italic ? 'bolditalic' : 
+                   styles.tableBodyStyle.bold ? 'bold' : 
+                   styles.tableBodyStyle.italic ? 'italic' : 'normal'
+      },
       theme: 'grid'
     });
     
     // Footer
     const finalY = (doc as any).lastAutoTable.finalY + 10;
-    doc.setFontSize(12);
+    setTextStyle(styles.totalStyle);
     doc.text(`${labels.total}: ${total.toFixed(2)} €`, 190, finalY, { align: 'right' });
     
     const safeInvoiceNumber = invoiceNumber.replace(/[/\\?%*:|"<>]/g, '-');
@@ -308,6 +457,38 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
         }
       }
     }
+  };
+
+  const getSafeStyles = (savedStyles: any): InvoiceStyles => {
+    const defaultStyles = TEMPLATES[0].styles;
+    if (!savedStyles) return defaultStyles;
+
+    // If it's the old format (flat object with color, font, fontSize)
+    if (savedStyles.color && !savedStyles.titleStyle) {
+      return {
+        ...defaultStyles,
+        primaryColor: savedStyles.color,
+        font: savedStyles.font || defaultStyles.font,
+        titleStyle: { ...defaultStyles.titleStyle, color: savedStyles.color },
+        labelStyle: { ...defaultStyles.labelStyle, fontSize: savedStyles.fontSize || 9 },
+        contentStyle: { ...defaultStyles.contentStyle, fontSize: savedStyles.fontSize || 10 },
+        tableHeaderStyle: { ...defaultStyles.tableHeaderStyle, fontSize: savedStyles.fontSize || 10 },
+        tableBodyStyle: { ...defaultStyles.tableBodyStyle, fontSize: savedStyles.fontSize || 10 },
+        totalStyle: { ...defaultStyles.totalStyle, fontSize: (savedStyles.fontSize || 10) + 2 },
+      };
+    }
+
+    // If it's the new format, ensure all properties exist
+    return {
+      ...defaultStyles,
+      ...savedStyles,
+      titleStyle: { ...defaultStyles.titleStyle, ...savedStyles.titleStyle },
+      labelStyle: { ...defaultStyles.labelStyle, ...savedStyles.labelStyle },
+      contentStyle: { ...defaultStyles.contentStyle, ...savedStyles.contentStyle },
+      tableHeaderStyle: { ...defaultStyles.tableHeaderStyle, ...savedStyles.tableHeaderStyle },
+      tableBodyStyle: { ...defaultStyles.tableBodyStyle, ...savedStyles.tableBodyStyle },
+      totalStyle: { ...defaultStyles.totalStyle, ...savedStyles.totalStyle },
+    };
   };
 
   const handleSaveInvoice = async () => {
@@ -652,7 +833,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                               setIssuer(inv.issuer);
                               setReceiver(inv.receiver);
                               setItems(inv.items.map((it: any, idx: number) => ({ id: idx.toString(), ...it })));
-                              setStyles(inv.styles || styles);
+                              setStyles(getSafeStyles(inv.styles));
                               setEditingId(inv.id);
                               setShowList(false);
                             }}
@@ -726,7 +907,10 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Editor */}
                 <div className="lg:col-span-2 space-y-6">
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div 
+                    className="rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                    style={{ backgroundColor: styles.backgroundColor }}
+                  >
                     <div className="p-8 space-y-8">
                       {/* Invoice Header */}
                       <div className="flex flex-col md:flex-row justify-between gap-8">
@@ -734,34 +918,73 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                           <input 
                             value={labels.invoice}
                             onChange={(e) => setLabels({ ...labels, invoice: e.target.value })}
-                            className="text-3xl font-bold uppercase tracking-wider bg-transparent border-none focus:ring-0 w-full p-0"
-                            style={{ color: styles.primaryColor }}
+                            className={cn(
+                              "text-3xl uppercase tracking-wider bg-transparent border-none focus:ring-0 w-full p-0",
+                              styles.titleStyle.bold && "font-bold",
+                              styles.titleStyle.italic && "italic"
+                            )}
+                            style={{ 
+                              color: styles.titleStyle.color,
+                              fontSize: `${styles.titleStyle.fontSize * 2}px` // Scale for UI
+                            }}
                           />
                           <div className="grid grid-cols-1 gap-2">
                             <div className="flex items-center gap-2">
                               <input 
                                 value={labels.invoiceNumber}
                                 onChange={(e) => setLabels({ ...labels, invoiceNumber: e.target.value })}
-                                className="text-sm font-semibold text-gray-500 w-24 bg-transparent border-none focus:ring-0 p-0"
+                                className={cn(
+                                  "w-24 bg-transparent border-none focus:ring-0 p-0",
+                                  styles.labelStyle.bold && "font-bold",
+                                  styles.labelStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.labelStyle.color,
+                                  fontSize: `${styles.labelStyle.fontSize}px`
+                                }}
                               />
                               <input 
                                 type="text" 
                                 value={invoiceNumber}
                                 onChange={(e) => setInvoiceNumber(e.target.value)}
-                                className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
+                                className={cn(
+                                  "flex-1 bg-black/5 border-none rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500",
+                                  styles.contentStyle.bold && "font-bold",
+                                  styles.contentStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.contentStyle.color,
+                                  fontSize: `${styles.contentStyle.fontSize}px`
+                                }}
                               />
                             </div>
                             <div className="flex items-center gap-2">
                               <input 
                                 value={labels.orderNumber}
                                 onChange={(e) => setLabels({ ...labels, orderNumber: e.target.value })}
-                                className="text-sm font-semibold text-gray-500 w-24 bg-transparent border-none focus:ring-0 p-0"
+                                className={cn(
+                                  "w-24 bg-transparent border-none focus:ring-0 p-0",
+                                  styles.labelStyle.bold && "font-bold",
+                                  styles.labelStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.labelStyle.color,
+                                  fontSize: `${styles.labelStyle.fontSize}px`
+                                }}
                               />
                               <input 
                                 type="text" 
                                 value={orderNumber}
                                 onChange={(e) => setOrderNumber(e.target.value)}
-                                className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
+                                className={cn(
+                                  "flex-1 bg-black/5 border-none rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500",
+                                  styles.contentStyle.bold && "font-bold",
+                                  styles.contentStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.contentStyle.color,
+                                  fontSize: `${styles.contentStyle.fontSize}px`
+                                }}
                               />
                             </div>
                           </div>
@@ -773,26 +996,58 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                               <input 
                                 value={labels.date}
                                 onChange={(e) => setLabels({ ...labels, date: e.target.value })}
-                                className="text-sm font-semibold text-gray-500 w-24 bg-transparent border-none focus:ring-0 p-0"
+                                className={cn(
+                                  "w-24 bg-transparent border-none focus:ring-0 p-0",
+                                  styles.labelStyle.bold && "font-bold",
+                                  styles.labelStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.labelStyle.color,
+                                  fontSize: `${styles.labelStyle.fontSize}px`
+                                }}
                               />
                               <input 
                                 type="date" 
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
+                                className={cn(
+                                  "flex-1 bg-black/5 border-none rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500",
+                                  styles.contentStyle.bold && "font-bold",
+                                  styles.contentStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.contentStyle.color,
+                                  fontSize: `${styles.contentStyle.fontSize}px`
+                                }}
                               />
                             </div>
                             <div className="flex items-center gap-2">
                               <input 
                                 value={labels.dueDate}
                                 onChange={(e) => setLabels({ ...labels, dueDate: e.target.value })}
-                                className="text-sm font-semibold text-gray-500 w-24 bg-transparent border-none focus:ring-0 p-0"
+                                className={cn(
+                                  "w-24 bg-transparent border-none focus:ring-0 p-0",
+                                  styles.labelStyle.bold && "font-bold",
+                                  styles.labelStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.labelStyle.color,
+                                  fontSize: `${styles.labelStyle.fontSize}px`
+                                }}
                               />
                               <input 
                                 type="date" 
                                 value={dueDate}
                                 onChange={(e) => setDueDate(e.target.value)}
-                                className="flex-1 bg-gray-50 border-none rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
+                                className={cn(
+                                  "flex-1 bg-black/5 border-none rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500",
+                                  styles.contentStyle.bold && "font-bold",
+                                  styles.contentStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.contentStyle.color,
+                                  fontSize: `${styles.contentStyle.fontSize}px`
+                                }}
                               />
                             </div>
                           </div>
@@ -807,26 +1062,58 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                           <input 
                             value={labels.issuer}
                             onChange={(e) => setLabels({ ...labels, issuer: e.target.value })}
-                            className="text-sm font-bold text-gray-400 uppercase tracking-widest bg-transparent border-none focus:ring-0 p-0"
+                            className={cn(
+                              "uppercase tracking-widest bg-transparent border-none focus:ring-0 p-0 w-full",
+                              styles.labelStyle.bold && "font-bold",
+                              styles.labelStyle.italic && "italic"
+                            )}
+                            style={{ 
+                              color: styles.labelStyle.color,
+                              fontSize: `${styles.labelStyle.fontSize}px`
+                            }}
                           />
                           <div className="space-y-2">
                             <input 
                               placeholder="Nome / Empresa"
                               value={issuer.name}
                               onChange={(e) => setIssuer({ ...issuer, name: e.target.value })}
-                              className="w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 font-semibold text-lg outline-none"
+                              className={cn(
+                                "w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 outline-none",
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize * 1.2}px`
+                              }}
                             />
                             <input 
                               placeholder="NIF / Tax ID"
                               value={issuer.taxId}
                               onChange={(e) => setIssuer({ ...issuer, taxId: e.target.value })}
-                              className="w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 text-sm outline-none"
+                              className={cn(
+                                "w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 outline-none",
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize}px`
+                              }}
                             />
                             <textarea 
                               placeholder="Morada"
                               value={issuer.address}
                               onChange={(e) => setIssuer({ ...issuer, address: e.target.value })}
-                              className="w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 text-sm outline-none resize-none"
+                              className={cn(
+                                "w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 outline-none resize-none",
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize}px`
+                              }}
                               rows={2}
                             />
                           </div>
@@ -836,26 +1123,58 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                           <input 
                             value={labels.receiver}
                             onChange={(e) => setLabels({ ...labels, receiver: e.target.value })}
-                            className="text-sm font-bold text-gray-400 uppercase tracking-widest bg-transparent border-none focus:ring-0 p-0"
+                            className={cn(
+                              "uppercase tracking-widest bg-transparent border-none focus:ring-0 p-0 w-full",
+                              styles.labelStyle.bold && "font-bold",
+                              styles.labelStyle.italic && "italic"
+                            )}
+                            style={{ 
+                              color: styles.labelStyle.color,
+                              fontSize: `${styles.labelStyle.fontSize}px`
+                            }}
                           />
                           <div className="space-y-2">
                             <input 
                               placeholder="Nome do Cliente"
                               value={receiver.name}
                               onChange={(e) => setReceiver({ ...receiver, name: e.target.value })}
-                              className="w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 font-semibold text-lg outline-none"
+                              className={cn(
+                                "w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 outline-none",
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize * 1.2}px`
+                              }}
                             />
                             <input 
                               placeholder="NIF / Tax ID"
                               value={receiver.taxId}
                               onChange={(e) => setReceiver({ ...receiver, taxId: e.target.value })}
-                              className="w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 text-sm outline-none"
+                              className={cn(
+                                "w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 outline-none",
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize}px`
+                              }}
                             />
                             <textarea 
                               placeholder="Morada do Cliente"
                               value={receiver.address}
                               onChange={(e) => setReceiver({ ...receiver, address: e.target.value })}
-                              className="w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 text-sm outline-none resize-none"
+                              className={cn(
+                                "w-full bg-transparent border-b border-gray-100 focus:border-blue-500 py-1 outline-none resize-none",
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize}px`
+                              }}
                               rows={2}
                             />
                           </div>
@@ -864,33 +1183,68 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
 
                       {/* Items Table */}
                       <div className="space-y-4">
-                        <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-gray-50 rounded-lg text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <div 
+                          className="grid grid-cols-12 gap-4 px-4 py-2 rounded-lg uppercase tracking-wider"
+                          style={{ backgroundColor: styles.tableHeaderStyle.color + '10' }} // Light version of header color
+                        >
                           <div className="col-span-6">
                             <input 
                               value={labels.description}
                               onChange={(e) => setLabels({ ...labels, description: e.target.value })}
-                              className="bg-transparent border-none focus:ring-0 p-0 w-full text-xs font-bold text-gray-500 uppercase"
+                              className={cn(
+                                "bg-transparent border-none focus:ring-0 p-0 w-full uppercase",
+                                styles.tableHeaderStyle.bold && "font-bold",
+                                styles.tableHeaderStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.tableHeaderStyle.color,
+                                fontSize: `${styles.tableHeaderStyle.fontSize}px`
+                              }}
                             />
                           </div>
                           <div className="col-span-2 text-center">
                             <input 
                               value={labels.quantity}
                               onChange={(e) => setLabels({ ...labels, quantity: e.target.value })}
-                              className="bg-transparent border-none focus:ring-0 p-0 w-full text-xs font-bold text-gray-500 uppercase text-center"
+                              className={cn(
+                                "bg-transparent border-none focus:ring-0 p-0 w-full uppercase text-center",
+                                styles.tableHeaderStyle.bold && "font-bold",
+                                styles.tableHeaderStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.tableHeaderStyle.color,
+                                fontSize: `${styles.tableHeaderStyle.fontSize}px`
+                              }}
                             />
                           </div>
                           <div className="col-span-2 text-right">
                             <input 
                               value={labels.unitPrice}
                               onChange={(e) => setLabels({ ...labels, unitPrice: e.target.value })}
-                              className="bg-transparent border-none focus:ring-0 p-0 w-full text-xs font-bold text-gray-500 uppercase text-right"
+                              className={cn(
+                                "bg-transparent border-none focus:ring-0 p-0 w-full uppercase text-right",
+                                styles.tableHeaderStyle.bold && "font-bold",
+                                styles.tableHeaderStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.tableHeaderStyle.color,
+                                fontSize: `${styles.tableHeaderStyle.fontSize}px`
+                              }}
                             />
                           </div>
                           <div className="col-span-2 text-right">
                             <input 
                               value={labels.total}
                               onChange={(e) => setLabels({ ...labels, total: e.target.value })}
-                              className="bg-transparent border-none focus:ring-0 p-0 w-full text-xs font-bold text-gray-500 uppercase text-right"
+                              className={cn(
+                                "bg-transparent border-none focus:ring-0 p-0 w-full uppercase text-right",
+                                styles.tableHeaderStyle.bold && "font-bold",
+                                styles.tableHeaderStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.tableHeaderStyle.color,
+                                fontSize: `${styles.tableHeaderStyle.fontSize}px`
+                              }}
                             />
                           </div>
                         </div>
@@ -908,7 +1262,15 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                                 <input 
                                   value={item.description}
                                   onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                                  className="w-full bg-transparent border-b border-transparent focus:border-blue-500 py-1 outline-none"
+                                  className={cn(
+                                    "w-full bg-transparent border-b border-transparent focus:border-blue-500 py-1 outline-none",
+                                    styles.tableBodyStyle.bold && "font-bold",
+                                    styles.tableBodyStyle.italic && "italic"
+                                  )}
+                                  style={{ 
+                                    color: styles.tableBodyStyle.color,
+                                    fontSize: `${styles.tableBodyStyle.fontSize}px`
+                                  }}
                                   placeholder="Descrição do serviço..."
                                 />
                               </div>
@@ -917,7 +1279,15 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                                   type="number"
                                   value={item.quantity}
                                   onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-transparent border-b border-transparent focus:border-blue-500 py-1 text-center outline-none"
+                                  className={cn(
+                                    "w-full bg-transparent border-b border-transparent focus:border-blue-500 py-1 text-center outline-none",
+                                    styles.tableBodyStyle.bold && "font-bold",
+                                    styles.tableBodyStyle.italic && "italic"
+                                  )}
+                                  style={{ 
+                                    color: styles.tableBodyStyle.color,
+                                    fontSize: `${styles.tableBodyStyle.fontSize}px`
+                                  }}
                                 />
                               </div>
                               <div className="col-span-2">
@@ -925,10 +1295,28 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                                   type="number"
                                   value={item.unitPrice}
                                   onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-transparent border-b border-transparent focus:border-blue-500 py-1 text-right outline-none"
+                                  className={cn(
+                                    "w-full bg-transparent border-b border-transparent focus:border-blue-500 py-1 text-right outline-none",
+                                    styles.tableBodyStyle.bold && "font-bold",
+                                    styles.tableBodyStyle.italic && "italic"
+                                  )}
+                                  style={{ 
+                                    color: styles.tableBodyStyle.color,
+                                    fontSize: `${styles.tableBodyStyle.fontSize}px`
+                                  }}
                                 />
                               </div>
-                              <div className="col-span-2 text-right font-semibold">
+                              <div 
+                                className={cn(
+                                  "col-span-2 text-right",
+                                  styles.tableBodyStyle.bold && "font-bold",
+                                  styles.tableBodyStyle.italic && "italic"
+                                )}
+                                style={{ 
+                                  color: styles.tableBodyStyle.color,
+                                  fontSize: `${styles.tableBodyStyle.fontSize}px`
+                                }}
+                              >
                                 {(item.quantity * item.unitPrice).toFixed(2)} €
                               </div>
                             </div>
@@ -949,21 +1337,62 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                       {/* Summary */}
                       <div className="flex justify-end">
                         <div className="w-full max-w-xs space-y-3">
-                          <div className="flex justify-between text-gray-500">
+                          <div className="flex justify-between">
                             <input 
                               value={labels.subtotal}
                               onChange={(e) => setLabels({ ...labels, subtotal: e.target.value })}
-                              className="bg-transparent border-none focus:ring-0 p-0 text-gray-500"
+                              className={cn(
+                                "bg-transparent border-none focus:ring-0 p-0",
+                                styles.labelStyle.bold && "font-bold",
+                                styles.labelStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.labelStyle.color,
+                                fontSize: `${styles.labelStyle.fontSize}px`
+                              }}
                             />
-                            <span>{subtotal.toFixed(2)} €</span>
+                            <span 
+                              className={cn(
+                                styles.contentStyle.bold && "font-bold",
+                                styles.contentStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.contentStyle.color,
+                                fontSize: `${styles.contentStyle.fontSize}px`
+                              }}
+                            >
+                              {subtotal.toFixed(2)} €
+                            </span>
                           </div>
-                          <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t border-gray-100">
+                          <div 
+                            className="flex justify-between pt-3 border-t border-gray-100"
+                            style={{ borderTopColor: styles.totalStyle.color + '20' }}
+                          >
                             <input 
                               value={labels.total}
                               onChange={(e) => setLabels({ ...labels, total: e.target.value })}
-                              className="bg-transparent border-none focus:ring-0 p-0 text-gray-900 font-bold"
+                              className={cn(
+                                "bg-transparent border-none focus:ring-0 p-0",
+                                styles.totalStyle.bold && "font-bold",
+                                styles.totalStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.totalStyle.color,
+                                fontSize: `${styles.totalStyle.fontSize}px`
+                              }}
                             />
-                            <span>{total.toFixed(2)} €</span>
+                            <span 
+                              className={cn(
+                                styles.totalStyle.bold && "font-bold",
+                                styles.totalStyle.italic && "italic"
+                              )}
+                              style={{ 
+                                color: styles.totalStyle.color,
+                                fontSize: `${styles.totalStyle.fontSize * 1.5}px`
+                              }}
+                            >
+                              {total.toFixed(2)} €
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -974,29 +1403,67 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                 {/* Sidebar Controls */}
                 <div className="space-y-6">
                   <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-8">
+                    {/* Templates */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 text-gray-900 font-bold">
+                        <Layout size={20} className="text-blue-600" />
+                        <h3>{t.templates}</h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {TEMPLATES.map(template => (
+                          <button
+                            key={template.id}
+                            onClick={() => setStyles(template.styles)}
+                            className={cn(
+                              "p-3 rounded-xl border-2 transition-all text-[10px] font-bold uppercase tracking-wider text-center",
+                              styles.template === template.id 
+                                ? "border-blue-500 bg-blue-50 text-blue-700" 
+                                : "border-gray-100 hover:border-gray-200 text-gray-400"
+                            )}
+                          >
+                            {template.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Styles */}
+                    <div className="pt-6 border-t border-gray-100 space-y-4">
+                      <div className="flex items-center gap-2 text-gray-900 font-bold">
                         <Palette size={20} className="text-blue-600" />
-                        <h3>{t.editStyles}</h3>
+                        <h3>{t.customStyles}</h3>
                       </div>
                       
                       <div className="space-y-6">
+                        {/* Page Background */}
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.color}</label>
-                          <div className="flex flex-wrap gap-2">
-                            {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#000000'].map(color => (
-                              <button
-                                key={color}
-                                onClick={() => setStyles({ ...styles, primaryColor: color })}
-                                className={`w-8 h-8 rounded-full border-2 transition-transform ${
-                                  styles.primaryColor === color ? 'border-white ring-2 ring-blue-500 scale-110' : 'border-transparent'
-                                }`}
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.backgroundColor}</label>
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="color" 
+                              value={styles.backgroundColor}
+                              onChange={(e) => setStyles({ ...styles, backgroundColor: e.target.value })}
+                              className="w-12 h-10 rounded-xl cursor-pointer border-none p-0 bg-transparent"
+                            />
+                            <span className="text-xs font-mono text-gray-500 uppercase">{styles.backgroundColor}</span>
                           </div>
                         </div>
 
+                        {/* Primary Color */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.primaryColor}</label>
+                          <div className="flex items-center gap-3">
+                            <input 
+                              type="color" 
+                              value={styles.primaryColor}
+                              onChange={(e) => setStyles({ ...styles, primaryColor: e.target.value })}
+                              className="w-12 h-10 rounded-xl cursor-pointer border-none p-0 bg-transparent"
+                            />
+                            <span className="text-xs font-mono text-gray-500 uppercase">{styles.primaryColor}</span>
+                          </div>
+                        </div>
+
+                        {/* Font */}
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.font}</label>
                           <select 
@@ -1010,20 +1477,66 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                           </select>
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.fontSize}</label>
-                          <input 
-                            type="range" 
-                            min="8" 
-                            max="14" 
-                            value={styles.fontSize}
-                            onChange={(e) => setStyles({ ...styles, fontSize: parseInt(e.target.value) })}
-                            className="w-full accent-blue-600"
-                          />
-                          <div className="flex justify-between text-[10px] text-gray-400 font-bold uppercase">
-                            <span>Pequeno</span>
-                            <span>Grande</span>
-                          </div>
+                        {/* Text Styles Sections */}
+                        <div className="space-y-3">
+                          {[
+                            { key: 'titleStyle', label: t.title },
+                            { key: 'labelStyle', label: t.labels },
+                            { key: 'contentStyle', label: t.content },
+                            { key: 'tableHeaderStyle', label: t.tableHeader },
+                            { key: 'tableBodyStyle', label: t.tableBody },
+                            { key: 'totalStyle', label: t.total }
+                          ].map(section => (
+                            <div key={section.key} className="space-y-3 p-3 bg-gray-50 rounded-xl">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{section.label}</label>
+                              <div className="flex items-center gap-2">
+                                <input 
+                                  type="color" 
+                                  value={(styles as any)[section.key].color}
+                                  onChange={(e) => setStyles({ 
+                                    ...styles, 
+                                    [section.key]: { ...(styles as any)[section.key], color: e.target.value } 
+                                  })}
+                                  className="w-8 h-8 rounded-lg cursor-pointer border-none p-0 bg-transparent shrink-0"
+                                />
+                                <div className="flex-1 flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => setStyles({ 
+                                      ...styles, 
+                                      [section.key]: { ...(styles as any)[section.key], bold: !(styles as any)[section.key].bold } 
+                                    })}
+                                    className={cn(
+                                      "w-8 h-8 flex items-center justify-center rounded-lg transition-colors text-xs",
+                                      (styles as any)[section.key].bold ? "bg-blue-600 text-white" : "bg-white text-gray-400 hover:text-gray-600 border border-gray-100"
+                                    )}
+                                  >
+                                    <span className="font-bold">B</span>
+                                  </button>
+                                  <button
+                                    onClick={() => setStyles({ 
+                                      ...styles, 
+                                      [section.key]: { ...(styles as any)[section.key], italic: !(styles as any)[section.key].italic } 
+                                    })}
+                                    className={cn(
+                                      "w-8 h-8 flex items-center justify-center rounded-lg transition-colors text-xs",
+                                      (styles as any)[section.key].italic ? "bg-blue-600 text-white" : "bg-white text-gray-400 hover:text-gray-600 border border-gray-100"
+                                    )}
+                                  >
+                                    <span className="italic">I</span>
+                                  </button>
+                                  <input 
+                                    type="number"
+                                    value={(styles as any)[section.key].fontSize}
+                                    onChange={(e) => setStyles({ 
+                                      ...styles, 
+                                      [section.key]: { ...(styles as any)[section.key], fontSize: parseInt(e.target.value) || 8 } 
+                                    })}
+                                    className="w-12 bg-white border border-gray-100 rounded-lg px-1 py-1 text-xs text-center focus:ring-1 focus:ring-blue-500 outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
