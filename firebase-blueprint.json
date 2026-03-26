@@ -12,7 +12,21 @@
         "language": { "type": "string", "enum": ["pt", "en", "es"] },
         "isDarkMode": { "type": "boolean" },
         "primaryColor": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "subscription": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["free", "monthly"] },
+            "expiryDate": { "type": "string", "format": "date-time" }
+          }
+        },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "lastInvoiceDate": { "type": "string", "format": "date" },
+            "dailyInvoiceCount": { "type": "number" }
+          }
+        }
       },
       "required": ["uid", "email", "language"]
     },
@@ -54,6 +68,53 @@
         "primaryColor": { "type": "string" }
       },
       "required": ["appName", "primaryColor"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "A custom invoice created by the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "date": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "issuer": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "taxId": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "receiver": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "taxId": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unitPrice": { "type": "number" },
+              "total": { "type": "number" }
+            }
+          }
+        },
+        "subtotal": { "type": "number" },
+        "total": { "type": "number" },
+        "currency": { "type": "string" },
+        "styles": { "type": "object" },
+        "labels": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "invoiceNumber", "date", "total"]
     }
   },
   "firestore": {
@@ -72,6 +133,14 @@
     "/settings/global": {
       "schema": "AppSettings",
       "description": "Global app settings"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "User's custom invoices"
+    },
+    "/shared_invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Publicly shared invoices"
     }
   }
 }

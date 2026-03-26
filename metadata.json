@@ -1,5 +1,5 @@
 {
   "name": "Shift Hours",
   "description": "Calculadora de horas de trabalho profissional com suporte a múltiplas moedas, idiomas (PT, EN, ES), edição de registros e geração de relatórios para WhatsApp.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["web-share"]
 }

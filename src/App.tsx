@@ -6,7 +6,9 @@ import { JobView } from './components/JobView';
 import { AdminSettings } from './components/AdminSettings';
 import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon } from 'lucide-react';
+import { InvoiceCreator } from './components/InvoiceCreator';
+import { PublicInvoiceView } from './components/PublicInvoiceView';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
@@ -14,9 +16,20 @@ import { translations, Language } from './lib/i18n';
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewId, setViewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    if (view) {
+      setViewId(view);
+    }
+  }, []);
+
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'hours' | 'invoices'>('hours');
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -93,7 +106,9 @@ export default function App() {
             displayName: user.displayName,
             photoURL: user.photoURL,
             language: 'pt',
-            createdAt: Timestamp.now()
+            createdAt: Timestamp.now(),
+            subscription: { type: 'free', expiryDate: null },
+            usage: { lastInvoiceDate: '', dailyInvoiceCount: 0 }
           });
           
           // Increment total users stat
@@ -199,7 +214,7 @@ export default function App() {
   };
 
   const t = translations[lang];
-  const isOwner = user?.email === "martinswilliam2004@gmail.com";
+  const isOwner = user?.email?.toLowerCase().trim() === "martinswilliam2004@gmail.com";
 
   if (loading) {
     return (
@@ -212,6 +227,10 @@ export default function App() {
         </motion.div>
       </div>
     );
+  }
+
+  if (viewId) {
+    return <PublicInvoiceView invoiceId={viewId} />;
   }
 
   if (!user) {
@@ -227,6 +246,16 @@ export default function App() {
         onThemeToggle={toggleDarkMode}
         loginLoading={loginLoading}
         loginError={loginError}
+      />
+    );
+  }
+
+  if (activeTab === 'invoices') {
+    return (
+      <InvoiceCreator 
+        language={lang} 
+        onBack={() => setActiveTab('hours')} 
+        isAdmin={isOwner}
       />
     );
   }
@@ -249,8 +278,43 @@ export default function App() {
             <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             <span className="font-bold text-base sm:text-lg tracking-tight truncate max-w-[120px] sm:max-w-none">{settings.appName}</span>
           </div>
+
+          {/* Navigation Tabs */}
+          <div className="hidden sm:flex items-center bg-stone-100 dark:bg-white/5 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveTab('hours')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                activeTab === 'hours' 
+                  ? "bg-white dark:bg-white/10 text-primary shadow-sm" 
+                  : "text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+              )}
+            >
+              <Clock size={16} />
+              {t.appName}
+            </button>
+            <button
+              onClick={() => setActiveTab('invoices')}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                activeTab === 'invoices' 
+                  ? "bg-white dark:bg-white/10 text-primary shadow-sm" 
+                  : "text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+              )}
+            >
+              <FileText size={16} />
+              {t.invoiceCreator}
+            </button>
+          </div>
           
           <div className="flex items-center gap-1 sm:gap-3">
+            <button
+              onClick={() => setActiveTab('invoices')}
+              className="p-2 text-stone-400 hover:text-primary transition-colors sm:hidden"
+              title={t.invoiceCreator}
+            >
+              <FileText className="w-4 h-4" />
+            </button>
             <button
               onClick={toggleDarkMode}
               className="p-2 text-stone-400 hover:text-primary transition-colors"

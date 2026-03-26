@@ -36,6 +36,16 @@ rules_version = '2';
 //   - isBreakPaid: bool (required)
 //   - createdAt: timestamp (required)
 //
+// Collection: invoices
+// Document ID: {invoiceId}
+// Fields:
+//   - userId: string (required)
+//   - invoiceNumber: string (required)
+//   - date: string (required)
+//   - total: number (required)
+//   - items: list (optional)
+//   - styles: map (optional)
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -59,8 +69,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
-             request.auth.token.email == "martinswilliam2004@gmail.com" && 
-             request.auth.token.email_verified == true;
+             (request.auth.token.email.lower() == "martinswilliam2004@gmail.com");
     }
 
     function isValidEmail(email) {
@@ -80,8 +89,21 @@ service cloud.firestore {
              data.uid == request.auth.uid &&
              isValidEmail(data.email) &&
              data.language in ['pt', 'en', 'es'] &&
+             (!('displayName' in data) || (data.displayName is string || data.displayName == null)) &&
+             (!('photoURL' in data) || (data.photoURL is string || data.photoURL == null)) &&
              (!('isDarkMode' in data) || data.isDarkMode is bool) &&
-             (!('primaryColor' in data) || (data.primaryColor is string && data.primaryColor.size() == 7));
+             (!('primaryColor' in data) || (data.primaryColor is string && data.primaryColor.size() == 7)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('subscription' in data) || (
+               data.subscription is map && 
+               data.subscription.keys().hasAll(['type']) &&
+               data.subscription.type in ['free', 'monthly']
+             )) &&
+             (!('usage' in data) || (
+               data.usage is map && 
+               (!('lastInvoiceDate' in data.usage) || data.usage.lastInvoiceDate is string) &&
+               (!('dailyInvoiceCount' in data.usage) || data.usage.dailyInvoiceCount is number)
+             ));
     }
 
     function isValidJob(data) {
@@ -89,7 +111,7 @@ service cloud.firestore {
              data.userId == request.auth.uid &&
              isValidString(data.name, 1, 100) &&
              data.hourlyRate is number && data.hourlyRate >= 0 &&
-             isValidString(data.currency, 3, 3);
+             isValidString(data.currency, 1, 10);
     }
 
     function isValidSession(data) {
@@ -103,10 +125,33 @@ service cloud.firestore {
              data.isBreakPaid is bool;
     }
 
+    function isValidInvoice(data) {
+      return data.keys().hasAll(['userId', 'invoiceNumber', 'date', 'total']) &&
+             data.userId == request.auth.uid &&
+             isValidString(data.invoiceNumber, 1, 50) &&
+             isValidString(data.date, 1, 20) &&
+             data.total is number &&
+             (!('orderNumber' in data) || data.orderNumber is string) &&
+             (!('dueDate' in data) || data.dueDate is string) &&
+             (!('subtotal' in data) || data.subtotal is number) &&
+             (!('currency' in data) || data.currency is string) &&
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('issuer' in data) || (data.issuer is map && data.issuer.keys().hasAll(['name']))) &&
+             (!('receiver' in data) || (data.receiver is map && data.receiver.keys().hasAll(['name']))) &&
+             (!('items' in data) || (data.items is list && data.items.size() <= 50)) &&
+             (!('styles' in data) || (data.styles is map && data.styles.keys().size() <= 20)) &&
+             (!('labels' in data) || (data.labels is map && data.labels.keys().size() <= 20));
+    }
+
     function isValidSettings(data) {
       return data.keys().hasAll(['appName', 'primaryColor']) &&
              isValidString(data.appName, 1, 50) &&
              isValidString(data.primaryColor, 7, 7); // Hex color
+    }
+
+    function isValidStats(data) {
+      return (!('totalUsers' in data) || data.totalUsers is number) &&
+             (!('totalLogins' in data) || data.totalLogins is number);
     }
 
     // ===============================================================
@@ -138,9 +183,21 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isDocOwner();
     }
 
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidInvoice(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidInvoice(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    match /shared_invoices/{invoiceId} {
+      allow read: if true; // Publicly readable by ID
+      allow create: if isAuthenticated(); // Only authenticated users can share
+    }
+
     match /stats/global {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidStats(request.resource.data);
     }
     
     match /test/connection {
