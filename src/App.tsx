@@ -463,7 +463,7 @@ export default function App() {
             </button>
             <button 
               onClick={handleLogout}
-              className="h-10 flex items-center gap-1.5 ml-1 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
+              className="account-logout h-10 flex items-center gap-1.5 ml-1 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
