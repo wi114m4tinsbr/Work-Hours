@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, collection, query, where, onSnapshot, addDoc, Timestamp, deleteDoc, doc, handleFirestoreError, OperationType } from '../firebase';
 import { Job } from '../types';
-import { Plus, Briefcase, Trash2, ChevronRight, DollarSign, Edit2 } from 'lucide-react';
+import { Plus, Briefcase, Trash2, ChevronRight, Edit2 } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { JobModal, JOB_ICONS, JobIconName } from './JobModal';
 import { motion } from 'motion/react';
@@ -106,7 +106,6 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
                 <div className="min-w-0">
                   <h3 className="font-bold text-base sm:text-lg dark:text-white truncate">{job.name}</h3>
                   <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs sm:text-sm">
-                    <DollarSign className="w-3 h-3" />
                     <span className="truncate">{formatCurrency(job.hourlyRate, job.currency)} / {t.hourlyRate.toLowerCase()}</span>
                   </div>
                 </div>
