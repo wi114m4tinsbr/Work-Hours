@@ -1037,7 +1037,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                     />
                   </div>
                   <div className={cn(
-                    "hidden md:flex h-10 shrink-0 items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold",
+                    "hidden md:flex h-9 shrink-0 self-end items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold",
                     (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
                       ? "bg-primary-light text-primary border-primary/20"
                       : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200"
