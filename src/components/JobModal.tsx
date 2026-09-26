@@ -391,13 +391,13 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
             <div className="mt-4 px-1">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-stone-500 dark:text-stone-400">Zoom</span>
-                <button type="button" onClick={() => { setDraftImagePosition({ x: 50, y: 50 }); setDraftImageZoom(1); }} className="text-xs font-bold text-primary hover:underline">Centralizar</button>
+                <button type="button" onClick={() => { setDraftImagePosition({ x: 50, y: 50 }); setDraftImageZoom(1); }} className="text-xs font-bold text-stone-700 dark:text-stone-100 hover:text-primary dark:hover:text-primary transition-colors">Centralizar</button>
               </div>
               <input type="range" min="1" max="2.5" step="0.01" value={draftImageZoom} onChange={(e) => setDraftImageZoom(Number(e.target.value))} className="w-full accent-primary" />
             </div>
             <div className="flex gap-3 mt-5">
-              <button type="button" onClick={() => setShowImageEditor(false)} className="flex-1 h-11 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 font-bold">Cancelar</button>
-              <button type="button" onClick={saveImagePosition} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold">Usar esta posição</button>
+              <button type="button" onClick={() => setShowImageEditor(false)} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-colors">Cancelar</button>
+              <button type="button" onClick={saveImagePosition} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold transition-colors">Usar esta posição</button>
             </div>
           </div>
         </div>
