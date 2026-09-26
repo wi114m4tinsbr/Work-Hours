@@ -8,7 +8,7 @@ import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
@@ -280,7 +280,7 @@ export default function App() {
         "border-bottom sticky top-0 z-50 transition-colors duration-300",
         isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
       )}>
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
           <button
             type="button"
             className="group flex items-center gap-2.5 shrink-0 -ml-1 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
@@ -293,43 +293,49 @@ export default function App() {
             <span className="font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-opacity duration-200 group-hover:opacity-75 truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
           </button>
 
-          {/* Main tool navigation */}
+          {/* Product switcher: app-specific tools live here so the global header stays clean. */}
           <div className="hidden sm:flex items-center relative">
             <button
               type="button"
               onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-              className="group relative px-3 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-stone-600 dark:text-stone-200 hover:bg-primary-light dark:hover:bg-white/10 hover:text-primary dark:hover:text-white whitespace-nowrap"
+              className="group w-10 h-10 rounded-xl flex items-center justify-center text-stone-500 dark:text-stone-300 hover:bg-primary-light dark:hover:bg-white/10 hover:text-primary dark:hover:text-white"
               aria-expanded={isToolsMenuOpen}
+              title={lang === 'en' ? 'Apps and tools' : lang === 'es' ? 'Aplicaciones y herramientas' : 'Aplicativos e ferramentas'}
             >
-              <BriefcaseBusiness size={17} />
-              <span>{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
-              <ChevronDown size={14} className={cn("transition-transform", isToolsMenuOpen && "rotate-180")} />
-              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 rounded-full" />
+              <Grid2X2 size={19} className="transition-transform duration-200 group-hover:scale-110" />
             </button>
             <AnimatePresence>
               {isToolsMenuOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 p-2 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl z-[70]"
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  className="absolute top-full left-0 mt-2 w-[320px] p-3 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl z-[70]"
                 >
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab('invoices'); setIsToolsMenuOpen(false); }}
-                    className="group w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-primary-light dark:hover:bg-white/10"
-                  >
-                    <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0"><FileText size={17} /></span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-black text-stone-900 dark:text-white">{t.invoiceCreator}</span>
-                      <span className="block text-xs text-stone-500 dark:text-stone-400 mt-0.5">{lang === 'en' ? 'Create and manage invoices' : lang === 'es' ? 'Crear y gestionar facturas' : 'Criar e gerenciar faturas'}</span>
-                    </span>
-                  </button>
+                  <div className="px-2 pt-1 pb-2">
+                    <p className="text-xs font-black uppercase tracking-wider text-stone-400">{lang === 'en' ? 'Shift Hours tools' : lang === 'es' ? 'Herramientas de Shift Hours' : 'Ferramentas do Shift Hours'}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button type="button" onClick={() => { setActiveTab('invoices'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><FileText size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{t.invoiceCreator}</span>
+                    </button>
+                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-55">
+                      <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><ScanText size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'PDF Reader' : lang === 'es' ? 'Lector PDF' : 'Leitor PDF'}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-stone-400">{lang === 'en' ? 'Soon' : lang === 'es' ? 'Pronto' : 'Em breve'}</span>
+                    </div>
+                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-55">
+                      <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><FilePenLine size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'PDF Editor' : lang === 'es' ? 'Editor PDF' : 'Editor PDF'}</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-stone-400">{lang === 'en' ? 'Soon' : lang === 'es' ? 'Pronto' : 'Em breve'}</span>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-          
+
           <div className="flex items-center gap-1 sm:gap-3">
             <button
               onClick={() => setActiveTab('invoices')}
@@ -434,7 +440,7 @@ export default function App() {
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
-              <span className="hidden md:block max-w-[165px] truncate text-sm font-semibold text-stone-700 dark:text-stone-200">
+              <span className="hidden md:block whitespace-nowrap text-sm font-semibold text-stone-700 dark:text-stone-200">
                 {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
               </span>
             </button>
