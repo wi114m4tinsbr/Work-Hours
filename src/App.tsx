@@ -306,6 +306,8 @@ export default function App() {
             aria-label={`${settings.appName} - Home`}
           >
             <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm overflow-hidden" aria-hidden="true">
+              <span className="brand-orbit absolute inset-[3px] rounded-full border border-white/25" />
+              <span className="brand-orbit-dot absolute w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
               <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
               <span className="brand-clock-face relative z-10 w-6 h-6 rounded-full border-[1.7px] border-white/95">
                 <span className="brand-hour-hand absolute left-1/2 top-1/2 w-[1.7px] h-[6px] bg-white rounded-full origin-bottom" />
@@ -313,7 +315,10 @@ export default function App() {
                 <span className="brand-clock-pin absolute left-1/2 top-1/2 w-[3px] h-[3px] bg-white rounded-full" />
               </span>
             </span>
-            <span className="brand-name font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-colors duration-200 truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
+            <span className="brand-wordmark flex items-baseline whitespace-nowrap">
+              <span className="brand-shift font-black text-base sm:text-xl tracking-[-0.04em] text-stone-900 dark:text-white">Shift</span>
+              <span className="brand-hours ml-1 font-black text-base sm:text-xl tracking-[-0.04em] text-primary">Hours</span>
+            </span>
           </button>
 
           {/* Product switcher: app-specific tools live here so the global header stays clean. */}
