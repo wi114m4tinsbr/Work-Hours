@@ -247,13 +247,22 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        >
-          <Clock className="w-8 h-8 text-primary" />
-        </motion.div>
+      <div className={cn("min-h-screen flex items-center justify-center transition-colors duration-300", isDarkMode ? "bg-bg-dark" : "bg-stone-50")}>
+        <div className="brand-loader flex flex-col items-center gap-4" role="status" aria-label="Shift Hours">
+          <div className="brand-loader-mark relative w-20 h-20 rounded-[1.75rem] bg-primary text-white flex items-center justify-center overflow-hidden">
+            <span className="brand-loader-orbit absolute inset-[7px] rounded-full border border-white/25" />
+            <span className="brand-loader-glow absolute inset-0" />
+            <span className="relative z-10 w-11 h-11 rounded-full border-2 border-white/95">
+              <span className="brand-loader-hour absolute left-1/2 top-1/2 w-[2px] h-[11px] bg-white rounded-full origin-bottom" />
+              <span className="brand-loader-minute absolute left-1/2 top-1/2 w-[2px] h-[16px] bg-white rounded-full origin-bottom" />
+              <span className="brand-loader-pin absolute left-1/2 top-1/2 w-1.5 h-1.5 bg-white rounded-full" />
+            </span>
+          </div>
+          <div className="text-center">
+            <div className="brand-loader-name text-2xl font-black tracking-[-0.04em] text-stone-900 dark:text-white">Shift <span className="text-primary">Hours</span></div>
+            <div className="brand-loader-line mx-auto mt-2 h-0.5 w-16 rounded-full bg-primary" />
+          </div>
+        </div>
       </div>
     );
   }
