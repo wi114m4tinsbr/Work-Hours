@@ -237,9 +237,10 @@ interface InvoiceCreatorProps {
   language: Language;
   onBack: () => void;
   isAdmin: boolean;
+  embedded?: boolean;
 }
 
-export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack, isAdmin }) => {
+export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack, isAdmin, embedded = false }) => {
   const t = translations[language];
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-6)}`);
   const [invoiceAlias, setInvoiceAlias] = useState('');
@@ -792,7 +793,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 px-4 py-4">
+      <header className={cn("bg-white border-b border-gray-200 px-4 py-4", embedded ? "relative z-20" : "sticky top-0 z-30")}>
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button 
             onClick={onBack}
