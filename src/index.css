@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: var(--primary-color, #10b981);
   --color-primary-hover: var(--primary-color-hover, #059669);
@@ -66,4 +68,82 @@ html {
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+}
+
+/* Invoice Creator inherits the active user palette. */
+.min-h-screen.bg-gray-50.pb-20 .bg-indigo-600,
+.min-h-screen.bg-gray-50.pb-20 .bg-blue-600 {
+  background-color: var(--primary-color);
+}
+
+.min-h-screen.bg-gray-50.pb-20 .hover\:bg-indigo-700:hover,
+.min-h-screen.bg-gray-50.pb-20 .hover\:bg-blue-700:hover {
+  background-color: var(--primary-color-hover);
+}
+
+.min-h-screen.bg-gray-50.pb-20 .text-blue-600,
+.min-h-screen.bg-gray-50.pb-20 .text-blue-700,
+.min-h-screen.bg-gray-50.pb-20 .text-indigo-600,
+.min-h-screen.bg-gray-50.pb-20 .text-indigo-700 {
+  color: var(--primary-color);
+}
+
+.min-h-screen.bg-gray-50.pb-20 .bg-blue-50,
+.min-h-screen.bg-gray-50.pb-20 .bg-indigo-50 {
+  background-color: var(--primary-color-light);
+}
+
+/* Invoice Creator dark mode. Invoice preview paper keeps its own template colors. */
+.dark .min-h-screen.bg-gray-50.pb-20 {
+  background-color: var(--bg-dark);
+  color: #f5f5f4;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 > header {
+  background-color: var(--bg-card-dark);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 input,
+.dark .min-h-screen.bg-gray-50.pb-20 select,
+.dark .min-h-screen.bg-gray-50.pb-20 textarea {
+  background-color: #292524;
+  border-color: #44403c;
+  color: #f5f5f4;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 input::placeholder,
+.dark .min-h-screen.bg-gray-50.pb-20 textarea::placeholder {
+  color: #78716c;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-900,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-800,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-700 {
+  color: #f5f5f4;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-600,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-500 {
+  color: #d6d3d1;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-400,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-300 {
+  color: #a8a29e;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .border-gray-100,
+.dark .min-h-screen.bg-gray-50.pb-20 .border-gray-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-50,
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-100 {
+  background-color: #292524;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .hover\:bg-gray-100:hover {
+  background-color: #3f3a37;
 }
