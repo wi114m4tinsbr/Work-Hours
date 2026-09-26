@@ -355,19 +355,22 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {user.photoURL ? (
                 <img 
                   src={user.photoURL} 
                   alt={user.displayName || ''} 
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0"
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 flex items-center justify-center border border-black/10">
-                  <UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0">
+                  <UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" />
                 </div>
               )}
+              <span className="hidden md:block max-w-[120px] truncate text-sm font-semibold text-stone-700 dark:text-stone-200" title={user.displayName || user.email || ''}>
+                {user.displayName || user.email?.split('@')[0]}
+              </span>
             </div>
             <button 
               onClick={handleLogout}
