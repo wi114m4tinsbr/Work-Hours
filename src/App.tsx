@@ -250,7 +250,6 @@ export default function App() {
       <div className={cn("min-h-screen flex items-center justify-center transition-colors duration-300", isDarkMode ? "bg-bg-dark" : "bg-stone-50")}>
         <div className="brand-loader flex flex-col items-center gap-4" role="status" aria-label="Shift Hours">
           <div className="brand-loader-mark relative w-20 h-20 rounded-[1.75rem] bg-primary text-white flex items-center justify-center overflow-hidden">
-            <span className="brand-loader-orbit absolute inset-[7px] rounded-full border border-white/25" />
             <span className="brand-loader-glow absolute inset-0" />
             <span className="relative z-10 w-11 h-11 rounded-full border-2 border-white/95">
               <span className="brand-loader-hour absolute left-1/2 top-1/2 w-[2px] h-[11px] bg-white rounded-full origin-bottom" />
@@ -306,7 +305,6 @@ export default function App() {
             aria-label={`${settings.appName} - Home`}
           >
             <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm" aria-hidden="true">
-              <span className="brand-clock-ring absolute inset-[5px] rounded-full border border-white/20" />
               <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
               <span className="brand-clock-face relative z-10 w-6 h-6 rounded-full border-[1.7px] border-white/95">
                 <span className="brand-hour-hand absolute left-1/2 top-1/2 w-[1.7px] h-[6px] bg-white rounded-full origin-bottom" />
