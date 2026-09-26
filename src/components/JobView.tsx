@@ -254,7 +254,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
         <h3 className="text-lg font-bold dark:text-white">{t.workSessions}</h3>
         <button
           onClick={handleAddSession}
-          className="bg-stone-900 text-white dark:bg-white dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-stone-100 p-2 rounded-xl flex items-center gap-2 px-4 text-sm font-medium transition-all"
+          className="bg-primary text-white hover:bg-primary-hover p-2 rounded-xl flex items-center gap-2 px-4 text-sm font-medium transition-all"
         >
           <Plus className="w-4 h-4" />
           {t.addDay}
