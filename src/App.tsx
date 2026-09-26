@@ -271,13 +271,17 @@ export default function App() {
         isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
       )}>
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <div 
-            className="group flex items-center gap-2.5 cursor-pointer shrink-0 px-2.5 py-2 -ml-2 rounded-xl hover:bg-stone-100 dark:hover:bg-white/10 transition-all"
+          <button
+            type="button"
+            className="group flex items-center gap-2.5 shrink-0 -ml-1 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             onClick={() => setCurrentJobId(null)}
+            aria-label={`${settings.appName} - Home`}
           >
-            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:scale-105 transition-transform" />
-            <span className="font-extrabold text-base sm:text-xl tracking-tight text-stone-900 dark:text-white group-hover:text-primary transition-colors truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
-          </div>
+            <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm transition-transform duration-200 group-hover:scale-105">
+              <Clock className="w-5 h-5 text-white" />
+            </span>
+            <span className="font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-opacity duration-200 group-hover:opacity-75 truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
+          </button>
 
           {/* Main tool navigation */}
           <div className="hidden sm:flex items-center">
