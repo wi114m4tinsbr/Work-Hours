@@ -23,7 +23,9 @@ import {
   Image,
   RotateCcw,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { db, auth } from '../firebase';
 import { 
@@ -779,6 +781,8 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     }
   };
 
+  const [isStylePanelCollapsed, setIsStylePanelCollapsed] = useState(false);
+
   const toggleSelectInvoice = (id: string) => {
     setSelectedInvoices(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -1031,8 +1035,8 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
               className="space-y-6"
             >
               {/* Unified invoice editing panel */}
-              <div className="sticky top-3 z-40 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 invoice-editor-light-panel">
-                <div className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200">
+              <div className="sticky top-[76px] z-20 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 invoice-editor-light-panel">
+                <div className={cn("flex items-center gap-3", !isStylePanelCollapsed && "pb-4 mb-4 border-b border-gray-200")}>
                   <div className="flex-1 min-w-0">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{t.internalName}</label>
                     <input
@@ -1054,8 +1058,18 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                       ? "Admin · ilimitado"
                       : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsStylePanelCollapsed(!isStylePanelCollapsed)}
+                    className="h-9 w-9 shrink-0 self-end flex items-center justify-center rounded-lg bg-gray-50 text-gray-700 border border-gray-200 hover:bg-primary hover:text-white hover:border-primary"
+                    title={isStylePanelCollapsed ? 'Mostrar estilos' : 'Minimizar estilos'}
+                    aria-label={isStylePanelCollapsed ? 'Mostrar estilos' : 'Minimizar estilos'}
+                  >
+                    {isStylePanelCollapsed ? <ChevronDown size={17} /> : <ChevronUp size={17} />}
+                  </button>
                 </div>
 
+                {!isStylePanelCollapsed && (
                 <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-12 gap-3 items-end">
                   <div className="xl:col-span-2">
                     <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Modelo</label>
@@ -1137,6 +1151,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                     </div>
                   </div>
                 </div>
+                )}
               </div>
 
               <AnimatePresence>
