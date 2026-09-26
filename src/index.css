@@ -59,7 +59,6 @@ html {
   background-clip: content-box;
 }
 
-/* Specific class for containers if needed */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(120, 113, 108, 0.2) transparent;
@@ -93,28 +92,37 @@ html {
   background-color: var(--primary-color-light);
 }
 
-/* Invoice Creator dark mode. Invoice preview paper keeps its own template colors. */
+/* Dark mode shell for Invoice Creator. Keep the actual invoice sheet light/readable. */
 .dark .min-h-screen.bg-gray-50.pb-20 {
-  background-color: var(--bg-dark);
+  background-color: #11100f;
   color: #f5f5f4;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 > header {
-  background-color: var(--bg-card-dark);
-  border-color: rgba(255, 255, 255, 0.08);
+  background-color: #1a1918;
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
 }
 
+/* Softer dark controls instead of near-black blocks. */
 .dark .min-h-screen.bg-gray-50.pb-20 input,
 .dark .min-h-screen.bg-gray-50.pb-20 select,
 .dark .min-h-screen.bg-gray-50.pb-20 textarea {
-  background-color: #292524;
-  border-color: #44403c;
+  background-color: #242220;
+  border-color: #3a3734;
   color: #f5f5f4;
+  box-shadow: none;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 input:focus,
+.dark .min-h-screen.bg-gray-50.pb-20 select:focus,
+.dark .min-h-screen.bg-gray-50.pb-20 textarea:focus {
+  border-color: var(--primary-color);
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 input::placeholder,
 .dark .min-h-screen.bg-gray-50.pb-20 textarea::placeholder {
-  color: #78716c;
+  color: #8f8882;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-900,
@@ -125,25 +133,49 @@ html {
 
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-600,
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-500 {
-  color: #d6d3d1;
+  color: #c9c4bf;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-400,
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-300 {
-  color: #a8a29e;
+  color: #9f9892;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .border-gray-100,
 .dark .min-h-screen.bg-gray-50.pb-20 .border-gray-200,
 .dark .min-h-screen.bg-gray-50.pb-20 .border-gray-300 {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-50,
 .dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-100 {
-  background-color: #292524;
+  background-color: #211f1d;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .hover\:bg-gray-100:hover {
-  background-color: #3f3a37;
+  background-color: #2d2a27;
+}
+
+/* Remove the pale halo/shadow from action buttons in dark mode. */
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-indigo-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-green-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-blue-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-lg {
+  --tw-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  --tw-shadow-colored: 0 8px 20px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--tw-shadow);
+}
+
+/* Cards/panels around the editor can go dark, but the invoice canvas/paper stays light. */
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-white:not([style*="background-color"]):not([style*="background:"]) {
+  background-color: #1b1a19;
+}
+
+/* Explicitly keep printable invoice sheet light and readable when it has its own inline template background. */
+.dark .min-h-screen.bg-gray-50.pb-20 [style*="background-color: rgb(255, 255, 255)"],
+.dark .min-h-screen.bg-gray-50.pb-20 [style*="background-color:#ffffff"],
+.dark .min-h-screen.bg-gray-50.pb-20 [style*="background-color: #ffffff"],
+.dark .min-h-screen.bg-gray-50.pb-20 [style*="background:#ffffff"],
+.dark .min-h-screen.bg-gray-50.pb-20 [style*="background: #ffffff"] {
+  color: #111827;
 }
