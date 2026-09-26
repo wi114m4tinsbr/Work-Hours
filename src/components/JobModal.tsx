@@ -39,6 +39,9 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
   const [isPositioningImage, setIsPositioningImage] = useState(false);
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [draftImagePosition, setDraftImagePosition] = useState({ x: 50, y: 50 });
+  const [imageZoom, setImageZoom] = useState(1);
+  const [draftImageZoom, setDraftImageZoom] = useState(1);
+  const imageDragRef = React.useRef<{ pointerX: number; pointerY: number; startX: number; startY: number } | null>(null);
 
   useEffect(() => {
     if (jobToEdit) {
@@ -48,6 +51,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
       setIconType(jobToEdit.iconType || 'icon');
       setIconValue(jobToEdit.iconValue || 'Briefcase');
       setImagePosition(jobToEdit.imagePosition || { x: 50, y: 50 });
+      setImageZoom(jobToEdit.imageZoom || 1);
     } else {
       setName('');
       setHourlyRate('');
@@ -55,6 +59,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
       setIconType('icon');
       setIconValue('Briefcase');
       setImagePosition({ x: 50, y: 50 });
+      setImageZoom(1);
     }
   }, [jobToEdit, isOpen]);
 
@@ -85,7 +90,9 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
         setIconValue(optimized);
         setIconType('image');
         setImagePosition({ x: 50, y: 50 });
+        setImageZoom(1);
         setDraftImagePosition({ x: 50, y: 50 });
+        setDraftImageZoom(1);
         setShowImageEditor(true);
       };
       image.src = reader.result as string;
@@ -94,22 +101,47 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
     e.target.value = '';
   };
 
-  const handleImagePosition = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPositioningImage) return;
+  const beginImageDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsPositioningImage(true);
+    imageDragRef.current = {
+      pointerX: e.clientX,
+      pointerY: e.clientY,
+      startX: draftImagePosition.x,
+      startY: draftImagePosition.y,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const moveImageDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPositioningImage || !imageDragRef.current) return;
+    e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    setDraftImagePosition({ x, y });
+    const sensitivity = 100 / Math.max(rect.width, rect.height);
+    const dx = (e.clientX - imageDragRef.current.pointerX) * sensitivity;
+    const dy = (e.clientY - imageDragRef.current.pointerY) * sensitivity;
+    setDraftImagePosition({
+      x: Math.max(0, Math.min(100, imageDragRef.current.startX - dx)),
+      y: Math.max(0, Math.min(100, imageDragRef.current.startY - dy)),
+    });
+  };
+
+  const endImageDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    setIsPositioningImage(false);
+    imageDragRef.current = null;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
   const openImageEditor = () => {
     if (!iconValue?.startsWith('data:')) return;
     setDraftImagePosition(imagePosition);
+    setDraftImageZoom(imageZoom);
     setShowImageEditor(true);
   };
 
   const saveImagePosition = () => {
     setImagePosition(draftImagePosition);
+    setImageZoom(draftImageZoom);
     setShowImageEditor(false);
     setIsPositioningImage(false);
   };
@@ -127,7 +159,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
         currency,
         iconType,
         iconValue,
-        ...(iconType === 'image' ? { imagePosition } : {}),
+        ...(iconType === 'image' ? { imagePosition, imageZoom } : {}),
       };
 
       if (jobToEdit) {
@@ -261,7 +293,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                     <button type="button" onClick={openImageEditor} className="relative w-20 h-20 shrink-0 rounded-full overflow-hidden border-2 border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 group" title="Ajustar imagem">
                       {iconValue && iconValue.startsWith('data:') ? (
                         <>
-                          <img src={iconValue} alt="Preview" draggable={false} className="w-full h-full object-cover" style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%` }} />
+                          <img src={iconValue} alt="Preview" draggable={false} className="w-full h-full object-cover" style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%`, transform: `scale(${imageZoom})` }} />
                           <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/35 text-white opacity-0 group-hover:opacity-100 transition-all text-[10px] font-bold">Ajustar</span>
                         </>
                       ) : (
@@ -337,30 +369,31 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setShowImageEditor(false)} />
           <div className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-3xl shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-bold text-stone-900 dark:text-white">Ajustar imagem</h3>
-                <p className="text-xs text-stone-500 dark:text-stone-400">Arraste a foto até deixar a parte desejada dentro do círculo.</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Arraste a foto e use o zoom para escolher o enquadramento.</p>
               </div>
               <button type="button" onClick={() => setShowImageEditor(false)} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800"><X size={20} /></button>
             </div>
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-3">
               <div
-                className="relative w-72 h-72 max-w-full rounded-full overflow-hidden bg-stone-100 dark:bg-stone-800 border-4 border-white dark:border-stone-700 shadow-xl cursor-move touch-none"
-                onPointerDown={(e) => {
-                  setIsPositioningImage(true);
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                  handleImagePosition(e);
-                }}
-                onPointerMove={handleImagePosition}
-                onPointerUp={(e) => {
-                  setIsPositioningImage(false);
-                  if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-                }}
+                className="relative w-72 h-72 max-w-full rounded-full overflow-hidden bg-stone-100 dark:bg-stone-800 border-4 border-white dark:border-stone-700 shadow-xl cursor-grab active:cursor-grabbing touch-none select-none"
+                onPointerDown={beginImageDrag}
+                onPointerMove={moveImageDrag}
+                onPointerUp={endImageDrag}
+                onPointerCancel={endImageDrag}
               >
-                <img src={iconValue} alt="Ajustar" draggable={false} className="w-full h-full object-cover select-none pointer-events-none" style={{ objectPosition: `${draftImagePosition.x}% ${draftImagePosition.y}%` }} />
-                <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/70 pointer-events-none" />
+                <img src={iconValue} alt="Ajustar" draggable={false} className="w-full h-full object-cover select-none pointer-events-none will-change-transform" style={{ objectPosition: `${draftImagePosition.x}% ${draftImagePosition.y}%`, transform: `scale(${draftImageZoom})` }} />
+                <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/80 pointer-events-none" />
               </div>
+            </div>
+            <div className="mt-4 px-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-stone-500 dark:text-stone-400">Zoom</span>
+                <button type="button" onClick={() => { setDraftImagePosition({ x: 50, y: 50 }); setDraftImageZoom(1); }} className="text-xs font-bold text-primary hover:underline">Centralizar</button>
+              </div>
+              <input type="range" min="1" max="2.5" step="0.01" value={draftImageZoom} onChange={(e) => setDraftImageZoom(Number(e.target.value))} className="w-full accent-primary" />
             </div>
             <div className="flex gap-3 mt-5">
               <button type="button" onClick={() => setShowImageEditor(false)} className="flex-1 h-11 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 font-bold">Cancelar</button>
