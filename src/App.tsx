@@ -292,14 +292,15 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
             type="button"
-            className="group flex items-center gap-2.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg"
+            className="brand-trigger group flex items-center gap-2.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg"
             onClick={() => setCurrentJobId(null)}
             aria-label={`${settings.appName} - Home`}
           >
-            <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm transition-transform duration-200 group-hover:scale-[1.04]">
-              <Clock className="w-5 h-5 text-white" />
+            <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm overflow-hidden">
+              <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
+              <Clock className="brand-clock relative z-10 w-5 h-5 text-white" />
             </span>
-            <span className="font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-colors duration-200 group-hover:text-primary truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
+            <span className="brand-name font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-colors duration-200 truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
           </button>
 
           {/* Product switcher: app-specific tools live here so the global header stays clean. */}
