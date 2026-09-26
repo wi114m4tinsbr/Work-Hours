@@ -1024,29 +1024,29 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
               className="space-y-6"
             >
               {/* Internal Name (Alias) */}
-              <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-gray-100 dark:border-stone-700 p-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 invoice-editor-light-panel">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-50 dark:bg-stone-700 text-gray-500 dark:text-stone-300 rounded-lg">
+                  <div className="p-2 bg-gray-50 text-gray-500 rounded-lg">
                     <FileText size={18} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-widest mb-1">{t.internalName}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{t.internalName}</p>
                     <input 
                       type="text" 
                       placeholder={t.internalNamePlaceholder}
                       value={invoiceAlias}
                       onChange={(e) => setInvoiceAlias(e.target.value)}
-                      className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-900 dark:text-white dark:placeholder:text-stone-400 p-0"
+                      className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-900 placeholder:text-gray-400 p-0"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Compact invoice editor toolbar */}
-              <div className="sticky top-3 z-40 bg-white/95 dark:bg-stone-800/95 backdrop-blur rounded-2xl shadow-lg border border-gray-100 dark:border-stone-700 p-4">
+              <div className="sticky top-3 z-40 bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-gray-100 p-4 invoice-editor-light-panel">
                 <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-12 items-end gap-3">
                   <div className="xl:col-span-2">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-wider mb-1">Modelo</label>
+                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Modelo</label>
                     <select
                       value={styles.template}
                       onChange={(e) => {
@@ -1060,7 +1060,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   </div>
 
                   <div className="xl:col-span-2">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-wider mb-1">{t.font}</label>
+                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">{t.font}</label>
                     <select
                       value={styles.font}
                       onChange={(e) => setStyles({ ...styles, font: e.target.value })}
@@ -1071,7 +1071,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   </div>
 
                   <div className="xl:col-span-1">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-wider mb-1">{t.backgroundColor}</label>
+                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">{t.backgroundColor}</label>
                     <input
                       type="color"
                       value={styles.backgroundColor}
@@ -1082,7 +1082,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   </div>
 
                   <div className="col-span-2 xl:col-span-3">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-wider mb-1">Campo da fatura</label>
+                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Campo da fatura</label>
                     <select
                       value={selectedField}
                       onChange={(e) => setSelectedField(e.target.value as keyof InvoiceStyles['fieldStyles'])}
@@ -1147,7 +1147,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   >I</button>
 
                   <div>
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-wider mb-1">Texto</label>
+                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Texto</label>
                     <input
                       type="color"
                       value={styles.fieldStyles[selectedField].color}
@@ -1158,7 +1158,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   </div>
 
                   <div className="xl:col-span-1">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 dark:text-stone-300 uppercase tracking-wider mb-1">Tamanho</label>
+                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tamanho</label>
                     <input
                       type="number"
                       min="6"
