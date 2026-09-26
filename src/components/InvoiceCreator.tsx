@@ -1169,28 +1169,36 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                     />
                   </div>
 
-                  <label className="h-9 flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 text-gray-600 px-3 rounded-lg text-xs font-bold border border-gray-100">
-                    <Image size={15} />
-                    {styles.logo ? 'Trocar logo' : 'Logo'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onloadend = () => setStyles(prev => ({ ...prev, logo: reader.result as string }));
-                        reader.readAsDataURL(file);
-                      }}
-                    />
-                  </label>
+                  <div className="h-9 flex items-stretch gap-1">
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 text-gray-600 px-3 rounded-lg text-xs font-bold border border-gray-100">
+                      <Image size={15} />
+                      {styles.logo ? 'Trocar logo' : 'Adicionar logo'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onloadend = () => setStyles(prev => ({ ...prev, logo: reader.result as string }));
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
 
-                  {styles.logo && (
-                    <button type="button" onClick={() => setStyles({ ...styles, logo: undefined })} className="w-9 h-9 flex items-center justify-center text-red-500 bg-red-50 rounded-lg" title="Remover logo">
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                    {styles.logo && (
+                      <button
+                        type="button"
+                        onClick={() => setStyles({ ...styles, logo: undefined })}
+                        className="flex items-center gap-1.5 px-3 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-xs font-bold transition-colors"
+                        title="Remover logo"
+                      >
+                        <Trash2 size={15} />
+                        <span>Remover logo</span>
+                      </button>
+                    )}
+                  </div>
 
                   <div className={cn(
                     "ml-auto h-9 flex items-center gap-2 px-3 rounded-lg border text-xs font-bold",
