@@ -446,3 +446,7 @@ button:disabled {
     transform: none !important;
   }
 }
+
+/* Theme picker scrolls when needed without placing a visible bar over the swatches. */
+.theme-scroll-area { scrollbar-width: none; -ms-overflow-style: none; }
+.theme-scroll-area::-webkit-scrollbar { width: 0; height: 0; display: none; }
