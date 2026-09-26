@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
@@ -36,6 +36,7 @@ export default function App() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const toolsMenuRef = useRef<HTMLDivElement | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileFirstName, setProfileFirstName] = useState('');
   const [profileLastName, setProfileLastName] = useState('');
@@ -174,6 +175,24 @@ export default function App() {
     return () => unsubscribeUser();
   }, [user, settings.primaryColor]);
 
+  useEffect(() => {
+    if (!isToolsMenuOpen) return;
+    const closeOnOutside = (event: MouseEvent | TouchEvent) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) setIsToolsMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsToolsMenuOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutside);
+    document.addEventListener('touchstart', closeOnOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutside);
+      document.removeEventListener('touchstart', closeOnOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isToolsMenuOpen]);
+
   const handleLanguageChange = async (newLang: Language) => {
     if (!user) return;
     setLang(newLang);
@@ -294,15 +313,17 @@ export default function App() {
           </button>
 
           {/* Product switcher: app-specific tools live here so the global header stays clean. */}
-          <div className="hidden sm:flex items-center relative">
+          <div ref={toolsMenuRef} className="hidden sm:flex items-center relative">
             <button
               type="button"
               onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-              className="group w-10 h-10 rounded-xl flex items-center justify-center text-stone-500 dark:text-stone-300 hover:bg-primary-light dark:hover:bg-white/10 hover:text-primary dark:hover:text-white"
+              className={cn("group h-10 px-3 rounded-xl flex items-center gap-2 text-sm font-bold border transition-colors", isToolsMenuOpen ? "bg-primary-light border-primary/20 text-primary dark:bg-white/10 dark:text-white dark:border-white/10" : "border-transparent text-stone-600 dark:text-stone-200 hover:bg-primary-light dark:hover:bg-white/10 hover:text-primary dark:hover:text-white")}
               aria-expanded={isToolsMenuOpen}
               title={lang === 'en' ? 'Apps and tools' : lang === 'es' ? 'Aplicaciones y herramientas' : 'Aplicativos e ferramentas'}
             >
-              <Grid2X2 size={19} className="transition-transform duration-200 group-hover:scale-110" />
+              <Grid2X2 size={18} className="transition-transform duration-200 group-hover:scale-110" />
+              <span>{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
+              <ChevronDown size={13} className={cn("transition-transform duration-200", isToolsMenuOpen && "rotate-180")} />
             </button>
             <AnimatePresence>
               {isToolsMenuOpen && (
@@ -310,7 +331,7 @@ export default function App() {
                   initial={{ opacity: 0, y: -8, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                  className="absolute top-full left-0 mt-2 w-[320px] p-3 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl z-[70]"
+                  className="absolute top-full left-0 mt-2 w-[320px] p-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-xl z-[70] origin-top-left"
                 >
                   <div className="px-2 pt-1 pb-2">
                     <p className="text-xs font-black uppercase tracking-wider text-stone-400">{lang === 'en' ? 'Shift Hours tools' : lang === 'es' ? 'Herramientas de Shift Hours' : 'Ferramentas do Shift Hours'}</p>
