@@ -289,21 +289,21 @@ export default function App() {
         "border-bottom sticky top-0 z-50 transition-colors duration-300",
         isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
       )}>
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
           <button
             type="button"
-            className="group flex items-center gap-2.5 shrink-0 -ml-1 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="group flex items-center gap-2.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg"
             onClick={() => setCurrentJobId(null)}
             aria-label={`${settings.appName} - Home`}
           >
-            <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm transition-transform duration-200 group-hover:scale-105">
+            <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm transition-transform duration-200 group-hover:scale-[1.04]">
               <Clock className="w-5 h-5 text-white" />
             </span>
-            <span className="font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-opacity duration-200 group-hover:opacity-75 truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
+            <span className="font-black text-base sm:text-xl tracking-[-0.035em] text-stone-900 dark:text-white transition-colors duration-200 group-hover:text-primary truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
           </button>
 
           {/* Product switcher: app-specific tools live here so the global header stays clean. */}
-          <div ref={toolsMenuRef} className="hidden sm:flex items-center relative">
+          <div ref={toolsMenuRef} className="hidden sm:flex items-center relative mr-auto">
             <button
               type="button"
               onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
@@ -347,17 +347,17 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-3">
+          <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
             <button
               onClick={() => setActiveTab('invoices')}
-              className="p-2 text-stone-400 hover:text-primary transition-colors sm:hidden"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 sm:hidden"
               title={t.invoiceCreator}
             >
               <FileText className="w-4 h-4" />
             </button>
             <button
               onClick={toggleDarkMode}
-              className="p-2 text-stone-400 hover:text-primary transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200"
               title={isDarkMode ? "Light Mode" : "Dark Mode"}
             >
               {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -365,7 +365,7 @@ export default function App() {
 
             <button 
               onClick={() => setIsThemeModalOpen(true)}
-              className="p-2 text-stone-400 hover:text-primary transition-colors hidden sm:block"
+              className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:block"
               title={t.theme}
             >
               <Palette className="w-5 h-5" />
@@ -382,7 +382,7 @@ export default function App() {
             )}
 
             <div className="relative group">
-              <button className="p-2 text-stone-400 hover:text-primary transition-colors flex items-center gap-1">
+              <button className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 flex items-center gap-1">
                 <Languages className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-[10px] sm:text-xs font-bold uppercase">{lang}</span>
               </button>
@@ -443,16 +443,16 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="flex items-center gap-2 min-w-0 rounded-xl px-1.5 py-1 hover:bg-primary-light dark:hover:bg-white/10"
+              className="group/profile flex items-center gap-2 min-w-0 px-1 py-1 rounded-lg hover:-translate-y-0.5 transition-transform duration-200"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
-                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0 transition-all duration-200 group-hover/profile:ring-2 group-hover/profile:ring-primary/25" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
               <span className="hidden md:flex flex-col items-start leading-tight whitespace-nowrap">
-                <span className="text-sm font-semibold text-stone-700 dark:text-stone-200">
+                <span className="text-sm font-semibold text-stone-700 dark:text-stone-200 group-hover/profile:text-primary transition-colors">
                   {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
                 </span>
                 <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500">
@@ -463,11 +463,11 @@ export default function App() {
             </button>
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-2 py-2 text-stone-400 hover:text-red-500 transition-colors rounded-xl"
+              className="flex items-center gap-1.5 px-2 py-2 text-stone-400 hover:text-red-500 transition-colors rounded-lg whitespace-nowrap shrink-0"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden lg:inline text-xs font-bold">{t.logout}</span>
+              <span className="hidden xl:inline text-xs font-bold">{t.logout}</span>
             </button>
           </div>
         </div>
