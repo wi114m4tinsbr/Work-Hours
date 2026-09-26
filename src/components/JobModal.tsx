@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, setDoc } from '../firebase';
+import { db, auth, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, getDocs, query, where, setDoc } from '../firebase';
 import { X, Briefcase, Coffee, Car, Home, ShoppingBag, Utensils, Code, Camera, Music, Heart, Image as ImageIcon, Type as TypeIcon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRENCIES, cn } from '../lib/utils';
@@ -82,6 +82,20 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
       if (jobToEdit) {
         await updateDoc(doc(db, 'jobs', jobToEdit.id), jobData);
       } else {
+        const userSnap = await getDoc(doc(db, 'users', userId));
+        const subscriptionType = userSnap.exists() ? userSnap.data().subscription?.type || 'free' : 'free';
+        const isAdmin = auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com';
+
+        if (!isAdmin && subscriptionType !== 'monthly') {
+          const jobsQuery = query(collection(db, 'jobs'), where('userId', '==', userId));
+          const jobsSnap = await getDocs(jobsQuery);
+
+          if (jobsSnap.size >= 1) {
+            window.alert('O plano gratuito permite apenas 1 empresa/trabalho. Para adicionar outra empresa, será necessário fazer upgrade do plano.');
+            return;
+          }
+        }
+
         await addDoc(collection(db, 'jobs'), {
           ...jobData,
           createdAt: Timestamp.now()
