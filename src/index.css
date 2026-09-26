@@ -330,6 +330,42 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Brand interaction: expressive without turning the logo into a raised button. */
+.brand-trigger,
+.brand-trigger:hover,
+.brand-trigger:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.brand-mark,
+.brand-clock,
+.brand-name,
+.brand-glow {
+  transition: transform 420ms cubic-bezier(.2,.8,.2,1), color 240ms ease, box-shadow 300ms ease, opacity 300ms ease;
+}
+.brand-glow {
+  opacity: 0;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.65), transparent 52%);
+}
+@media (hover: hover) and (pointer: fine) {
+  .brand-trigger:hover .brand-mark {
+    transform: scale(1.08) rotate(-4deg);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--primary-color) 35%, transparent);
+  }
+  .brand-trigger:hover .brand-clock {
+    transform: rotate(28deg) scale(1.08);
+  }
+  .brand-trigger:hover .brand-glow {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+  .brand-trigger:hover .brand-name {
+    color: var(--primary-color);
+    transform: translateX(2px);
+  }
+}
+
 /* Account controls are identity/navigation, not raised action buttons. */
 .profile-trigger,
 .profile-trigger:hover,
