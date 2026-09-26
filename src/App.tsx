@@ -359,25 +359,28 @@ export default function App() {
             </div>
 
             {!isOwner && (
-              <button
-                type="button"
-                onClick={() => subscriptionType === 'free' && setIsUpgradeModalOpen(true)}
-                className={cn(
-                  "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-black",
-                  subscriptionType === 'monthly'
-                    ? "bg-primary-light text-primary border-primary/20"
-                    : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 hover:border-primary"
-                )}
-                title={subscriptionType === 'free' ? 'Ver opções de upgrade' : 'Plano Premium'}
-              >
-                {subscriptionType === 'monthly' ? <Crown size={14} /> : null}
-                <span>{subscriptionType === 'monthly' ? 'Premium' : t.free}</span>
+              <div className="hidden sm:flex items-center rounded-full border border-amber-300/70 dark:border-amber-700/70 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-950/60 dark:via-yellow-950/40 dark:to-amber-900/50 shadow-sm overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsUpgradeModalOpen(true)}
+                  className="px-3 py-1.5 text-xs font-black text-amber-800 dark:text-amber-200 hover:bg-amber-200/60 dark:hover:bg-amber-700/30"
+                  title="Plano atual"
+                >
+                  {subscriptionType === 'monthly' ? 'Premium' : t.free}
+                </button>
                 {subscriptionType === 'free' && (
-                  <span className="hidden lg:inline-flex items-center ml-1 pl-2 border-l border-emerald-300/70 dark:border-emerald-700 text-primary dark:text-emerald-200 font-black">
-                    Upgrade
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsUpgradeModalOpen(true)}
+                    className="group/upgrade relative flex items-center gap-1.5 px-3 py-1.5 border-l border-amber-300/80 dark:border-amber-700/80 text-xs font-black text-amber-900 dark:text-amber-100 hover:bg-amber-300/55 dark:hover:bg-amber-600/30 overflow-hidden"
+                    title="Conhecer o Premium"
+                  >
+                    <span className="absolute inset-y-0 -left-8 w-5 rotate-12 bg-white/70 blur-[1px] transition-all duration-700 group-hover/upgrade:left-[110%]" />
+                    <Crown size={13} className="relative transition-transform duration-200 group-hover/upgrade:scale-110" />
+                    <span className="relative">Upgrade</span>
+                  </button>
                 )}
-              </button>
+              </div>
             )}
 
             <div className="flex items-center gap-2 min-w-0">
