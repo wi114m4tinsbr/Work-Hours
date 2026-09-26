@@ -92,25 +92,25 @@ html {
   background-color: var(--primary-color-light);
 }
 
-/* Dark mode shell for Invoice Creator. Keep the actual invoice sheet light/readable. */
+/* Dark mode shell for Invoice Creator. */
 .dark .min-h-screen.bg-gray-50.pb-20 {
-  background-color: #11100f;
+  background-color: #141312;
   color: #f5f5f4;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 > header {
-  background-color: #1a1918;
-  border-color: rgba(255, 255, 255, 0.06);
+  background-color: #1d1b1a;
+  border-color: rgba(255, 255, 255, 0.08);
   box-shadow: none;
 }
 
-/* Softer dark controls instead of near-black blocks. */
+/* Dark mode controls outside the invoice paper. */
 .dark .min-h-screen.bg-gray-50.pb-20 input,
 .dark .min-h-screen.bg-gray-50.pb-20 select,
 .dark .min-h-screen.bg-gray-50.pb-20 textarea {
-  background-color: #242220;
-  border-color: #3a3734;
-  color: #f5f5f4;
+  background-color: #292624;
+  border-color: #45403c;
+  color: #fafaf9;
   box-shadow: none;
 }
 
@@ -122,60 +122,126 @@ html {
 
 .dark .min-h-screen.bg-gray-50.pb-20 input::placeholder,
 .dark .min-h-screen.bg-gray-50.pb-20 textarea::placeholder {
-  color: #8f8882;
+  color: #a8a29e;
+  opacity: 1;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-900,
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-800,
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-700 {
-  color: #f5f5f4;
+  color: #fafaf9;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-600,
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-500 {
-  color: #c9c4bf;
+  color: #e7e5e4;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-400,
 .dark .min-h-screen.bg-gray-50.pb-20 .text-gray-300 {
-  color: #9f9892;
+  color: #c8c2bd;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .border-gray-100,
 .dark .min-h-screen.bg-gray-50.pb-20 .border-gray-200,
 .dark .min-h-screen.bg-gray-50.pb-20 .border-gray-300 {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-50,
 .dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-100 {
-  background-color: #211f1d;
+  background-color: #24211f;
 }
 
 .dark .min-h-screen.bg-gray-50.pb-20 .hover\:bg-gray-100:hover {
-  background-color: #2d2a27;
+  background-color: #302c29;
 }
 
-/* Remove the pale halo/shadow from action buttons in dark mode. */
+/* Remove pale halos from action buttons in dark mode. */
 .dark .min-h-screen.bg-gray-50.pb-20 .shadow-indigo-200,
 .dark .min-h-screen.bg-gray-50.pb-20 .shadow-green-200,
 .dark .min-h-screen.bg-gray-50.pb-20 .shadow-blue-200,
 .dark .min-h-screen.bg-gray-50.pb-20 .shadow-lg {
-  --tw-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
-  --tw-shadow-colored: 0 8px 20px rgba(0, 0, 0, 0.22);
+  --tw-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  --tw-shadow-colored: 0 8px 20px rgba(0, 0, 0, 0.24);
   box-shadow: var(--tw-shadow);
 }
 
-/* Cards/panels around the editor can go dark, but the invoice canvas/paper stays light. */
-.dark .min-h-screen.bg-gray-50.pb-20 .bg-white:not([style*="background-color"]):not([style*="background:"]) {
-  background-color: #1b1a19;
+/* Panels around the editor go dark, but invoice content is isolated below. */
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-white:not(#invoice-sheet):not([style*="background-color"]):not([style*="background:"]) {
+  background-color: #1d1b1a;
 }
 
-/* Explicitly keep printable invoice sheet light and readable when it has its own inline template background. */
-.dark .min-h-screen.bg-gray-50.pb-20 [style*="background-color: rgb(255, 255, 255)"],
-.dark .min-h-screen.bg-gray-50.pb-20 [style*="background-color:#ffffff"],
-.dark .min-h-screen.bg-gray-50.pb-20 [style*="background-color: #ffffff"],
-.dark .min-h-screen.bg-gray-50.pb-20 [style*="background:#ffffff"],
-.dark .min-h-screen.bg-gray-50.pb-20 [style*="background: #ffffff"] {
+/* The selected invoice background must fill the actual invoice paper, not only its outer border. */
+.min-h-screen.bg-gray-50.pb-20 #invoice-sheet {
+  background-color: inherit !important;
   color: #111827;
+}
+
+/* Keep the invoice itself readable and independent from the application dark mode. */
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet input,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet textarea,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet select {
+  color: inherit;
+  border-color: rgba(17, 24, 39, 0.12);
+  box-shadow: none;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet input.bg-transparent,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet textarea.bg-transparent,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet select.bg-transparent {
+  background-color: transparent;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet .bg-black\/5 {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet .bg-gray-50 {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet input::placeholder,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+/* The font selector now affects the visual invoice preview as well as the generated PDF. */
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="helvetica"]:checked) #invoice-sheet {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="times"]:checked) #invoice-sheet {
+  font-family: "Times New Roman", Times, serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="courier"]:checked) #invoice-sheet {
+  font-family: "Courier New", Courier, monospace;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="arial"]:checked) #invoice-sheet {
+  font-family: Arial, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="verdana"]:checked) #invoice-sheet {
+  font-family: Verdana, Geneva, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="georgia"]:checked) #invoice-sheet {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="trebuchet"]:checked) #invoice-sheet {
+  font-family: "Trebuchet MS", Arial, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="impact"]:checked) #invoice-sheet {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+}
+
+/* Color pickers remain visually clear on dark mode. */
+.dark .min-h-screen.bg-gray-50.pb-20 input[type="color"] {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
