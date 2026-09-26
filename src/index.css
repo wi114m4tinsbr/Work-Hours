@@ -369,8 +369,8 @@ button:disabled {
 }
 @media (hover: hover) and (pointer: fine) {
   .brand-trigger:hover .brand-mark {
-    transform: scale(1.09);
-    box-shadow: 0 8px 26px color-mix(in srgb, var(--primary-color) 38%, transparent);
+    transform: scale(1.055);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent), 0 7px 20px color-mix(in srgb, var(--primary-color) 24%, transparent);
   }
   .brand-trigger:hover .brand-minute-hand {
     animation: shift-hours-minute-sweep 2.4s linear infinite;
@@ -379,8 +379,8 @@ button:disabled {
     animation: shift-hours-hour-sweep 28.8s linear infinite;
   }
   .brand-trigger:hover .brand-glow {
-    opacity: 1;
-    transform: scale(1.4);
+    opacity: .55;
+    transform: scale(1.08);
   }
   .brand-trigger:hover .brand-shift {
     color: var(--primary-color);
@@ -399,20 +399,16 @@ button:disabled {
   animation: brand-loader-wake 1.15s cubic-bezier(.2,.8,.2,1) both;
 }
 .brand-loader-glow {
-  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.72), transparent 45%);
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.55), transparent 48%);
   animation: brand-loader-pulse 1.25s ease-in-out infinite alternate;
-}
-.brand-loader-orbit {
-  animation: brand-loader-orbit 1.8s linear infinite;
-  border-top-color: rgba(255,255,255,.95);
 }
 .brand-loader-hour {
   transform: translate(-50%, -100%);
-  animation: brand-loader-hour 3.6s linear infinite;
+  animation: brand-loader-hour 28.8s linear infinite;
 }
 .brand-loader-minute {
   transform: translate(-50%, -100%);
-  animation: brand-loader-minute .9s linear infinite;
+  animation: brand-loader-minute 2.4s linear infinite;
 }
 .brand-loader-pin { transform: translate(-50%, -50%); }
 .brand-loader-name { animation: brand-loader-name .7s .15s cubic-bezier(.2,.8,.2,1) both; }
@@ -423,7 +419,6 @@ button:disabled {
   100% { opacity: 1; transform: scale(1) rotate(0); }
 }
 @keyframes brand-loader-pulse { from { opacity:.35; transform:scale(.9); } to { opacity:1; transform:scale(1.18); } }
-@keyframes brand-loader-orbit { to { transform: rotate(360deg); } }
 @keyframes brand-loader-hour { to { transform: translate(-50%, -100%) rotate(360deg); } }
 @keyframes brand-loader-minute { to { transform: translate(-50%, -100%) rotate(360deg); } }
 @keyframes brand-loader-name { from { opacity:0; transform:translateY(8px); letter-spacing:.04em; } to { opacity:1; transform:none; letter-spacing:-.04em; } }
