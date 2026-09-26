@@ -8,7 +8,7 @@ import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
@@ -35,6 +35,10 @@ export default function App() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profileFirstName, setProfileFirstName] = useState('');
+  const [profileLastName, setProfileLastName] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
     appName: 'Shift Hours',
@@ -157,6 +161,9 @@ export default function App() {
         setLang(userData.language || 'pt');
         setIsDarkMode(!!userData.isDarkMode);
         setSubscriptionType(userData.subscription?.type === 'monthly' ? 'monthly' : 'free');
+        const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
+        setProfileFirstName(userData.firstName || storedName[0] || '');
+        setProfileLastName(userData.lastName || (storedName.length > 1 ? storedName[storedName.length - 1] : ''));
         
         // Apply user theme or fallback to global
         const themeColor = userData.primaryColor || settings.primaryColor || '#000000';
@@ -287,15 +294,40 @@ export default function App() {
           </button>
 
           {/* Main tool navigation */}
-          <div className="hidden sm:flex items-center">
+          <div className="hidden sm:flex items-center relative">
             <button
-              onClick={() => setActiveTab('invoices')}
-              className="group relative px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2.5 text-stone-600 dark:text-stone-200 bg-transparent hover:bg-primary-light dark:hover:bg-primary/20 hover:text-primary dark:hover:text-white hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10 transition-all duration-200 ease-out overflow-hidden"
+              type="button"
+              onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+              className="group relative px-3 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-stone-600 dark:text-stone-200 hover:bg-primary-light dark:hover:bg-white/10 hover:text-primary dark:hover:text-white whitespace-nowrap"
+              aria-expanded={isToolsMenuOpen}
             >
-              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center rounded-full" />
-              <FileText size={17} className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110" />
-              <span className="relative transition-transform duration-200 group-hover:translate-x-0.5">{t.invoiceCreator}</span>
+              <BriefcaseBusiness size={17} />
+              <span>Ferramentas</span>
+              <ChevronDown size={14} className={cn("transition-transform", isToolsMenuOpen && "rotate-180")} />
+              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 rounded-full" />
             </button>
+            <AnimatePresence>
+              {isToolsMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 p-2 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl z-[70]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('invoices'); setIsToolsMenuOpen(false); }}
+                    className="group w-full flex items-center gap-3 p-3 rounded-xl text-left hover:bg-primary-light dark:hover:bg-white/10"
+                  >
+                    <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0"><FileText size={17} /></span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black text-stone-900 dark:text-white">{t.invoiceCreator}</span>
+                      <span className="block text-xs text-stone-500 dark:text-stone-400 mt-0.5">Criar e gerenciar faturas</span>
+                    </span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
           <div className="flex items-center gap-1 sm:gap-3">
@@ -391,23 +423,21 @@ export default function App() {
               </div>
             )}
 
-            <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-2 min-w-0 rounded-xl px-1.5 py-1 hover:bg-primary-light dark:hover:bg-white/10"
+              title="Editar perfil"
+            >
               {user.photoURL ? (
-                <img 
-                  src={user.photoURL} 
-                  alt={user.displayName || ''} 
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0"
-                  referrerPolicy="no-referrer"
-                />
+                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0" referrerPolicy="no-referrer" />
               ) : (
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0">
-                  <UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" />
-                </div>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
-              <span className="hidden md:block max-w-[120px] truncate text-sm font-semibold text-stone-700 dark:text-stone-200" title={user.displayName || user.email || ''}>
-                {user.displayName || user.email?.split('@')[0]}
+              <span className="hidden md:block max-w-[165px] truncate text-sm font-semibold text-stone-700 dark:text-stone-200">
+                {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
               </span>
-            </div>
+            </button>
             <button 
               onClick={handleLogout}
               className="p-2 text-stone-400 hover:text-red-500 transition-colors"
@@ -509,6 +539,22 @@ export default function App() {
                 <button type="button" disabled className="w-full rounded-xl bg-primary text-white px-4 py-3 font-black disabled:opacity-60 disabled:cursor-not-allowed">Upgrade Premium · Em breve</button>
                 <p className="text-center mt-3 text-xs text-stone-400 dark:text-stone-500">Nenhuma cobrança será feita nesta etapa.</p>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isProfileModalOpen && (
+          <motion.div className="fixed inset-0 z-[110] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={() => setIsProfileModalOpen(false)}>
+            <motion.div initial={{opacity:0,y:16,scale:.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:10,scale:.98}} onClick={(e)=>e.stopPropagation()} className="w-full max-w-md rounded-3xl bg-white dark:bg-stone-900 border border-black/10 dark:border-white/10 shadow-2xl p-6">
+              <div className="flex items-center justify-between mb-5"><div><h2 className="text-xl font-black text-stone-900 dark:text-white">Seu perfil</h2><p className="text-sm text-stone-500 dark:text-stone-400">Como seu nome aparece no Shift Hours.</p></div><button type="button" onClick={()=>setIsProfileModalOpen(false)} className="p-2 rounded-xl text-stone-500 dark:text-stone-300 hover:bg-primary hover:text-white"><X size={18}/></button></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs font-bold text-stone-500 dark:text-stone-300 mb-1.5">Primeiro nome</label><input maxLength={24} value={profileFirstName} onChange={(e)=>setProfileFirstName(e.target.value.slice(0,24))} className="w-full h-11 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-3 text-stone-900 dark:text-white" /></div>
+                <div><label className="block text-xs font-bold text-stone-500 dark:text-stone-300 mb-1.5">Último nome</label><input maxLength={24} value={profileLastName} onChange={(e)=>setProfileLastName(e.target.value.slice(0,24))} className="w-full h-11 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-3 text-stone-900 dark:text-white" /></div>
+              </div>
+              <p className="mt-2 text-[11px] text-stone-400">Máximo de 24 caracteres por campo.</p>
+              <button type="button" onClick={async()=>{const firstName=profileFirstName.trim();const lastName=profileLastName.trim();if(!firstName)return;await updateDoc(doc(db,'users',user.uid),{firstName,lastName,displayName:[firstName,lastName].filter(Boolean).join(' ')});setIsProfileModalOpen(false);}} className="mt-5 w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 font-black">Salvar nome</button>
             </motion.div>
           </motion.div>
         )}
