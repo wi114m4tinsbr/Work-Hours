@@ -1026,9 +1026,6 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
               {/* Unified invoice editing panel */}
               <div className="sticky top-3 z-40 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 invoice-editor-light-panel">
                 <div className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200">
-                  <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl">
-                    <FileText size={18} />
-                  </div>
                   <div className="flex-1 min-w-0">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{t.internalName}</label>
                     <input
