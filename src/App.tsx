@@ -279,16 +279,6 @@ export default function App() {
     );
   }
 
-  if (activeTab === 'invoices') {
-    return (
-      <InvoiceCreator 
-        language={lang} 
-        onBack={() => setActiveTab('hours')} 
-        isAdmin={isOwner}
-      />
-    );
-  }
-
   return (
     <div className={cn(
       "min-h-screen font-sans flex flex-col transition-colors duration-300 custom-scrollbar",
@@ -476,6 +466,11 @@ export default function App() {
         </div>
       </header>
 
+      {activeTab === 'invoices' ? (
+        <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
+          <InvoiceCreator language={lang} onBack={() => setActiveTab('hours')} isAdmin={isOwner} embedded />
+        </main>
+      ) : (
       <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">
         <AnimatePresence mode="wait">
           {!currentJobId ? (
@@ -505,6 +500,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+      )}
 
       <AdminSettings 
         isOpen={isAdminModalOpen}
