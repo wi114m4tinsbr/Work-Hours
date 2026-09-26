@@ -37,6 +37,8 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
   const [loading, setLoading] = useState(false);
   const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 });
   const [isPositioningImage, setIsPositioningImage] = useState(false);
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [draftImagePosition, setDraftImagePosition] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
     if (jobToEdit) {
@@ -83,7 +85,8 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
         setIconValue(optimized);
         setIconType('image');
         setImagePosition({ x: 50, y: 50 });
-        setIsPositioningImage(true);
+        setDraftImagePosition({ x: 50, y: 50 });
+        setShowImageEditor(true);
       };
       image.src = reader.result as string;
     };
@@ -96,7 +99,19 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
     const rect = e.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
-    setImagePosition({ x, y });
+    setDraftImagePosition({ x, y });
+  };
+
+  const openImageEditor = () => {
+    if (!iconValue?.startsWith('data:')) return;
+    setDraftImagePosition(imagePosition);
+    setShowImageEditor(true);
+  };
+
+  const saveImagePosition = () => {
+    setImagePosition(draftImagePosition);
+    setShowImageEditor(false);
+    setIsPositioningImage(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -243,30 +258,20 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
 
                 {iconType === 'image' && (
                   <div className="flex gap-3 items-center">
-                    <div
-                      className={cn("w-20 h-20 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center overflow-hidden border-2 border-stone-200 dark:border-stone-700 relative touch-none", iconValue?.startsWith('data:') && "cursor-move")}
-                      onPointerDown={(e) => {
-                        if (!iconValue?.startsWith('data:')) return;
-                        setIsPositioningImage(true);
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                        handleImagePosition(e);
-                      }}
-                      onPointerMove={handleImagePosition}
-                      onPointerUp={(e) => {
-                        setIsPositioningImage(false);
-                        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-                      }}
-                    >
+                    <button type="button" onClick={openImageEditor} className="relative w-20 h-20 shrink-0 rounded-full overflow-hidden border-2 border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 group" title="Ajustar imagem">
                       {iconValue && iconValue.startsWith('data:') ? (
-                        <img src={iconValue} alt="Preview" draggable={false} className="w-full h-full object-cover select-none pointer-events-none" style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%` }} />
+                        <>
+                          <img src={iconValue} alt="Preview" draggable={false} className="w-full h-full object-cover" style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%` }} />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/35 text-white opacity-0 group-hover:opacity-100 transition-all text-[10px] font-bold">Ajustar</span>
+                        </>
                       ) : (
-                        <ImageIcon className="w-7 h-7 text-stone-300 dark:text-stone-400" />
+                        <ImageIcon className="w-7 h-7 text-stone-300 dark:text-stone-400 mx-auto" />
                       )}
-                    </div>
+                    </button>
                     <label className="flex-1 cursor-pointer">
                       <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-primary hover:bg-primary-light dark:hover:bg-primary/10 transition-all text-stone-500 dark:text-stone-300 hover:text-primary">
                         <Upload className="w-5 h-5" />
-                        <span className="text-sm font-bold">{t.uploadImage}</span>
+                        <span className="text-sm font-bold">{iconValue?.startsWith('data:') ? 'Alterar imagem' : t.uploadImage}</span>
                       </div>
                       <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
@@ -326,6 +331,42 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
               </button>
             </form>
           </motion.div>
+        </div>
+      )}
+      {showImageEditor && iconValue?.startsWith('data:') && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setShowImageEditor(false)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-stone-900 rounded-3xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-bold text-stone-900 dark:text-white">Ajustar imagem</h3>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Arraste a foto até deixar a parte desejada dentro do círculo.</p>
+              </div>
+              <button type="button" onClick={() => setShowImageEditor(false)} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800"><X size={20} /></button>
+            </div>
+            <div className="flex justify-center py-4">
+              <div
+                className="relative w-72 h-72 max-w-full rounded-full overflow-hidden bg-stone-100 dark:bg-stone-800 border-4 border-white dark:border-stone-700 shadow-xl cursor-move touch-none"
+                onPointerDown={(e) => {
+                  setIsPositioningImage(true);
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  handleImagePosition(e);
+                }}
+                onPointerMove={handleImagePosition}
+                onPointerUp={(e) => {
+                  setIsPositioningImage(false);
+                  if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+                }}
+              >
+                <img src={iconValue} alt="Ajustar" draggable={false} className="w-full h-full object-cover select-none pointer-events-none" style={{ objectPosition: `${draftImagePosition.x}% ${draftImagePosition.y}%` }} />
+                <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/70 pointer-events-none" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button type="button" onClick={() => setShowImageEditor(false)} className="flex-1 h-11 rounded-xl border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 font-bold">Cancelar</button>
+              <button type="button" onClick={saveImagePosition} className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold">Usar esta posição</button>
+            </div>
+          </div>
         </div>
       )}
     </AnimatePresence>
