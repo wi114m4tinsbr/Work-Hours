@@ -359,25 +359,33 @@ export default function App() {
             </div>
 
             {!isOwner && (
-              <div className="hidden sm:flex items-center rounded-full border border-amber-300/70 dark:border-amber-700/70 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-950/60 dark:via-yellow-950/40 dark:to-amber-900/50 shadow-sm overflow-hidden">
+              <div className="hidden sm:flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setIsUpgradeModalOpen(true)}
-                  className="px-3 py-1.5 text-xs font-black text-amber-800 dark:text-amber-200 hover:bg-amber-200/60 dark:hover:bg-amber-700/30"
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black shadow-sm",
+                    subscriptionType === 'monthly'
+                      ? "bg-primary-light text-primary border-primary/25"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700"
+                  )}
                   title="Plano atual"
                 >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
                   {subscriptionType === 'monthly' ? 'Premium' : t.free}
+                  <span className="hidden lg:inline text-[9px] uppercase tracking-wider opacity-60">Atual</span>
                 </button>
                 {subscriptionType === 'free' && (
                   <button
                     type="button"
                     onClick={() => setIsUpgradeModalOpen(true)}
-                    className="group/upgrade relative flex items-center gap-1.5 px-3 py-1.5 border-l border-amber-300/80 dark:border-amber-700/80 text-xs font-black text-amber-900 dark:text-amber-100 hover:bg-amber-300/55 dark:hover:bg-amber-600/30 overflow-hidden"
+                    className="group/upgrade relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-amber-400/80 dark:border-amber-600 bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 dark:from-amber-500 dark:via-yellow-400 dark:to-amber-600 text-amber-950 text-xs font-black shadow-[0_3px_12px_rgba(245,158,11,0.22)] hover:shadow-[0_6px_22px_rgba(245,158,11,0.48)] hover:-translate-y-0.5 hover:scale-[1.04] overflow-hidden"
                     title="Conhecer o Premium"
                   >
-                    <span className="absolute inset-y-0 -left-8 w-5 rotate-12 bg-white/70 blur-[1px] transition-all duration-700 group-hover/upgrade:left-[110%]" />
-                    <Crown size={13} className="relative transition-transform duration-200 group-hover/upgrade:scale-110" />
+                    <span className="absolute inset-y-0 -left-10 w-6 rotate-12 bg-white/75 blur-[1px] transition-all duration-700 group-hover/upgrade:left-[115%]" />
+                    <Crown size={14} className="relative transition-transform duration-200 group-hover/upgrade:-rotate-6 group-hover/upgrade:scale-125" />
                     <span className="relative">Upgrade</span>
+                    <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/35 pointer-events-none" />
                   </button>
                 )}
               </div>
