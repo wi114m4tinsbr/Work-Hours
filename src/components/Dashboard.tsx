@@ -8,7 +8,7 @@ import { motion } from 'motion/react';
 
 const JobIcon = ({ job }: { job: Job }) => {
   if (job.iconType === 'image' && job.iconValue) {
-    return <img src={job.iconValue} alt={job.name} className="w-full h-full object-cover rounded-2xl" />;
+    return <img src={job.iconValue} alt={job.name} className="w-full h-full object-cover rounded-2xl" style={{ objectPosition: `${job.imagePosition?.x ?? 50}% ${job.imagePosition?.y ?? 50}%` }} />;
   }
   if (job.iconType === 'letter' && job.iconValue) {
     return <span className="text-xl font-bold uppercase">{job.iconValue.charAt(0)}</span>;
