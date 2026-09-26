@@ -16,6 +16,7 @@ export interface Job {
   iconType?: 'icon' | 'letter' | 'image';
   iconValue?: string;
   imagePosition?: { x: number; y: number };
+  imageZoom?: number;
   createdAt: any;
 }
 
