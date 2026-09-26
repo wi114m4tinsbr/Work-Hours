@@ -347,7 +347,7 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 shrink-0 lg:ml-auto">
             <button
               onClick={() => setActiveTab('invoices')}
               className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 sm:hidden"
@@ -408,7 +408,7 @@ export default function App() {
             </div>
 
             {!isOwner && (
-              <div className="hidden sm:flex items-center gap-1.5">
+              <div className="hidden sm:flex items-center gap-1.5 ml-3 lg:ml-5 pl-3 lg:pl-5 border-l border-stone-200 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsUpgradeModalOpen(true)}
@@ -443,7 +443,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="group/profile flex items-center gap-2 min-w-0 px-1 py-1 transition-all duration-200"
+              className="group/profile flex items-center gap-2 min-w-0 ml-1 lg:ml-2 px-1 py-1 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
@@ -463,7 +463,7 @@ export default function App() {
             </button>
             <button 
               onClick={handleLogout}
-              className="h-10 flex items-center gap-1.5 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0"
+              className="h-10 flex items-center gap-1.5 ml-1 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
