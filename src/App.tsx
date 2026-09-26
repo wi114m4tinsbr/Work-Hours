@@ -443,11 +443,11 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="group/profile flex items-center gap-2 min-w-0 ml-1 lg:ml-2 px-1 py-1 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
+              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-3 lg:ml-5 pl-3 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
-                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0 transition-all duration-200 group-hover/profile:scale-[1.04]" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0 transition-all duration-200 group-hover/profile:scale-[1.06] group-hover/profile:ring-2 group-hover/profile:ring-primary/20" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
