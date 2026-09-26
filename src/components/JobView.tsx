@@ -103,14 +103,12 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
     const doc = new jsPDF();
     const locale = getLocale();
 
-    // Header
     doc.setFontSize(20);
     doc.text(customTitle, 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
     doc.text(`${t.date}: ${format(new Date(), 'dd/MM/yyyy')}`, 195, 20, { align: 'right' });
 
-    // Info
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(t.worker, 20, 40);
@@ -122,7 +120,6 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
     doc.setFont('helvetica', 'normal');
     doc.text(job.name, 120, 46);
 
-    // Table
     const tableData = sessions.map(s => {
       const duration = calculateDuration(s.startTime, s.endTime, s.breakMinutes, s.isBreakPaid);
       const breakInfo = s.breakMinutes > 0 ? `${s.breakMinutes}m (${s.isBreakPaid ? t.paidBreak : t.unpaidBreak})` : '-';
@@ -152,7 +149,6 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
       headStyles: { fillColor: rgb },
     });
 
-    // Summary
     const finalY = (doc as any).lastAutoTable.finalY + 10;
     doc.setFont('helvetica', 'bold');
     doc.text(`${t.totalHours}: ${formatDuration(totalHours)}`, 195, finalY, { align: 'right' });
@@ -220,7 +216,6 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-primary to-primary-hover text-white p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl shadow-primary-light transform hover:scale-[1.02] transition-transform">
           <div className="flex items-center gap-2 mb-2 sm:mb-3 opacity-80">
@@ -259,7 +254,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
         <h3 className="text-lg font-bold dark:text-white">{t.workSessions}</h3>
         <button
           onClick={handleAddSession}
-          className="bg-stone-900 dark:bg-white dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-stone-100 p-2 rounded-xl flex items-center gap-2 px-4 text-sm font-medium transition-all"
+          className="bg-primary text-white hover:bg-primary-hover p-2 rounded-xl flex items-center gap-2 px-4 text-sm font-medium transition-all"
         >
           <Plus className="w-4 h-4" />
           {t.addDay}

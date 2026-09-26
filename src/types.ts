@@ -15,6 +15,8 @@ export interface Job {
   currency: string; // ISO currency code like BRL, USD, EUR, GBP
   iconType?: 'icon' | 'letter' | 'image';
   iconValue?: string;
+  imagePosition?: { x: number; y: number };
+  imageZoom?: number;
   createdAt: any;
 }
 

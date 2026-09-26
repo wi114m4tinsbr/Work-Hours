@@ -76,8 +76,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
               </button>
             </div>
 
-            <div className="space-y-6 sm:space-y-8 max-h-[70vh] overflow-y-auto pr-1 sm:pr-0 custom-scrollbar">
-              {/* Monochromatic */}
+            <div className="space-y-6 sm:space-y-8 max-h-[70vh] overflow-y-auto overflow-x-hidden px-2 -mx-2 theme-scroll-area">
               <div>
                 <h4 className="text-[10px] sm:text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3 sm:mb-4">{t.monochromatic}</h4>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -85,8 +84,8 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
                     <button
                       onClick={() => handleSave(monoTheme.primary)}
                       className={cn(
-                        "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center justify-center relative overflow-hidden",
-                        selectedColor === monoTheme.primary ? "border-primary scale-110 shadow-lg" : "border-transparent hover:scale-105"
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl transition-all flex items-center justify-center relative",
+                        selectedColor === monoTheme.primary ? "ring-[3px] ring-primary/25 ring-offset-2 ring-offset-white dark:ring-offset-bg-card-dark scale-[1.04] shadow-md" : "hover:scale-[1.04]"
                       )}
                       style={{ backgroundColor: monoTheme.primary }}
                     >
@@ -96,7 +95,6 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
                 </div>
               </div>
 
-              {/* Vivid Themes */}
               <div>
                 <h4 className="text-[10px] sm:text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3 sm:mb-4">{t.vividThemes}</h4>
                 <div className="grid grid-cols-5 gap-2 sm:gap-3">
@@ -105,8 +103,8 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
                       key={theme.id}
                       onClick={() => handleSave(theme.primary)}
                       className={cn(
-                        "aspect-square rounded-xl sm:rounded-2xl border-2 transition-all flex items-center justify-center relative overflow-hidden",
-                        selectedColor === theme.primary ? "border-primary scale-110 shadow-lg" : "border-transparent hover:scale-105"
+                        "aspect-square rounded-xl sm:rounded-2xl transition-all flex items-center justify-center relative",
+                        selectedColor === theme.primary ? "ring-[3px] ring-primary/25 ring-offset-2 ring-offset-white dark:ring-offset-bg-card-dark scale-[1.04] shadow-md" : "hover:scale-[1.04]"
                       )}
                       style={{ backgroundColor: theme.primary }}
                     >
@@ -116,7 +114,6 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
                 </div>
               </div>
 
-              {/* Custom Color */}
               <div>
                 <h4 className="text-[10px] sm:text-xs font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3 sm:mb-4">{t.customColor}</h4>
                 <div className="flex gap-3 sm:gap-4 items-center">
@@ -135,7 +132,7 @@ export function ThemeModal({ isOpen, onClose, userId, t }: ThemeModalProps) {
 
             <button
               onClick={onClose}
-              className="w-full bg-stone-900 dark:bg-white dark:text-stone-900 font-bold py-4 rounded-xl sm:rounded-2xl mt-6 sm:mt-8 hover:bg-stone-800 dark:hover:bg-stone-100 transition-all text-sm sm:text-base"
+              className="w-full bg-primary text-white font-bold py-4 rounded-xl sm:rounded-2xl mt-6 sm:mt-8 hover:bg-primary-hover transition-all text-sm sm:text-base"
             >
               {t.back}
             </button>

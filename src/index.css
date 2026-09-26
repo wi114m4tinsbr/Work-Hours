@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: var(--primary-color, #10b981);
   --color-primary-hover: var(--primary-color-hover, #059669);
@@ -57,7 +59,6 @@ html {
   background-clip: content-box;
 }
 
-/* Specific class for containers if needed */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(120, 113, 108, 0.2) transparent;
@@ -67,3 +68,385 @@ html {
   width: 6px;
   height: 6px;
 }
+
+/* Invoice Creator inherits the active user palette. */
+.min-h-screen.bg-gray-50.pb-20 .bg-indigo-600,
+.min-h-screen.bg-gray-50.pb-20 .bg-blue-600 {
+  background-color: var(--primary-color);
+}
+
+.min-h-screen.bg-gray-50.pb-20 .hover\:bg-indigo-700:hover,
+.min-h-screen.bg-gray-50.pb-20 .hover\:bg-blue-700:hover {
+  background-color: var(--primary-color-hover);
+}
+
+.min-h-screen.bg-gray-50.pb-20 .text-blue-600,
+.min-h-screen.bg-gray-50.pb-20 .text-blue-700,
+.min-h-screen.bg-gray-50.pb-20 .text-indigo-600,
+.min-h-screen.bg-gray-50.pb-20 .text-indigo-700 {
+  color: var(--primary-color);
+}
+
+.min-h-screen.bg-gray-50.pb-20 .bg-blue-50,
+.min-h-screen.bg-gray-50.pb-20 .bg-indigo-50 {
+  background-color: var(--primary-color-light);
+}
+
+/* Dark mode shell for Invoice Creator. */
+.dark .min-h-screen.bg-gray-50.pb-20 {
+  background-color: #141312;
+  color: #f5f5f4;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 > header {
+  background-color: #1d1b1a;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+/* Dark mode controls outside the invoice paper. */
+.dark .min-h-screen.bg-gray-50.pb-20 input,
+.dark .min-h-screen.bg-gray-50.pb-20 select,
+.dark .min-h-screen.bg-gray-50.pb-20 textarea {
+  background-color: #292624;
+  border-color: #45403c;
+  color: #fafaf9;
+  box-shadow: none;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 input:focus,
+.dark .min-h-screen.bg-gray-50.pb-20 select:focus,
+.dark .min-h-screen.bg-gray-50.pb-20 textarea:focus {
+  border-color: var(--primary-color);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 input::placeholder,
+.dark .min-h-screen.bg-gray-50.pb-20 textarea::placeholder {
+  color: #a8a29e;
+  opacity: 1;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-900,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-800,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-700 {
+  color: #fafaf9;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-600,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-500 {
+  color: #e7e5e4;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-400,
+.dark .min-h-screen.bg-gray-50.pb-20 .text-gray-300 {
+  color: #c8c2bd;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .border-gray-100,
+.dark .min-h-screen.bg-gray-50.pb-20 .border-gray-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-50,
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-gray-100 {
+  background-color: #24211f;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .hover\:bg-gray-100:hover {
+  background-color: #302c29;
+}
+
+/* Remove pale halos from action buttons in dark mode. */
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-indigo-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-green-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-blue-200,
+.dark .min-h-screen.bg-gray-50.pb-20 .shadow-lg {
+  --tw-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  --tw-shadow-colored: 0 8px 20px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--tw-shadow);
+}
+
+/* Panels around the editor go dark, but invoice content is isolated below. */
+.dark .min-h-screen.bg-gray-50.pb-20 .bg-white:not(#invoice-sheet):not([style*="background-color"]):not([style*="background:"]) {
+  background-color: #1d1b1a;
+}
+
+/* Invoice editing cards intentionally stay light even when the application shell is dark. */
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  color: #111827 !important;
+  border-color: #e5e7eb !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel input,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel select {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+  color: #111827;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel input::placeholder {
+  color: #9ca3af;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .text-gray-900,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .text-gray-700,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .text-gray-600,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .text-gray-500 {
+  color: #374151;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .text-gray-400 {
+  color: #6b7280;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel input[type="color"] {
+  background-color: transparent;
+  border-color: #d1d5db;
+}
+
+/* Neutral editing controls inside the light invoice panel must not inherit the dark shell. */
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .bg-gray-50,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .bg-gray-100 {
+  background-color: #f9fafb !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .hover\:bg-gray-100:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .border-gray-100,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .border-gray-200 {
+  border-color: #e5e7eb !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel button.bg-gray-50,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel label.bg-gray-50 {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel input[type="color"] {
+  background-color: transparent !important;
+  color-scheme: light;
+}
+
+/* The selected invoice background must fill the actual invoice paper, not only its outer border. */
+.min-h-screen.bg-gray-50.pb-20 #invoice-sheet {
+  background-color: inherit !important;
+  color: #111827;
+}
+
+/* Keep the invoice itself readable and independent from the application dark mode. */
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet input,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet textarea,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet select {
+  color: inherit;
+  border-color: rgba(17, 24, 39, 0.12);
+  box-shadow: none;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet input.bg-transparent,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet textarea.bg-transparent,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet select.bg-transparent {
+  background-color: transparent;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet .bg-black\/5 {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet .bg-gray-50 {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet input::placeholder,
+.dark .min-h-screen.bg-gray-50.pb-20 #invoice-sheet textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
+
+/* The font selector now affects the visual invoice preview as well as the generated PDF. */
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="helvetica"]:checked) #invoice-sheet {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="times"]:checked) #invoice-sheet {
+  font-family: "Times New Roman", Times, serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="courier"]:checked) #invoice-sheet {
+  font-family: "Courier New", Courier, monospace;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="arial"]:checked) #invoice-sheet {
+  font-family: Arial, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="verdana"]:checked) #invoice-sheet {
+  font-family: Verdana, Geneva, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="georgia"]:checked) #invoice-sheet {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="trebuchet"]:checked) #invoice-sheet {
+  font-family: "Trebuchet MS", Arial, sans-serif;
+}
+
+.min-h-screen.bg-gray-50.pb-20:has(select option[value="impact"]:checked) #invoice-sheet {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+}
+
+/* Color pickers remain visually clear on dark mode. */
+.dark .min-h-screen.bg-gray-50.pb-20 input[type="color"] {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+
+/* Shared interaction language for app buttons: subtle lift, theme glow and press feedback. */
+button:not(:disabled) {
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 18px color-mix(in srgb, var(--primary-color) 14%, transparent);
+  }
+}
+
+button:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 90ms;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Shift Hours brand: semantic clock motion, not generic button motion. */
+.brand-trigger,
+.brand-trigger:hover,
+.brand-trigger:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+ .brand-mark,
+.brand-shift,
+.brand-hours,
+.brand-glow,
+.brand-hour-hand,
+.brand-minute-hand {
+  transition: transform 520ms cubic-bezier(.2,.8,.2,1), color 260ms ease, box-shadow 320ms ease, opacity 320ms ease, letter-spacing 320ms ease;
+}
+.brand-glow {
+  opacity: 0;
+  background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.78), transparent 48%);
+}
+.brand-hour-hand {
+  transform: translate(-50%, -100%) rotate(35deg);
+}
+.brand-minute-hand {
+  transform: translate(-50%, -100%) rotate(145deg);
+}
+.brand-clock-pin {
+  transform: translate(-50%, -50%);
+}
+@keyframes shift-hours-minute-sweep {
+  from { transform: translate(-50%, -100%) rotate(145deg); }
+  to { transform: translate(-50%, -100%) rotate(505deg); }
+}
+@keyframes shift-hours-hour-sweep {
+  from { transform: translate(-50%, -100%) rotate(35deg); }
+  to { transform: translate(-50%, -100%) rotate(395deg); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .brand-trigger:hover .brand-mark {
+    transform: scale(1.055);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 16%, transparent), 0 7px 20px color-mix(in srgb, var(--primary-color) 24%, transparent);
+  }
+  .brand-trigger:hover .brand-minute-hand {
+    animation: shift-hours-minute-sweep 2.4s linear infinite;
+  }
+  .brand-trigger:hover .brand-hour-hand {
+    animation: shift-hours-hour-sweep 28.8s linear infinite;
+  }
+  .brand-trigger:hover .brand-glow {
+    opacity: .55;
+    transform: scale(1.08);
+  }
+  .brand-trigger:hover .brand-shift {
+    color: var(--primary-color);
+    transform: translateX(2px);
+  }
+  .brand-trigger:hover .brand-hours {
+    transform: translateX(4px) scale(1.04);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--primary-color) 35%, transparent);
+  }
+}
+
+
+/* Branded loading sequence. All accents inherit the active theme through --primary-color. */
+.brand-loader-mark {
+  box-shadow: 0 18px 55px color-mix(in srgb, var(--primary-color) 30%, transparent);
+  animation: brand-loader-wake 1.15s cubic-bezier(.2,.8,.2,1) both;
+}
+.brand-loader-glow {
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.55), transparent 48%);
+  animation: brand-loader-pulse 1.25s ease-in-out infinite alternate;
+}
+.brand-loader-hour {
+  transform: translate(-50%, -100%);
+  animation: brand-loader-hour 28.8s linear infinite;
+}
+.brand-loader-minute {
+  transform: translate(-50%, -100%);
+  animation: brand-loader-minute 2.4s linear infinite;
+}
+.brand-loader-pin { transform: translate(-50%, -50%); }
+.brand-loader-name { animation: brand-loader-name .7s .15s cubic-bezier(.2,.8,.2,1) both; }
+.brand-loader-line { transform-origin: center; animation: brand-loader-line 1.15s .25s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes brand-loader-wake {
+  0% { opacity: 0; transform: scale(.68) rotate(-12deg); }
+  55% { opacity: 1; transform: scale(1.08) rotate(3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes brand-loader-pulse { from { opacity:.35; transform:scale(.9); } to { opacity:1; transform:scale(1.18); } }
+@keyframes brand-loader-hour { to { transform: translate(-50%, -100%) rotate(360deg); } }
+@keyframes brand-loader-minute { to { transform: translate(-50%, -100%) rotate(360deg); } }
+@keyframes brand-loader-name { from { opacity:0; transform:translateY(8px); letter-spacing:.04em; } to { opacity:1; transform:none; letter-spacing:-.04em; } }
+@keyframes brand-loader-line { 0% { transform:scaleX(0); opacity:0; } 100% { transform:scaleX(1); opacity:1; } }
+
+/* Account controls are identity/navigation, not raised action buttons. */
+.profile-trigger,
+.profile-trigger:hover,
+.profile-trigger:active,
+.account-logout,
+.account-logout:hover,
+.account-logout:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none !important;
+  }
+
+  button:hover,
+  button:active {
+    transform: none !important;
+  }
+}
+
+/* Theme picker scrolls when needed without placing a visible bar over the swatches. */
+.theme-scroll-area { scrollbar-width: none; -ms-overflow-style: none; }
+.theme-scroll-area::-webkit-scrollbar { width: 0; height: 0; display: none; }

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { db, collection, query, where, onSnapshot, addDoc, Timestamp, deleteDoc, doc, handleFirestoreError, OperationType } from '../firebase';
 import { Job } from '../types';
-import { Plus, Briefcase, Trash2, ChevronRight, DollarSign, Edit2 } from 'lucide-react';
+import { Plus, Briefcase, Trash2, ChevronRight, Edit2 } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { JobModal, JOB_ICONS, JobIconName } from './JobModal';
 import { motion } from 'motion/react';
 
 const JobIcon = ({ job }: { job: Job }) => {
   if (job.iconType === 'image' && job.iconValue) {
-    return <img src={job.iconValue} alt={job.name} className="w-full h-full object-cover rounded-2xl" />;
+    return <img src={job.iconValue} alt={job.name} className="w-full h-full object-cover rounded-2xl" style={{ objectPosition: `${job.imagePosition?.x ?? 50}% ${job.imagePosition?.y ?? 50}%`, transform: `scale(${job.imageZoom ?? 1})` }} />;
   }
   if (job.iconType === 'letter' && job.iconValue) {
     return <span className="text-xl font-bold uppercase">{job.iconValue.charAt(0)}</span>;
@@ -100,13 +100,12 @@ export function Dashboard({ userId, onSelectJob, t }: DashboardProps) {
               className="bg-white dark:bg-bg-card-dark p-4 sm:p-5 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-light dark:bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all group-hover:rotate-3 overflow-hidden shrink-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary-light dark:bg-primary/10 rounded-2xl flex items-center justify-center text-primary dark:text-white group-hover:bg-primary group-hover:text-white transition-all group-hover:rotate-3 overflow-hidden shrink-0">
                   <JobIcon job={job} />
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-bold text-base sm:text-lg dark:text-white truncate">{job.name}</h3>
                   <div className="flex items-center gap-1 text-stone-500 dark:text-stone-400 text-xs sm:text-sm">
-                    <DollarSign className="w-3 h-3" />
                     <span className="truncate">{formatCurrency(job.hourlyRate, job.currency)} / {t.hourlyRate.toLowerCase()}</span>
                   </div>
                 </div>
