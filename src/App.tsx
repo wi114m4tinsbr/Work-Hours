@@ -7,6 +7,7 @@ import { AdminSettings } from './components/AdminSettings';
 import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
+import { PDFStudio } from './components/PDFStudio';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
 import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
@@ -29,7 +30,7 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'hours' | 'invoices'>('hours');
+  const [activeTab, setActiveTab] = useState<'hours' | 'invoices' | 'pdf'>('hours');
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -356,15 +357,14 @@ export default function App() {
                       <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><FileText size={18}/></span>
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{t.invoiceCreator}</span>
                     </button>
-                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-55">
-                      <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><ScanText size={18}/></span>
-                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'PDF Reader' : lang === 'es' ? 'Lector PDF' : 'Leitor PDF'}</span>
-                      <span className="text-[9px] font-black uppercase tracking-wide text-stone-400">{lang === 'en' ? 'Soon' : lang === 'es' ? 'Pronto' : 'Em breve'}</span>
-                    </div>
-                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-55">
+                    <button type="button" onClick={() => { setActiveTab('pdf'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><ScanText size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">PDF Studio</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-primary">{lang === 'en' ? 'New' : lang === 'es' ? 'Nuevo' : 'Novo'}</span>
+                    </button>
+                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-45">
                       <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><FilePenLine size={18}/></span>
-                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'PDF Editor' : lang === 'es' ? 'Editor PDF' : 'Editor PDF'}</span>
-                      <span className="text-[9px] font-black uppercase tracking-wide text-stone-400">{lang === 'en' ? 'Soon' : lang === 'es' ? 'Pronto' : 'Em breve'}</span>
+                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'More tools' : lang === 'es' ? 'Más herramientas' : 'Mais ferramentas'}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -498,7 +498,11 @@ export default function App() {
         </div>
       </header>
 
-      {activeTab === 'invoices' ? (
+      {activeTab === 'pdf' ? (
+        <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
+          <PDFStudio language={lang} onBack={() => setActiveTab('hours')} />
+        </main>
+      ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
           <InvoiceCreator language={lang} onBack={() => setActiveTab('hours')} isAdmin={isOwner} embedded />
         </main>
