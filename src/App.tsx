@@ -372,7 +372,11 @@ export default function App() {
               >
                 {subscriptionType === 'monthly' ? <Crown size={14} /> : null}
                 <span>{subscriptionType === 'monthly' ? 'Premium' : t.free}</span>
-                {subscriptionType === 'free' && <span className="hidden lg:inline text-primary dark:text-emerald-300">· Upgrade</span>}
+                {subscriptionType === 'free' && (
+                  <span className="hidden lg:inline-flex items-center ml-1 pl-2 border-l border-emerald-300/70 dark:border-emerald-700 text-primary dark:text-emerald-200 font-black">
+                    Upgrade
+                  </span>
+                )}
               </button>
             )}
 
