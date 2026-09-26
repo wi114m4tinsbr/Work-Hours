@@ -1,5 +1,11 @@
 import React,{useEffect,useRef,useState}from'react';
 import{Upload,ZoomIn,ZoomOut,RotateCw,Download,Trash2,Type,MousePointer2,Undo2,Redo2,Highlighter,Pencil,Image as ImageIcon,PanelLeft}from'lucide-react';
+// PDF.js 5 uses the 2026 Map upsert APIs. Keep the editor working on browsers
+// that have not shipped them yet (notably some Safari/WebView versions).
+type UpsertMap<K,V>=Map<K,V>&{getOrInsert?:(key:K,value:V)=>V;getOrInsertComputed?:(key:K,callback:(key:K)=>V)=>V};
+const mapProto=Map.prototype as UpsertMap<unknown,unknown>;
+if(typeof mapProto.getOrInsert!=='function')mapProto.getOrInsert=function(key,value){if(this.has(key))return this.get(key)!;this.set(key,value);return value};
+if(typeof mapProto.getOrInsertComputed!=='function')mapProto.getOrInsertComputed=function(key,callback){if(this.has(key))return this.get(key)!;const value=callback(key);this.set(key,value);return value};
 import*as pdfjsLib from'pdfjs-dist';
 import{PDFDocument,StandardFonts,rgb,degrees}from'pdf-lib';
 import workerSrc from'pdfjs-dist/build/pdf.worker.min.mjs?url';
