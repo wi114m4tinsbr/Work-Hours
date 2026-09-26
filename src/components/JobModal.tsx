@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, getDocs, query, where, setDoc } from '../firebase';
-import { X, Briefcase, Coffee, Car, Home, ShoppingBag, Utensils, Code, Camera, Music, Heart, Image as ImageIcon, Type as TypeIcon, Upload } from 'lucide-react';
+import { X, Briefcase, Coffee, Car, Home, ShoppingBag, Utensils, Code, Camera, Music, Heart, Image as ImageIcon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRENCIES, cn } from '../lib/utils';
 import { Job } from '../types';
@@ -101,7 +101,6 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
           createdAt: Timestamp.now()
         });
 
-        // Increment total jobs stat
         const statsRef = doc(db, 'stats', 'global');
         const statsSnap = await getDoc(doc(db, 'stats', 'global'));
         if (statsSnap.exists()) {
@@ -118,6 +117,8 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
     }
   };
 
+  const darkFieldClasses = "dark:bg-stone-800 dark:border-stone-700 dark:text-stone-100 dark:placeholder:text-stone-500";
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -133,21 +134,20 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-bg-card-dark rounded-t-[2rem] sm:rounded-3xl shadow-2xl p-5 sm:p-6"
+            className="relative w-full max-w-md bg-white dark:bg-stone-900 dark:text-stone-100 rounded-t-[2rem] sm:rounded-3xl shadow-2xl p-5 sm:p-6"
           >
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h3 className="text-lg sm:text-xl font-bold dark:text-white">{jobToEdit ? t.edit : t.newJob}</h3>
-              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
+              <h3 className="text-lg sm:text-xl font-bold text-stone-900 dark:text-white">{jobToEdit ? t.edit : t.newJob}</h3>
+              <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 dark:text-stone-400 dark:hover:text-white">
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] sm:max-h-[70vh] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
               <div>
-                <label className="block text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
+                <label className="block text-sm font-bold text-stone-500 dark:text-stone-300 uppercase tracking-wider mb-2">
                   {t.selectIcon}
                 </label>
-                
                 <div className="flex gap-2 mb-4">
                   {(['icon', 'letter', 'image'] as const).map((type) => (
                     <button
@@ -160,9 +160,9 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                       }}
                       className={cn(
                         "flex-1 py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border",
-                        iconType === type 
-                          ? "bg-primary text-white border-primary shadow-lg shadow-primary-light" 
-                          : "bg-stone-50 dark:bg-white/5 text-stone-400 dark:text-stone-500 border-stone-200 dark:border-white/5 hover:bg-stone-100 dark:hover:bg-white/10"
+                        iconType === type
+                          ? "bg-primary text-white border-primary shadow-lg shadow-primary-light"
+                          : "bg-stone-50 text-stone-500 border-stone-200 hover:bg-stone-100 dark:bg-stone-800 dark:text-stone-300 dark:border-stone-700 dark:hover:bg-stone-700 dark:hover:text-white"
                       )}
                     >
                       {type === 'icon' ? t.icon : type === 'letter' ? t.letter : t.image}
@@ -171,7 +171,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                 </div>
 
                 {iconType === 'icon' && (
-                  <div className="grid grid-cols-5 gap-2 p-3 bg-stone-50 dark:bg-white/5 rounded-2xl border border-stone-100 dark:border-white/5">
+                  <div className="grid grid-cols-5 gap-2 p-3 bg-stone-50 dark:bg-stone-800 rounded-2xl border border-stone-100 dark:border-stone-700">
                     {Object.entries(JOB_ICONS).map(([iconName, Icon]) => (
                       <button
                         key={iconName}
@@ -179,9 +179,9 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                         onClick={() => setIconValue(iconName)}
                         className={cn(
                           "aspect-square rounded-xl flex items-center justify-center transition-all",
-                          iconValue === iconName 
-                            ? "bg-primary text-white shadow-md scale-110" 
-                            : "text-stone-400 dark:text-stone-500 hover:bg-stone-200 dark:hover:bg-white/10 hover:text-stone-600 dark:hover:text-stone-300"
+                          iconValue === iconName
+                            ? "bg-primary text-white shadow-md scale-110"
+                            : "text-stone-400 hover:bg-stone-200 hover:text-stone-600 dark:text-stone-300 dark:hover:bg-stone-700 dark:hover:text-white"
                         )}
                       >
                         <Icon className="w-5 h-5" />
@@ -200,38 +200,33 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                       maxLength={1}
                       value={iconValue}
                       onChange={(e) => setIconValue(e.target.value.toUpperCase())}
-                      className="flex-1 px-4 py-3 rounded-2xl border border-stone-200 dark:border-white/5 bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-xl font-bold"
+                      className={cn("flex-1 px-4 py-3 rounded-2xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-center text-xl font-bold", darkFieldClasses)}
                     />
                   </div>
                 )}
 
                 {iconType === 'image' && (
                   <div className="flex gap-3 items-center">
-                    <div className="w-14 h-14 bg-stone-100 dark:bg-white/5 rounded-2xl flex items-center justify-center overflow-hidden border border-stone-200 dark:border-white/5 relative group">
+                    <div className="w-14 h-14 bg-stone-100 dark:bg-stone-800 rounded-2xl flex items-center justify-center overflow-hidden border border-stone-200 dark:border-stone-700 relative group">
                       {iconValue && iconValue.startsWith('data:') ? (
                         <img src={iconValue} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
-                        <ImageIcon className="w-6 h-6 text-stone-300 dark:text-stone-700" />
+                        <ImageIcon className="w-6 h-6 text-stone-300 dark:text-stone-400" />
                       )}
                     </div>
                     <label className="flex-1 cursor-pointer">
-                      <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-stone-200 dark:border-white/5 hover:border-primary hover:bg-primary-light dark:hover:bg-primary/10 transition-all text-stone-500 dark:text-stone-400 hover:text-primary">
+                      <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-stone-200 dark:border-stone-700 hover:border-primary hover:bg-primary-light dark:hover:bg-primary/10 transition-all text-stone-500 dark:text-stone-300 hover:text-primary">
                         <Upload className="w-5 h-5" />
                         <span className="text-sm font-bold">{t.uploadImage}</span>
                       </div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                     </label>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
+                <label className="block text-sm font-bold text-stone-500 dark:text-stone-300 uppercase tracking-wider mb-2">
                   {t.jobName}
                 </label>
                 <input
@@ -240,15 +235,13 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex: Hotel 5 Estrelas"
-                  className="w-full px-4 py-3 rounded-2xl border border-stone-200 dark:border-white/5 bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                  className={cn("w-full px-4 py-3 rounded-2xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-primary transition-all", darkFieldClasses)}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-                    {t.hourlyRate}
-                  </label>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{t.hourlyRate}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -256,20 +249,18 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
                     value={hourlyRate}
                     onChange={(e) => setHourlyRate(e.target.value)}
                     placeholder="0,00"
-                    className="w-full px-4 py-3 rounded-2xl border border-stone-200 dark:border-white/5 bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    className={cn("w-full px-4 py-3 rounded-2xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-primary transition-all", darkFieldClasses)}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-                    {t.currency}
-                  </label>
+                  <label className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{t.currency}</label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl border border-stone-200 dark:border-white/5 bg-white dark:bg-white/5 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    className={cn("w-full px-4 py-3 rounded-2xl border border-stone-200 bg-white text-stone-900 focus:outline-none focus:ring-2 focus:ring-primary transition-all", darkFieldClasses)}
                   >
                     {CURRENCIES.map(c => (
-                      <option key={c.code} value={c.code} className="dark:bg-bg-card-dark">
+                      <option key={c.code} value={c.code} className="bg-white text-stone-900 dark:bg-stone-800 dark:text-stone-100">
                         {c.code} ({c.symbol})
                       </option>
                     ))}
