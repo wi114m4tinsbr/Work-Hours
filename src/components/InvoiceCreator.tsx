@@ -793,79 +793,54 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className={cn("bg-white border-b border-gray-200 px-4 py-4", embedded ? "relative z-20" : "sticky top-0 z-30")}>
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <button 
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ChevronLeft size={20} />
-            <span className="font-medium">{t.back}</span>
-          </button>
-          
-          <div className="flex items-center gap-4">
+      <header className={cn("bg-white dark:bg-bg-card-dark border-b border-gray-200 dark:border-white/10 px-4", embedded ? "relative z-20" : "sticky top-0 z-30")}>
+        <div className="max-w-5xl mx-auto py-3 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
+          <div className="flex items-center gap-3 min-w-0 lg:flex-1">
+            <button onClick={onBack} className="shrink-0 flex items-center gap-1.5 text-gray-500 dark:text-gray-300 hover:text-primary font-semibold">
+              <ChevronLeft size={18} />
+              <span>{t.back}</span>
+            </button>
+            <span className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-white/10" />
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.16em] font-black text-gray-400">{language === 'en' ? 'Tool' : language === 'es' ? 'Herramienta' : 'Ferramenta'}</p>
+              <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white truncate">{t.invoiceCreator}</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
             <button
               onClick={() => {
                 if (showList) {
-                  // Reset state for new invoice when clicking "New Invoice" from list
                   setInvoiceNumber(`INV-${Date.now().toString().slice(-6)}`);
-                  setInvoiceAlias('');
-                  setOrderNumber('');
-                  setDate(new Date().toISOString().split('T')[0]);
-                  setDueDate('');
-                  setIssuer({ name: '', taxId: '', address: '' });
-                  setReceiver({ name: '', taxId: '', address: '' });
-                  setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0 }]);
-                  setTaxRate(0);
-                  setNotes('');
-                  setEditingId(null);
+                  setInvoiceAlias(''); setOrderNumber(''); setDate(new Date().toISOString().split('T')[0]); setDueDate('');
+                  setIssuer({ name: '', taxId: '', address: '' }); setReceiver({ name: '', taxId: '', address: '' });
+                  setItems([{ id: '1', description: '', quantity: 1, unitPrice: 0 }]); setTaxRate(0); setNotes(''); setEditingId(null);
                 }
                 setShowList(!showList);
               }}
-              className="group flex items-center gap-2 text-gray-700 dark:text-gray-100 font-bold px-4 py-2 rounded-xl border border-gray-200 dark:border-white/15 bg-white dark:bg-white/10 hover:bg-primary hover:text-white hover:border-primary hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
+              className="shrink-0 flex items-center gap-2 text-gray-700 dark:text-gray-100 font-bold px-3.5 py-2 rounded-xl border border-gray-200 dark:border-white/15 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10"
             >
-              <Layout size={20} />
+              <Layout size={17} />
               <span>{showList ? t.newInvoice : t.invoiceList}</span>
             </button>
 
-            <button
-              onClick={() => handleSaveInvoice()}
-              disabled={isSaving}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
-            >
-              {isSaving ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Save size={20} />
-              )}
-              <span>Salvar</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('share')}
-              disabled={isSharing || isDownloading || isSaving}
-              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-xl font-semibold transition-all shadow-lg disabled:opacity-50"
-            >
-              {isSharing ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Smartphone size={20} />
-              )}
-              <span>{t.share}</span>
-            </button>
-
-            <button
-              onClick={() => handleAction('download')}
-              disabled={isSharing || isDownloading || isSaving}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
-            >
-              {isDownloading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <Download size={20} />
-              )}
-              <span>{t.download}</span>
-            </button>
+            {!showList && (
+              <>
+                <span className="hidden sm:block h-7 w-px bg-gray-200 dark:bg-white/10 mx-1 shrink-0" />
+                <button onClick={() => handleAction('share')} disabled={isSharing || isDownloading || isSaving} className="shrink-0 flex items-center gap-2 text-gray-700 dark:text-gray-100 font-bold px-3.5 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50">
+                  {isSharing ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <Share2 size={17} />}
+                  <span>{t.share}</span>
+                </button>
+                <button onClick={() => handleAction('download')} disabled={isSharing || isDownloading || isSaving} className="shrink-0 flex items-center gap-2 text-gray-700 dark:text-gray-100 font-bold px-3.5 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50">
+                  {isDownloading ? <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <Download size={17} />}
+                  <span>{t.download}</span>
+                </button>
+                <button onClick={() => handleSaveInvoice()} disabled={isSaving} className="shrink-0 flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-xl font-black shadow-sm disabled:opacity-50">
+                  {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={17} />}
+                  <span>{language === 'en' ? 'Save' : language === 'es' ? 'Guardar' : 'Salvar'}</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
