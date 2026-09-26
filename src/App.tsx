@@ -347,7 +347,7 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 shrink-0">
             <button
               onClick={() => setActiveTab('invoices')}
               className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 sm:hidden"
@@ -443,16 +443,16 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="group/profile flex items-center gap-2 min-w-0 px-1 py-1 hover:-translate-y-0.5 transition-transform duration-200"
+              className="group/profile flex items-center gap-2 min-w-0 px-1 py-1 transition-all duration-200"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
-                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0 transition-all duration-200 group-hover/profile:ring-2 group-hover/profile:ring-primary/25" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0 transition-all duration-200 group-hover/profile:scale-[1.04]" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
               <span className="hidden md:flex flex-col items-start leading-tight whitespace-nowrap">
-                <span className="text-sm font-semibold text-stone-700 dark:text-stone-200 group-hover/profile:text-primary transition-colors">
+                <span className="text-sm font-semibold text-stone-700 dark:text-stone-200 group-hover/profile:text-primary transition-colors duration-200">
                   {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
                 </span>
                 <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500">
