@@ -40,12 +40,18 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileFirstName, setProfileFirstName] = useState('');
   const [profileLastName, setProfileLastName] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('shift-hours-dark-mode') === 'true');
+  const [bootThemeColor] = useState(() => localStorage.getItem('shift-hours-theme-color') || '#000000');
   const [settings, setSettings] = useState({
     appName: 'Shift Hours',
     primaryColor: '#000000',
     footerText: 'SHIFTHOURS • Professional Edition • 2026'
   });
+
+  // Restore the user's last visual identity immediately, before Firestore finishes loading.
+  useEffect(() => {
+    applyTheme(bootThemeColor);
+  }, []);
 
   // Apply dark mode class to html element
   useEffect(() => {
@@ -59,6 +65,7 @@ export default function App() {
   const toggleDarkMode = async () => {
     const newMode = !isDarkMode;
     setIsDarkMode(newMode);
+    localStorage.setItem('shift-hours-dark-mode', String(newMode));
     if (user) {
       try {
         await updateDoc(doc(db, 'users', user.uid), { isDarkMode: newMode });
@@ -69,6 +76,7 @@ export default function App() {
   };
 
   const applyTheme = (themeColor: string) => {
+    localStorage.setItem('shift-hours-theme-color', themeColor);
     document.documentElement.style.setProperty('--primary-color', themeColor);
     document.documentElement.style.setProperty('--primary-color-hover', themeColor + 'ee');
     document.documentElement.style.setProperty('--primary-color-light', themeColor + '15');
@@ -161,6 +169,7 @@ export default function App() {
         const userData = snap.data();
         setLang(userData.language || 'pt');
         setIsDarkMode(!!userData.isDarkMode);
+        localStorage.setItem('shift-hours-dark-mode', String(!!userData.isDarkMode));
         setSubscriptionType(userData.subscription?.type === 'monthly' ? 'monthly' : 'free');
         const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
         setProfileFirstName(userData.firstName || storedName[0] || '');
