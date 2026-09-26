@@ -330,6 +330,18 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Account controls are identity/navigation, not raised action buttons. */
+.profile-trigger,
+.profile-trigger:hover,
+.profile-trigger:active,
+.account-logout,
+.account-logout:hover,
+.account-logout:active {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   button {
     transition: none !important;
