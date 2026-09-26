@@ -280,7 +280,7 @@ export const translations = {
     newJob: "Nuevo Trabajo",
     noJobs: "Aún no tienes trabajos registrados.",
     firstJob: "Registrar mi primer trabajo",
-    hourlyRate: "Valor por Hora",
+    hourlyRate: "Tarifa por hora",
     save: "Guardar",
     cancel: "Cancelar",
     creating: "Guardando...",
