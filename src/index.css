@@ -330,7 +330,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Brand interaction: expressive without turning the logo into a raised button. */
+/* Shift Hours brand: semantic clock motion, not generic button motion. */
 .brand-trigger,
 .brand-trigger:hover,
 .brand-trigger:active {
@@ -339,30 +339,53 @@ button:disabled {
   transform: none !important;
 }
 .brand-mark,
-.brand-clock,
 .brand-name,
-.brand-glow {
-  transition: transform 420ms cubic-bezier(.2,.8,.2,1), color 240ms ease, box-shadow 300ms ease, opacity 300ms ease;
+.brand-glow,
+.brand-hour-hand,
+.brand-minute-hand {
+  transition: transform 520ms cubic-bezier(.2,.8,.2,1), color 260ms ease, box-shadow 320ms ease, opacity 320ms ease, letter-spacing 320ms ease;
 }
 .brand-glow {
   opacity: 0;
-  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.65), transparent 52%);
+  background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.78), transparent 48%);
+}
+.brand-hour-hand {
+  transform: translate(-50%, -100%) rotate(35deg);
+}
+.brand-minute-hand {
+  transform: translate(-50%, -100%) rotate(145deg);
+}
+.brand-clock-pin {
+  transform: translate(-50%, -50%);
+}
+@keyframes shift-hours-tick {
+  0%, 42% { transform: translate(-50%, -100%) rotate(145deg); }
+  48%, 92% { transform: translate(-50%, -100%) rotate(175deg); }
+  100% { transform: translate(-50%, -100%) rotate(205deg); }
+}
+@keyframes shift-hours-hour-tick {
+  0%, 48% { transform: translate(-50%, -100%) rotate(35deg); }
+  52%, 100% { transform: translate(-50%, -100%) rotate(42deg); }
 }
 @media (hover: hover) and (pointer: fine) {
   .brand-trigger:hover .brand-mark {
-    transform: scale(1.08) rotate(-4deg);
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--primary-color) 35%, transparent);
+    transform: scale(1.09);
+    box-shadow: 0 8px 26px color-mix(in srgb, var(--primary-color) 38%, transparent);
   }
-  .brand-trigger:hover .brand-clock {
-    transform: rotate(28deg) scale(1.08);
+  .brand-trigger:hover .brand-minute-hand {
+    animation: shift-hours-tick 1.15s steps(1, end) infinite;
+  }
+  .brand-trigger:hover .brand-hour-hand {
+    animation: shift-hours-hour-tick 2.3s steps(1, end) infinite;
   }
   .brand-trigger:hover .brand-glow {
     opacity: 1;
-    transform: scale(1.35);
+    transform: scale(1.4);
   }
   .brand-trigger:hover .brand-name {
     color: var(--primary-color);
-    transform: translateX(2px);
+    transform: translateX(3px);
+    letter-spacing: -.015em;
   }
 }
 
