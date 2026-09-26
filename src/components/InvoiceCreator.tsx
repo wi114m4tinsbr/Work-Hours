@@ -817,7 +817,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                 }
                 setShowList(!showList);
               }}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium px-4 py-2 rounded-xl hover:bg-gray-100 transition-all"
+              className="group flex items-center gap-2 text-gray-700 dark:text-gray-100 font-bold px-4 py-2 rounded-xl border border-gray-200 dark:border-white/15 bg-white dark:bg-white/10 hover:bg-primary hover:text-white hover:border-primary hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
             >
               <Layout size={20} />
               <span>{showList ? t.newInvoice : t.invoiceList}</span>
@@ -919,9 +919,9 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
               </div>
 
               {savedInvoices.length === 0 ? (
-                <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-200">
-                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 font-medium">Nenhuma fatura encontrada.</p>
+                <div className="bg-white dark:bg-white/5 rounded-2xl p-12 text-center border border-dashed border-gray-200 dark:border-white/15">
+                  <FileText className="w-12 h-12 text-gray-300 dark:text-gray-500 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-200 font-medium">Nenhuma fatura encontrada.</p>
                   <button 
                     onClick={() => {
                       // Reset state for new invoice
@@ -936,7 +936,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                       setEditingId(null);
                       setShowList(false);
                     }}
-                    className="mt-4 text-blue-600 font-bold hover:underline"
+                    className="mt-5 inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
                   >
                     {t.newInvoice}
                   </button>
