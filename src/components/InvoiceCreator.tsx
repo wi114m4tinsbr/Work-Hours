@@ -1756,20 +1756,6 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                           </div>
                         </div>
 
-                        {/* Primary Color */}
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.primaryColor}</label>
-                          <div className="flex items-center gap-3">
-                            <input 
-                              type="color" 
-                              value={styles.primaryColor}
-                              onChange={(e) => setStyles({ ...styles, primaryColor: e.target.value })}
-                              className="w-12 h-10 rounded-xl cursor-pointer border-none p-0 bg-transparent"
-                            />
-                            <span className="text-xs font-mono text-gray-500 uppercase">{styles.primaryColor}</span>
-                          </div>
-                        </div>
-
                         {/* Font */}
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t.font}</label>
