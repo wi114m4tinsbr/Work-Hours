@@ -287,10 +287,11 @@ export default function App() {
           <div className="hidden sm:flex items-center">
             <button
               onClick={() => setActiveTab('invoices')}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-stone-600 dark:text-stone-200 hover:text-primary dark:hover:text-white hover:bg-primary-light dark:hover:bg-white/10 hover:shadow-sm"
+              className="group relative px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2.5 text-stone-600 dark:text-stone-200 bg-transparent hover:bg-primary-light dark:hover:bg-primary/20 hover:text-primary dark:hover:text-white hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10 transition-all duration-200 ease-out overflow-hidden"
             >
-              <FileText size={16} />
-              {t.invoiceCreator}
+              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center rounded-full" />
+              <FileText size={17} className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:scale-110" />
+              <span className="relative transition-transform duration-200 group-hover:translate-x-0.5">{t.invoiceCreator}</span>
             </button>
           </div>
           
