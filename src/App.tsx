@@ -302,7 +302,7 @@ export default function App() {
               aria-expanded={isToolsMenuOpen}
             >
               <BriefcaseBusiness size={17} />
-              <span>Ferramentas</span>
+              <span>{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
               <ChevronDown size={14} className={cn("transition-transform", isToolsMenuOpen && "rotate-180")} />
               <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform duration-200 rounded-full" />
             </button>
@@ -322,7 +322,7 @@ export default function App() {
                     <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0"><FileText size={17} /></span>
                     <span className="min-w-0">
                       <span className="block text-sm font-black text-stone-900 dark:text-white">{t.invoiceCreator}</span>
-                      <span className="block text-xs text-stone-500 dark:text-stone-400 mt-0.5">Criar e gerenciar faturas</span>
+                      <span className="block text-xs text-stone-500 dark:text-stone-400 mt-0.5">{lang === 'en' ? 'Create and manage invoices' : lang === 'es' ? 'Crear y gestionar facturas' : 'Criar e gerenciar faturas'}</span>
                     </span>
                   </button>
                 </motion.div>
@@ -401,18 +401,18 @@ export default function App() {
                       ? "bg-primary-light text-primary border-primary/25"
                       : "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700"
                   )}
-                  title="Plano atual"
+                  title={lang === 'en' ? 'Current plan' : lang === 'es' ? 'Plan actual' : 'Plano atual'}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
                   {subscriptionType === 'monthly' ? 'Premium' : t.free}
-                  <span className="hidden lg:inline text-[9px] uppercase tracking-wider opacity-60">Atual</span>
+                  <span className="hidden lg:inline text-[9px] uppercase tracking-wider opacity-60">{lang === 'en' ? 'Current' : lang === 'es' ? 'Actual' : 'Atual'}</span>
                 </button>
                 {subscriptionType === 'free' && (
                   <button
                     type="button"
                     onClick={() => setIsUpgradeModalOpen(true)}
                     className="group/upgrade relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-amber-400/80 dark:border-amber-600 bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 dark:from-amber-500 dark:via-yellow-400 dark:to-amber-600 text-amber-950 text-xs font-black shadow-[0_3px_12px_rgba(245,158,11,0.22)] hover:shadow-[0_6px_22px_rgba(245,158,11,0.48)] hover:-translate-y-0.5 hover:scale-[1.04] overflow-hidden"
-                    title="Conhecer o Premium"
+                    title={lang === 'en' ? 'Explore Premium' : lang === 'es' ? 'Conocer Premium' : 'Conhecer o Premium'}
                   >
                     <span className="absolute inset-y-0 -left-10 w-6 rotate-12 bg-white/75 blur-[1px] transition-all duration-700 group-hover/upgrade:left-[115%]" />
                     <Crown size={14} className="relative transition-transform duration-200 group-hover/upgrade:-rotate-6 group-hover/upgrade:scale-125" />
@@ -427,7 +427,7 @@ export default function App() {
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
               className="flex items-center gap-2 min-w-0 rounded-xl px-1.5 py-1 hover:bg-primary-light dark:hover:bg-white/10"
-              title="Editar perfil"
+              title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
                 <img src={user.photoURL} alt={profileFirstName || user.displayName || ''} className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-black/10 dark:border-white/15 shrink-0" referrerPolicy="no-referrer" />
@@ -548,13 +548,13 @@ export default function App() {
         {isProfileModalOpen && (
           <motion.div className="fixed inset-0 z-[110] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={() => setIsProfileModalOpen(false)}>
             <motion.div initial={{opacity:0,y:16,scale:.98}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:10,scale:.98}} onClick={(e)=>e.stopPropagation()} className="w-full max-w-md rounded-3xl bg-white dark:bg-stone-900 border border-black/10 dark:border-white/10 shadow-2xl p-6">
-              <div className="flex items-center justify-between mb-5"><div><h2 className="text-xl font-black text-stone-900 dark:text-white">Seu perfil</h2><p className="text-sm text-stone-500 dark:text-stone-400">Como seu nome aparece no Shift Hours.</p></div><button type="button" onClick={()=>setIsProfileModalOpen(false)} className="p-2 rounded-xl text-stone-500 dark:text-stone-300 hover:bg-primary hover:text-white"><X size={18}/></button></div>
+              <div className="flex items-center justify-between mb-5"><div><h2 className="text-xl font-black text-stone-900 dark:text-white">{lang === 'en' ? 'Your profile' : lang === 'es' ? 'Tu perfil' : 'Seu perfil'}</h2><p className="text-sm text-stone-500 dark:text-stone-400">{lang === 'en' ? 'How your name appears in Shift Hours.' : lang === 'es' ? 'Cómo aparece tu nombre en Shift Hours.' : 'Como seu nome aparece no Shift Hours.'}</p></div><button type="button" onClick={()=>setIsProfileModalOpen(false)} className="p-2 rounded-xl text-stone-500 dark:text-stone-300 hover:bg-primary hover:text-white"><X size={18}/></button></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-bold text-stone-500 dark:text-stone-300 mb-1.5">Primeiro nome</label><input maxLength={24} value={profileFirstName} onChange={(e)=>setProfileFirstName(e.target.value.slice(0,24))} className="w-full h-11 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-3 text-stone-900 dark:text-white" /></div>
-                <div><label className="block text-xs font-bold text-stone-500 dark:text-stone-300 mb-1.5">Último nome</label><input maxLength={24} value={profileLastName} onChange={(e)=>setProfileLastName(e.target.value.slice(0,24))} className="w-full h-11 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-3 text-stone-900 dark:text-white" /></div>
+                <div><label className="block text-xs font-bold text-stone-500 dark:text-stone-300 mb-1.5">{lang === 'en' ? 'First name' : lang === 'es' ? 'Nombre' : 'Primeiro nome'}</label><input maxLength={24} value={profileFirstName} onChange={(e)=>setProfileFirstName(e.target.value.slice(0,24))} className="w-full h-11 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-3 text-stone-900 dark:text-white" /></div>
+                <div><label className="block text-xs font-bold text-stone-500 dark:text-stone-300 mb-1.5">{lang === 'en' ? 'Last name' : lang === 'es' ? 'Apellido' : 'Último nome'}</label><input maxLength={24} value={profileLastName} onChange={(e)=>setProfileLastName(e.target.value.slice(0,24))} className="w-full h-11 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-3 text-stone-900 dark:text-white" /></div>
               </div>
-              <p className="mt-2 text-[11px] text-stone-400">Máximo de 24 caracteres por campo.</p>
-              <button type="button" onClick={async()=>{const firstName=profileFirstName.trim();const lastName=profileLastName.trim();if(!firstName)return;await updateDoc(doc(db,'users',user.uid),{firstName,lastName,displayName:[firstName,lastName].filter(Boolean).join(' ')});setIsProfileModalOpen(false);}} className="mt-5 w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 font-black">Salvar nome</button>
+              <p className="mt-2 text-[11px] text-stone-400">{lang === 'en' ? 'Maximum 24 characters per field.' : lang === 'es' ? 'Máximo de 24 caracteres por campo.' : 'Máximo de 24 caracteres por campo.'}</p>
+              <button type="button" onClick={async()=>{const firstName=profileFirstName.trim();const lastName=profileLastName.trim();if(!firstName)return;await updateDoc(doc(db,'users',user.uid),{firstName,lastName,displayName:[firstName,lastName].filter(Boolean).join(' ')});setIsProfileModalOpen(false);}} className="mt-5 w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 font-black">{lang === 'en' ? 'Save name' : lang === 'es' ? 'Guardar nombre' : 'Salvar nome'}</button>
             </motion.div>
           </motion.div>
         )}
