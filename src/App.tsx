@@ -272,18 +272,18 @@ export default function App() {
       )}>
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div 
-            className="flex items-center gap-2 cursor-pointer shrink-0"
+            className="group flex items-center gap-2.5 cursor-pointer shrink-0 px-2.5 py-2 -ml-2 rounded-xl hover:bg-stone-100 dark:hover:bg-white/10 transition-all"
             onClick={() => setCurrentJobId(null)}
           >
-            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-            <span className="font-bold text-base sm:text-lg tracking-tight truncate max-w-[120px] sm:max-w-none">{settings.appName}</span>
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-primary group-hover:scale-105 transition-transform" />
+            <span className="font-extrabold text-base sm:text-xl tracking-tight text-stone-900 dark:text-white group-hover:text-primary transition-colors truncate max-w-[135px] sm:max-w-none">{settings.appName}</span>
           </div>
 
           {/* Main tool navigation */}
           <div className="hidden sm:flex items-center">
             <button
               onClick={() => setActiveTab('invoices')}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-stone-500 hover:text-primary hover:bg-stone-100 dark:hover:bg-white/5"
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-stone-600 dark:text-stone-200 hover:text-primary dark:hover:text-white hover:bg-primary-light dark:hover:bg-white/10 hover:shadow-sm"
             >
               <FileText size={16} />
               {t.invoiceCreator}
