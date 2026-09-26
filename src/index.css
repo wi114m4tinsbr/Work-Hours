@@ -305,3 +305,38 @@ html {
   background-color: transparent;
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
+
+
+/* Shared interaction language for app buttons: subtle lift, theme glow and press feedback. */
+button:not(:disabled) {
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 18px color-mix(in srgb, var(--primary-color) 14%, transparent);
+  }
+}
+
+button:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 90ms;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none !important;
+  }
+
+  button:hover,
+  button:active {
+    transform: none !important;
+  }
+}
