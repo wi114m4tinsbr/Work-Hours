@@ -8,7 +8,7 @@ import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
@@ -451,16 +451,23 @@ export default function App() {
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
-              <span className="hidden md:block whitespace-nowrap text-sm font-semibold text-stone-700 dark:text-stone-200">
-                {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
+              <span className="hidden md:flex flex-col items-start leading-tight whitespace-nowrap">
+                <span className="text-sm font-semibold text-stone-700 dark:text-stone-200">
+                  {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
+                </span>
+                <span className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-stone-400 dark:text-stone-500">
+                  <UserRound size={9} />
+                  {lang === 'en' ? 'Profile' : lang === 'es' ? 'Perfil' : 'Perfil'}
+                </span>
               </span>
             </button>
             <button 
               onClick={handleLogout}
-              className="p-2 text-stone-400 hover:text-red-500 transition-colors"
+              className="flex items-center gap-1.5 px-2 py-2 text-stone-400 hover:text-red-500 transition-colors rounded-xl"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden lg:inline text-xs font-bold">{t.logout}</span>
             </button>
           </div>
         </div>
