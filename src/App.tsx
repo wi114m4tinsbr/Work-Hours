@@ -8,7 +8,7 @@ import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
@@ -33,6 +33,8 @@ export default function App() {
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [settings, setSettings] = useState({
     appName: 'Shift Hours',
@@ -154,6 +156,7 @@ export default function App() {
         const userData = snap.data();
         setLang(userData.language || 'pt');
         setIsDarkMode(!!userData.isDarkMode);
+        setSubscriptionType(userData.subscription?.type === 'monthly' ? 'monthly' : 'free');
         
         // Apply user theme or fallback to global
         const themeColor = userData.primaryColor || settings.primaryColor || '#000000';
@@ -355,6 +358,24 @@ export default function App() {
               </div>
             </div>
 
+            {!isOwner && (
+              <button
+                type="button"
+                onClick={() => subscriptionType === 'free' && setIsUpgradeModalOpen(true)}
+                className={cn(
+                  "hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs font-black",
+                  subscriptionType === 'monthly'
+                    ? "bg-primary-light text-primary border-primary/20"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 hover:border-primary"
+                )}
+                title={subscriptionType === 'free' ? 'Ver opções de upgrade' : 'Plano Premium'}
+              >
+                {subscriptionType === 'monthly' ? <Crown size={14} /> : null}
+                <span>{subscriptionType === 'monthly' ? 'Premium' : t.free}</span>
+                {subscriptionType === 'free' && <span className="hidden lg:inline text-primary dark:text-emerald-300">· Upgrade</span>}
+              </button>
+            )}
+
             <div className="flex items-center gap-2 min-w-0">
               {user.photoURL ? (
                 <img 
@@ -426,6 +447,57 @@ export default function App() {
         userId={user.uid}
         t={t}
       />
+
+      <AnimatePresence>
+        {isUpgradeModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsUpgradeModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl overflow-hidden"
+            >
+              <div className="p-5 sm:p-6 border-b border-black/5 dark:border-white/10 flex items-start justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider mb-2"><Crown size={15} /> Shift Hours Premium</div>
+                  <h2 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white">Faça mais com o Shift Hours</h2>
+                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">Compare seu plano gratuito com os recursos Premium.</p>
+                </div>
+                <button type="button" onClick={() => setIsUpgradeModalOpen(false)} className="p-2 rounded-xl text-stone-500 dark:text-stone-300 hover:bg-primary hover:text-white"><X size={19} /></button>
+              </div>
+              <div className="p-5 sm:p-6 grid sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-stone-200 dark:border-white/10 p-4">
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-300">{t.free}</span>
+                  <div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">€0</div>
+                  <div className="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
+                    <div className="flex gap-2"><Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />1 trabalho/empresa</div>
+                    <div className="flex gap-2"><Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />1 fatura por dia</div>
+                  </div>
+                </div>
+                <div className="rounded-2xl border-2 border-primary p-4 shadow-lg shadow-primary/10 relative">
+                  <span className="text-xs font-black uppercase tracking-wider text-primary">Premium</span>
+                  <div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">Em breve</div>
+                  <div className="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
+                    <div className="flex gap-2"><Check size={16} className="text-primary shrink-0 mt-0.5" />Múltiplos trabalhos/empresas</div>
+                    <div className="flex gap-2"><Check size={16} className="text-primary shrink-0 mt-0.5" />Mais faturas e recursos Premium</div>
+                  </div>
+                </div>
+              </div>
+              <div className="px-5 sm:px-6 pb-6">
+                <button type="button" disabled className="w-full rounded-xl bg-primary text-white px-4 py-3 font-black disabled:opacity-60 disabled:cursor-not-allowed">Upgrade Premium · Em breve</button>
+                <p className="text-center mt-3 text-xs text-stone-400 dark:text-stone-500">Nenhuma cobrança será feita nesta etapa.</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <footer className={cn(
         "pt-48 pb-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
