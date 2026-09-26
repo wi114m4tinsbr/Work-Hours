@@ -305,9 +305,8 @@ export default function App() {
             onClick={() => setCurrentJobId(null)}
             aria-label={`${settings.appName} - Home`}
           >
-            <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm overflow-hidden" aria-hidden="true">
-              <span className="brand-orbit absolute inset-[3px] rounded-full border border-white/25" />
-              <span className="brand-orbit-dot absolute w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+            <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm" aria-hidden="true">
+              <span className="brand-clock-ring absolute inset-[5px] rounded-full border border-white/20" />
               <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
               <span className="brand-clock-face relative z-10 w-6 h-6 rounded-full border-[1.7px] border-white/95">
                 <span className="brand-hour-hand absolute left-1/2 top-1/2 w-[1.7px] h-[6px] bg-white rounded-full origin-bottom" />
