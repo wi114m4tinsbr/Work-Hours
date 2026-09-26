@@ -1023,193 +1023,114 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              {/* Internal Name (Alias) */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 invoice-editor-light-panel">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-50 text-gray-500 rounded-lg">
+              {/* Unified invoice editing panel */}
+              <div className="sticky top-3 z-40 bg-white rounded-2xl shadow-lg border border-gray-200 p-4 invoice-editor-light-panel">
+                <div className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200">
+                  <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 rounded-xl">
                     <FileText size={18} />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{t.internalName}</p>
-                    <input 
-                      type="text" 
+                  <div className="flex-1 min-w-0">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">{t.internalName}</label>
+                    <input
+                      type="text"
                       placeholder={t.internalNamePlaceholder}
                       value={invoiceAlias}
                       onChange={(e) => setInvoiceAlias(e.target.value)}
-                      className="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-gray-900 placeholder:text-gray-400 p-0"
+                      className="w-full h-9 bg-gray-50 border border-gray-200 rounded-lg px-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* Compact invoice editor toolbar */}
-              <div className="sticky top-3 z-40 bg-white/95 backdrop-blur rounded-2xl shadow-lg border border-gray-100 p-4 invoice-editor-light-panel">
-                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-12 items-end gap-3">
-                  <div className="xl:col-span-2">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Modelo</label>
-                    <select
-                      value={styles.template}
-                      onChange={(e) => {
-                        const template = TEMPLATES.find(item => item.id === e.target.value);
-                        if (template) setStyles({ ...template.styles, logo: styles.logo });
-                      }}
-                      className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-2 text-xs"
-                    >
-                      {TEMPLATES.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="xl:col-span-2">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">{t.font}</label>
-                    <select
-                      value={styles.font}
-                      onChange={(e) => setStyles({ ...styles, font: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-2 text-xs"
-                    >
-                      {FONTS.map(font => <option key={font.value} value={font.value}>{font.name}</option>)}
-                    </select>
-                  </div>
-
-                  <div className="xl:col-span-1">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">{t.backgroundColor}</label>
-                    <input
-                      type="color"
-                      value={styles.backgroundColor}
-                      onChange={(e) => setStyles({ ...styles, backgroundColor: e.target.value })}
-                      className="w-full h-9 rounded-lg cursor-pointer border border-gray-200 dark:border-stone-600 p-0 bg-transparent"
-                      title={t.backgroundColor}
-                    />
-                  </div>
-
-                  <div className="col-span-2 xl:col-span-3">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Campo da fatura</label>
-                    <select
-                      value={selectedField}
-                      onChange={(e) => setSelectedField(e.target.value as keyof InvoiceStyles['fieldStyles'])}
-                      className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-2 text-xs"
-                    >
-                      <optgroup label="Cabeçalho">
-                        <option value="title">Título da Fatura</option>
-                        <option value="invoiceNumberLabel">Etiqueta Nº Fatura</option>
-                        <option value="invoiceNumberValue">Valor Nº Fatura</option>
-                        <option value="orderNumberLabel">Etiqueta Nº Pedido</option>
-                        <option value="orderNumberValue">Valor Nº Pedido</option>
-                      </optgroup>
-                      <optgroup label="Datas">
-                        <option value="dateLabel">Etiqueta Data</option>
-                        <option value="dateValue">Valor Data</option>
-                        <option value="dueDateLabel">Etiqueta Vencimento</option>
-                        <option value="dueDateValue">Valor Vencimento</option>
-                      </optgroup>
-                      <optgroup label="Emissor">
-                        <option value="issuerLabel">Etiqueta Emissor</option>
-                        <option value="issuerName">Nome Emissor</option>
-                        <option value="issuerTaxId">NIF Emissor</option>
-                        <option value="issuerAddress">Morada Emissor</option>
-                      </optgroup>
-                      <optgroup label="Recetor">
-                        <option value="receiverLabel">Etiqueta Recetor</option>
-                        <option value="receiverName">Nome Recetor</option>
-                        <option value="receiverTaxId">NIF Recetor</option>
-                        <option value="receiverAddress">Morada Recetor</option>
-                      </optgroup>
-                      <optgroup label="Tabela">
-                        <option value="tableHeader">Cabeçalho da Tabela</option>
-                        <option value="tableBody">Corpo da Tabela</option>
-                      </optgroup>
-                      <optgroup label="Totais">
-                        <option value="subtotalLabel">Etiqueta Subtotal</option>
-                        <option value="subtotalValue">Valor Subtotal</option>
-                        <option value="taxLabel">Etiqueta Imposto</option>
-                        <option value="taxValue">Valor Imposto</option>
-                        <option value="totalLabel">Etiqueta Total</option>
-                        <option value="totalValue">Valor Total</option>
-                      </optgroup>
-                      <optgroup label="Notas">
-                        <option value="notesLabel">Etiqueta Notas</option>
-                        <option value="notesValue">Conteúdo Notas</option>
-                      </optgroup>
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], bold: !styles.fieldStyles[selectedField].bold } } })}
-                    className={cn("w-9 h-9 rounded-lg font-bold border transition-colors", styles.fieldStyles[selectedField].bold ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-600 border-gray-100")}
-                    title="Negrito"
-                  >B</button>
-
-                  <button
-                    type="button"
-                    onClick={() => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], italic: !styles.fieldStyles[selectedField].italic } } })}
-                    className={cn("w-9 h-9 rounded-lg italic border transition-colors", styles.fieldStyles[selectedField].italic ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-600 border-gray-100")}
-                    title="Itálico"
-                  >I</button>
-
-                  <div>
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Texto</label>
-                    <input
-                      type="color"
-                      value={styles.fieldStyles[selectedField].color}
-                      onChange={(e) => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], color: e.target.value } } })}
-                      className="w-10 h-9 rounded-lg cursor-pointer border border-gray-100 p-0 bg-transparent"
-                      title="Cor do texto"
-                    />
-                  </div>
-
-                  <div className="xl:col-span-1">
-                    <label className="block h-4 text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tamanho</label>
-                    <input
-                      type="number"
-                      min="6"
-                      max="72"
-                      value={styles.fieldStyles[selectedField].fontSize}
-                      onChange={(e) => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], fontSize: parseInt(e.target.value) || 8 } } })}
-                      className="w-full h-9 bg-gray-50 border border-gray-100 rounded-lg px-2 text-xs"
-                    />
-                  </div>
-
-                  <div className="col-span-2 xl:col-span-3 h-9 flex items-stretch gap-1">
-                    <label className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 text-gray-600 px-3 rounded-lg text-xs font-bold border border-gray-100">
-                      <Image size={15} />
-                      {styles.logo ? 'Trocar logo' : 'Adicionar logo'}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const reader = new FileReader();
-                          reader.onloadend = () => setStyles(prev => ({ ...prev, logo: reader.result as string }));
-                          reader.readAsDataURL(file);
-                        }}
-                      />
-                    </label>
-
-                    {styles.logo && (
-                      <button
-                        type="button"
-                        onClick={() => setStyles({ ...styles, logo: undefined })}
-                        className="flex items-center gap-1.5 px-3 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-xs font-bold transition-colors"
-                        title="Remover logo"
-                      >
-                        <Trash2 size={15} />
-                        <span>Remover logo</span>
-                      </button>
-                    )}
-                  </div>
-
                   <div className={cn(
-                    "col-span-2 md:col-span-1 xl:col-span-2 h-9 flex items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold",
+                    "hidden md:flex h-10 shrink-0 items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold",
                     (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
                       ? "bg-primary-light text-primary border-primary/20"
-                      : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-100"
+                      : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200"
                   )}>
                     <Settings size={14} />
                     {(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
                       ? "Admin · ilimitado"
                       : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-12 gap-3 items-end">
+                  <div className="xl:col-span-2">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Modelo</label>
+                    <select value={styles.template} onChange={(e) => {
+                      const template = TEMPLATES.find(item => item.id === e.target.value);
+                      if (template) setStyles({ ...template.styles, logo: styles.logo });
+                    }} className="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg px-3 text-xs">
+                      {TEMPLATES.map(template => <option key={template.id} value={template.id}>{template.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="xl:col-span-2">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">{t.font}</label>
+                    <select value={styles.font} onChange={(e) => setStyles({ ...styles, font: e.target.value })} className="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg px-3 text-xs">
+                      {FONTS.map(font => <option key={font.value} value={font.value}>{font.name}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="xl:col-span-2">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">{t.backgroundColor}</label>
+                    <div className="h-10 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2">
+                      <input type="color" value={styles.backgroundColor} onChange={(e) => setStyles({ ...styles, backgroundColor: e.target.value })} className="w-7 h-7 shrink-0 rounded-md cursor-pointer border-0 p-0 bg-transparent" title={t.backgroundColor} />
+                      <span className="text-[10px] font-mono text-gray-600 uppercase truncate">{styles.backgroundColor}</span>
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 xl:col-span-3">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Campo da fatura</label>
+                    <select value={selectedField} onChange={(e) => setSelectedField(e.target.value as keyof InvoiceStyles['fieldStyles'])} className="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg px-3 text-xs">
+                      <optgroup label="Cabeçalho"><option value="title">Título da Fatura</option><option value="invoiceNumberLabel">Etiqueta Nº Fatura</option><option value="invoiceNumberValue">Valor Nº Fatura</option><option value="orderNumberLabel">Etiqueta Nº Pedido</option><option value="orderNumberValue">Valor Nº Pedido</option></optgroup>
+                      <optgroup label="Datas"><option value="dateLabel">Etiqueta Data</option><option value="dateValue">Valor Data</option><option value="dueDateLabel">Etiqueta Vencimento</option><option value="dueDateValue">Valor Vencimento</option></optgroup>
+                      <optgroup label="Emissor"><option value="issuerLabel">Etiqueta Emissor</option><option value="issuerName">Nome Emissor</option><option value="issuerTaxId">NIF Emissor</option><option value="issuerAddress">Morada Emissor</option></optgroup>
+                      <optgroup label="Recetor"><option value="receiverLabel">Etiqueta Recetor</option><option value="receiverName">Nome Recetor</option><option value="receiverTaxId">NIF Recetor</option><option value="receiverAddress">Morada Recetor</option></optgroup>
+                      <optgroup label="Tabela"><option value="tableHeader">Cabeçalho da Tabela</option><option value="tableBody">Corpo da Tabela</option></optgroup>
+                      <optgroup label="Totais"><option value="subtotalLabel">Etiqueta Subtotal</option><option value="subtotalValue">Valor Subtotal</option><option value="taxLabel">Etiqueta Imposto</option><option value="taxValue">Valor Imposto</option><option value="totalLabel">Etiqueta Total</option><option value="totalValue">Valor Total</option></optgroup>
+                      <optgroup label="Notas"><option value="notesLabel">Etiqueta Notas</option><option value="notesValue">Conteúdo Notas</option></optgroup>
+                    </select>
+                  </div>
+
+                  <div className="xl:col-span-1">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Estilo</label>
+                    <div className="h-10 flex gap-1">
+                      <button type="button" onClick={() => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], bold: !styles.fieldStyles[selectedField].bold } } })} className={cn("flex-1 rounded-lg font-bold border transition-colors", styles.fieldStyles[selectedField].bold ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-700 border-gray-200")}>B</button>
+                      <button type="button" onClick={() => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], italic: !styles.fieldStyles[selectedField].italic } } })} className={cn("flex-1 rounded-lg italic border transition-colors", styles.fieldStyles[selectedField].italic ? "bg-primary text-white border-primary" : "bg-gray-50 text-gray-700 border-gray-200")}>I</button>
+                    </div>
+                  </div>
+
+                  <div className="xl:col-span-1">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Cor texto</label>
+                    <div className="h-10 flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg">
+                      <input type="color" value={styles.fieldStyles[selectedField].color} onChange={(e) => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], color: e.target.value } } })} className="w-7 h-7 rounded-md cursor-pointer border-0 p-0 bg-transparent" />
+                    </div>
+                  </div>
+
+                  <div className="xl:col-span-1">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Tamanho</label>
+                    <input type="number" min="6" max="72" value={styles.fieldStyles[selectedField].fontSize} onChange={(e) => setStyles({ ...styles, fieldStyles: { ...styles.fieldStyles, [selectedField]: { ...styles.fieldStyles[selectedField], fontSize: parseInt(e.target.value) || 8 } } })} className="w-full h-10 bg-gray-50 border border-gray-200 rounded-lg px-2 text-xs" />
+                  </div>
+
+                  <div className="col-span-2 md:col-span-4 xl:col-span-6">
+                    <label className="block text-[10px] leading-4 font-bold text-gray-500 uppercase tracking-wider mb-1">Logo</label>
+                    <div className="h-10 flex gap-2">
+                      <label className="h-10 flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 text-gray-700 px-3 rounded-lg text-xs font-bold border border-gray-200">
+                        <Image size={15} />{styles.logo ? 'Trocar logo' : 'Adicionar logo'}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          const reader = new FileReader();
+                          reader.onloadend = () => setStyles(prev => ({ ...prev, logo: reader.result as string }));
+                          reader.readAsDataURL(file);
+                        }} />
+                      </label>
+                      {styles.logo && <button type="button" onClick={() => setStyles({ ...styles, logo: undefined })} className="h-10 flex items-center gap-2 px-3 text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg text-xs font-bold"><Trash2 size={15} />Remover logo</button>}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 md:hidden">
+                    <div className={cn("h-10 flex items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold", (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') ? "bg-primary-light text-primary border-primary/20" : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200")}>
+                      <Settings size={14} />{(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') ? "Admin · ilimitado" : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
+                    </div>
                   </div>
                 </div>
               </div>
