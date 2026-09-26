@@ -35,6 +35,8 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
   const [iconType, setIconType] = useState<'icon' | 'letter' | 'image'>('icon');
   const [iconValue, setIconValue] = useState<string>('Briefcase');
   const [loading, setLoading] = useState(false);
+  const [imagePosition, setImagePosition] = useState({ x: 50, y: 50 });
+  const [isPositioningImage, setIsPositioningImage] = useState(false);
 
   useEffect(() => {
     if (jobToEdit) {
@@ -43,25 +45,58 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
       setCurrency(jobToEdit.currency || 'BRL');
       setIconType(jobToEdit.iconType || 'icon');
       setIconValue(jobToEdit.iconValue || 'Briefcase');
+      setImagePosition(jobToEdit.imagePosition || { x: 50, y: 50 });
     } else {
       setName('');
       setHourlyRate('');
       setCurrency('BRL');
       setIconType('icon');
       setIconValue('Briefcase');
+      setImagePosition({ x: 50, y: 50 });
     }
   }, [jobToEdit, isOpen]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setIconValue(reader.result as string);
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new window.Image();
+      image.onload = () => {
+        const MAX_SIDE = 512;
+        const scale = Math.min(1, MAX_SIDE / Math.max(image.width, image.height));
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(image, 0, 0, width, height);
+
+        let optimized = canvas.toDataURL('image/webp', 0.82);
+        if (optimized.length > 700000) optimized = canvas.toDataURL('image/jpeg', 0.78);
+
+        setIconValue(optimized);
         setIconType('image');
+        setImagePosition({ x: 50, y: 50 });
+        setIsPositioningImage(true);
       };
-      reader.readAsDataURL(file);
-    }
+      image.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleImagePosition = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPositioningImage) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setImagePosition({ x, y });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,6 +112,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
         currency,
         iconType,
         iconValue,
+        ...(iconType === 'image' ? { imagePosition } : {}),
       };
 
       if (jobToEdit) {
@@ -207,11 +243,24 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
 
                 {iconType === 'image' && (
                   <div className="flex gap-3 items-center">
-                    <div className="w-14 h-14 bg-stone-100 dark:bg-stone-800 rounded-2xl flex items-center justify-center overflow-hidden border border-stone-200 dark:border-stone-700 relative group">
+                    <div
+                      className={cn("w-20 h-20 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center overflow-hidden border-2 border-stone-200 dark:border-stone-700 relative touch-none", iconValue?.startsWith('data:') && "cursor-move")}
+                      onPointerDown={(e) => {
+                        if (!iconValue?.startsWith('data:')) return;
+                        setIsPositioningImage(true);
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        handleImagePosition(e);
+                      }}
+                      onPointerMove={handleImagePosition}
+                      onPointerUp={(e) => {
+                        setIsPositioningImage(false);
+                        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+                      }}
+                    >
                       {iconValue && iconValue.startsWith('data:') ? (
-                        <img src={iconValue} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={iconValue} alt="Preview" draggable={false} className="w-full h-full object-cover select-none pointer-events-none" style={{ objectPosition: `${imagePosition.x}% ${imagePosition.y}%` }} />
                       ) : (
-                        <ImageIcon className="w-6 h-6 text-stone-300 dark:text-stone-400" />
+                        <ImageIcon className="w-7 h-7 text-stone-300 dark:text-stone-400" />
                       )}
                     </div>
                     <label className="flex-1 cursor-pointer">
