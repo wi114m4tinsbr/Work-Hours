@@ -279,28 +279,11 @@ export default function App() {
             <span className="font-bold text-base sm:text-lg tracking-tight truncate max-w-[120px] sm:max-w-none">{settings.appName}</span>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="hidden sm:flex items-center bg-stone-100 dark:bg-white/5 p-1 rounded-xl">
-            <button
-              onClick={() => setActiveTab('hours')}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-                activeTab === 'hours' 
-                  ? "bg-white dark:bg-white/10 text-primary shadow-sm" 
-                  : "text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
-              )}
-            >
-              <Clock size={16} />
-              {t.appName}
-            </button>
+          {/* Main tool navigation */}
+          <div className="hidden sm:flex items-center">
             <button
               onClick={() => setActiveTab('invoices')}
-              className={cn(
-                "px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-                activeTab === 'invoices' 
-                  ? "bg-white dark:bg-white/10 text-primary shadow-sm" 
-                  : "text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
-              )}
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 text-stone-500 hover:text-primary hover:bg-stone-100 dark:hover:bg-white/5"
             >
               <FileText size={16} />
               {t.invoiceCreator}
