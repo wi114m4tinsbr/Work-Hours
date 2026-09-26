@@ -357,7 +357,7 @@ export default function App() {
             </button>
             <button
               onClick={toggleDarkMode}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200"
+              className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200"
               title={isDarkMode ? "Light Mode" : "Dark Mode"}
             >
               {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
@@ -365,7 +365,7 @@ export default function App() {
 
             <button 
               onClick={() => setIsThemeModalOpen(true)}
-              className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:block"
+              className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:inline-flex"
               title={t.theme}
             >
               <Palette className="w-5 h-5" />
@@ -382,7 +382,7 @@ export default function App() {
             )}
 
             <div className="relative group">
-              <button className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 flex items-center gap-1">
+              <button className="w-10 h-10 shrink-0 inline-flex items-center justify-center gap-0.5 rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200">
                 <Languages className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="text-[10px] sm:text-xs font-bold uppercase">{lang}</span>
               </button>
@@ -443,7 +443,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="group/profile flex items-center gap-2 min-w-0 px-1 py-1 rounded-lg hover:-translate-y-0.5 transition-transform duration-200"
+              className="group/profile flex items-center gap-2 min-w-0 px-1 py-1 hover:-translate-y-0.5 transition-transform duration-200"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
@@ -463,7 +463,7 @@ export default function App() {
             </button>
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-2 py-2 text-stone-400 hover:text-red-500 transition-colors rounded-lg whitespace-nowrap shrink-0"
+              className="h-10 flex items-center gap-1.5 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
