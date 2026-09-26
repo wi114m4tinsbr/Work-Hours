@@ -206,6 +206,32 @@ html {
   border-color: #d1d5db;
 }
 
+/* Neutral editing controls inside the light invoice panel must not inherit the dark shell. */
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .bg-gray-50,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .bg-gray-100 {
+  background-color: #f9fafb !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .hover\:bg-gray-100:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .border-gray-100,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel .border-gray-200 {
+  border-color: #e5e7eb !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel button.bg-gray-50,
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel label.bg-gray-50 {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+}
+
+.dark .min-h-screen.bg-gray-50.pb-20 .invoice-editor-light-panel input[type="color"] {
+  background-color: transparent !important;
+  color-scheme: light;
+}
+
 /* The selected invoice background must fill the actual invoice paper, not only its outer border. */
 .min-h-screen.bg-gray-50.pb-20 #invoice-sheet {
   background-color: inherit !important;
