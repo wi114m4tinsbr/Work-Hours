@@ -850,7 +850,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
             <button
               onClick={() => handleAction('share')}
               disabled={isSharing || isDownloading || isSaving}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl font-semibold transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+              className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-xl font-semibold transition-all shadow-lg disabled:opacity-50"
             >
               {isSharing ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
