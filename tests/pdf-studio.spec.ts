@@ -580,3 +580,48 @@ test("numeric replacement remains visible in dark mode and exports every digit",
   expect(texts).toContain("0123456789");
   expect(texts).not.toContain("Original name");
 });
+
+test("font notice names the original and loads an explicitly chosen alternative into the editor", async ({
+  page,
+}) => {
+  const { createFontFixture } = await import("./fixtures");
+  const fixture = await createFontFixture("Calibri-Bold");
+  const requests: string[] = [];
+  await page.route(
+    "https://raw.githubusercontent.com/google/fonts/**",
+    async (route) => {
+      requests.push(route.request().url());
+      await route.fulfill({
+        status: 200,
+        contentType: "font/ttf",
+        body: Buffer.from(fixture.fontBytes),
+      });
+    },
+  );
+  await page.goto("/tests/pdf-studio.html");
+  await page
+    .locator('input[accept=".pdf,application/pdf"]')
+    .setInputFiles({
+      name: "font.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(fixture.bytes),
+    });
+  await page
+    .getByRole("button", { name: "Original font", exact: true })
+    .click();
+  const notice = page.getByTestId("pdf-font-notice");
+  await expect(notice).toContainText("Fonte original: Calibri-Bold");
+  await notice
+    .getByRole("button", {
+      name: "Usar alternativa gratuita: Carlito",
+      exact: true,
+    })
+    .click();
+  await expect(notice).toHaveCount(0);
+  await expect(
+    page.getByRole("combobox", { name: "Fonte", exact: true }),
+  ).toHaveValue(/^download-Carlito-/);
+  expect(requests).toHaveLength(4);
+  expect(requests.every((url) => url.includes("/ofl/carlito/"))).toBe(true);
+  await downloaded(page);
+});

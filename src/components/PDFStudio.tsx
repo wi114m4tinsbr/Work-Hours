@@ -3,6 +3,8 @@ import {
   matchingFont,
   supportsText,
   typingFont,
+  fontDownloadChoice,
+  downloadOriginalFonts,
   type FontAsset,
 } from "../lib/pdf/fonts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -64,6 +66,14 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    useAlternative: "Usar alternativa gratuita",
+    downloadFont: "Baixar e usar",
+    usingFont: "Usando",
+    importOriginal: "Importar original",
+    fontNoDownload: "Download automático indisponível para esta fonte.",
+    fontDownloadFailed: "Não foi possível carregar. Tente novamente.",
+    loadingFont: "Carregando fonte…",
+
     fontSubstitution: "A fonte original está incompleta. Fonte de edição:",
     more: "Mais opções",
     closePanel: "Fechar painel",
@@ -142,6 +152,14 @@ const C = {
     restore: "Restaurar original",
   },
   en: {
+    useAlternative: "Use free alternative",
+    downloadFont: "Download and use",
+    usingFont: "Using",
+    importOriginal: "Import original",
+    fontNoDownload: "Automatic download is unavailable for this font.",
+    fontDownloadFailed: "Could not load. Try again.",
+    loadingFont: "Loading font…",
+
     fontSubstitution: "The original font is incomplete. Editing font:",
     more: "More options",
     closePanel: "Close panel",
@@ -219,6 +237,14 @@ const C = {
     restore: "Restore original",
   },
   es: {
+    useAlternative: "Usar alternativa gratuita",
+    downloadFont: "Descargar y usar",
+    usingFont: "Usando",
+    importOriginal: "Importar original",
+    fontNoDownload: "Descarga automática no disponible para esta fuente.",
+    fontDownloadFailed: "No se pudo cargar. Inténtalo de nuevo.",
+    loadingFont: "Cargando fuente…",
+
     fontSubstitution: "La fuente original está incompleta. Fuente de edición:",
     more: "Más opciones",
     closePanel: "Cerrar panel",
@@ -343,7 +369,8 @@ export function PDFStudio({
     [page, setPage] = useState(1),
     [zoom, setZoom] = useState(1.35),
     [tool, setTool] = useState<"select" | "text">("select");
-  const [fontNotice, setFontNotice] = useState("");
+  const [dismissedFontNotice, setDismissedFontNotice] = useState("");
+  const [fontActionError, setFontActionError] = useState("");
   const [moreOpen, setMoreOpen] = useState(false);
   const morePanel = useRef<HTMLDivElement>(null),
     moreButton = useRef<HTMLButtonElement>(null);
@@ -359,6 +386,7 @@ export function PDFStudio({
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
   }, [moreOpen]);
+  const approvedFontFamilies = useRef(new Set<string>());
   const [fontAssets, setFontAssets] = useState<FontAsset[]>([]);
   const [fontLoading, setFontLoading] = useState(false);
   const fontInput = useRef<HTMLInputElement>(null);
@@ -403,6 +431,24 @@ export function PDFStudio({
     renderTask = useRef<RenderTask | null>(null);
   const current = state.objects.find((o) => o.id === selected && !o.deleted),
     box = geometry[page - 1];
+  const sourceFontName =
+    current?.kind === "text"
+      ? cleanFontName(
+          current.sources[0]?.originalFont || current.sources[0]?.font || "",
+        )
+      : "";
+  const editingFontName =
+    current?.kind === "text"
+      ? matchingFont(fontAssets, current.font, current.bold, current.italic)
+          ?.name || current.font
+      : "";
+  const fontChoice = fontDownloadChoice(sourceFontName);
+  const showFontNotice =
+    current?.kind === "text" &&
+    !!sourceFontName &&
+    sourceFontName !== editingFontName &&
+    !/^(Helvetica|Times|Courier)/.test(sourceFontName) &&
+    dismissedFontNotice !== current.id;
   const message = (e: unknown) => {
     const s = e instanceof Error ? e.message : String(e);
     return s.includes("FONT_GLYPH")
@@ -548,16 +594,63 @@ export function PDFStudio({
       const accepted = await registerLiveFonts([asset]);
       if (!accepted.length) throw new Error("FONT_INVALID");
       setFontAssets((a) => [...a, asset]);
-      if (id)
+      if (id) {
         patch(id, { font: asset.id, bold: asset.bold, italic: asset.italic });
+        setDismissedFontNotice(id);
+      }
     } catch (e) {
       setError(message(e));
     } finally {
       setFontLoading(false);
     }
   };
+  const fetchEditingFont = async () => {
+    if (!fontChoice || current?.kind !== "text" || fontLoading) return;
+    const target = current,
+      choice = fontChoice,
+      token = loadVersion.current,
+      client = editClient.current;
+    if (!client) return;
+    setFontLoading(true);
+    setFontActionError("");
+    try {
+      let candidates = fontAssets.filter(
+        (a) => a.family.replace(/\s/g, "") === choice.family,
+      );
+      if (!candidates.length) {
+        const downloaded = await downloadOriginalFonts([choice.family]);
+        if (token !== loadVersion.current) return;
+        const accepted: FontAsset[] = [];
+        for (const asset of downloaded) {
+          const registered = await client.addFont(asset);
+          if (token !== loadVersion.current) return;
+          accepted.push(...(await registerLiveFonts([registered])));
+        }
+        if (token !== loadVersion.current) return;
+        setFontAssets((a) => [...a, ...accepted]);
+        candidates = accepted;
+      }
+      const latest = stateRef.current.objects.find((o) => o.id === target.id);
+      if (latest?.kind !== "text") return;
+      const asset = candidates.find(
+        (a) =>
+          a.bold === latest.bold &&
+          a.italic === latest.italic &&
+          supportsText(a, latest.text),
+      );
+      if (!asset) throw new Error("FONT_INVALID");
+      approvedFontFamilies.current.add(choice.family);
+      patch(latest.id, { font: asset.id });
+      setDismissedFontNotice(latest.id);
+    } catch {
+      if (token === loadVersion.current) setFontActionError(target.id);
+    } finally {
+      if (token === loadVersion.current) setFontLoading(false);
+    }
+  };
   const load = async (f: File) => {
     const token = ++loadVersion.current;
+    setFontLoading(false);
     version.current++;
     setLoading(true);
     setError("");
@@ -626,8 +719,10 @@ export function PDFStudio({
       clearDocumentFonts();
       const available = await registerLiveFonts(loaded.fonts || []);
       if (token !== loadVersion.current) return;
+      approvedFontFamilies.current.clear();
       setFontAssets(available);
-      setFontNotice("");
+      setDismissedFontNotice("");
+      setFontActionError("");
       const sources = loaded.sources!;
       editClient.current?.destroy();
       editClient.current = client;
@@ -1101,7 +1196,12 @@ export function PDFStudio({
         style={{ top: toolbarTop }}
       >
         <div className="h-12 w-full max-w-7xl mx-auto flex items-center gap-2 sm:gap-4 px-4">
-          <ToolIdentity title="PDF Studio" language={language} backLabel={t.back} onBack={onBack} />
+          <ToolIdentity
+            title="PDF Studio"
+            language={language}
+            backLabel={t.back}
+            onBack={onBack}
+          />
           <div
             className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap"
             data-testid="pdf-primary-tools"
@@ -1495,25 +1595,47 @@ export function PDFStudio({
           </div>
         )}
       </div>
-      {fontNotice && (
+      {showFontNotice && (
         <div
           role="status"
-          className="flex items-center gap-2 px-4 py-2 text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/30"
+          data-testid="pdf-font-notice"
+          className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/30"
         >
           <span>
-            {t.fontSubstitution} {fontNotice}. {t.loadFont} (TTF/OTF).
+            <strong>
+              {t.originalFont}: {sourceFontName}
+            </strong>{" "}
+            · {t.usingFont}: {editingFontName}.
           </span>
+          {fontChoice ? (
+            <button
+              type="button"
+              disabled={fontLoading}
+              onClick={() => void fetchEditingFont()}
+              className="font-semibold underline disabled:opacity-50"
+            >
+              {fontLoading
+                ? t.loadingFont
+                : `${fontChoice.alternative ? t.useAlternative : t.downloadFont}: ${fontChoice.family}`}
+            </button>
+          ) : (
+            <span>{t.fontNoDownload}</span>
+          )}
           <button
             type="button"
+            disabled={fontLoading}
             onClick={() => fontInput.current?.click()}
-            className="underline whitespace-nowrap"
+            className="underline"
           >
-            {t.loadFont}
+            {t.importOriginal} ({sourceFontName})
           </button>
+          {fontActionError === current?.id && (
+            <span>{t.fontDownloadFailed}</span>
+          )}
           <button
             type="button"
             aria-label={t.closePanel}
-            onClick={() => setFontNotice("")}
+            onClick={() => setDismissedFontNotice(current!.id)}
             className="ml-auto shrink-0"
           >
             <X size={14} />
@@ -1662,7 +1784,7 @@ export function PDFStudio({
                           onText={(text) => {
                             const checkpoint = typingGroup.current !== o.id;
                             typingGroup.current = o.id;
-                            const font =
+                            let font =
                               o.kind === "text"
                                 ? typingFont(
                                     fontAssets,
@@ -1673,11 +1795,28 @@ export function PDFStudio({
                                     o.sources[0]?.font || "Helvetica",
                                   )
                                 : "Helvetica";
-                            if (o.kind === "text" && font !== o.font)
-                              setFontNotice(
-                                fontAssets.find((a) => a.id === font)?.name ||
-                                  font,
+                            if (o.kind === "text") {
+                              const choice = fontDownloadChoice(
+                                o.sources[0]?.originalFont || "",
                               );
+                              if (
+                                choice &&
+                                approvedFontFamilies.current.has(
+                                  choice.family,
+                                ) &&
+                                ["Helvetica", "Times", "Courier"].includes(font)
+                              ) {
+                                font =
+                                  fontAssets.find(
+                                    (a) =>
+                                      a.family.replace(/\s/g, "") ===
+                                        choice.family &&
+                                      a.bold === o.bold &&
+                                      a.italic === o.italic &&
+                                      supportsText(a, text),
+                                  )?.id || font;
+                              }
+                            }
                             patch(o.id, { text, font }, checkpoint);
                           }}
                           onTypingEnd={() => {

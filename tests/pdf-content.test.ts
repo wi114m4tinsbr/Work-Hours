@@ -377,3 +377,16 @@ test("typing digits into a subset chooses a complete same-family face or a visib
   );
   assert.equal(typingFont([subset], "subset", false, false, "ABC"), "subset");
 });
+
+test("font download offers identify exact families and label Calibri's alternative", async () => {
+  const { fontDownloadChoice } = await import("../src/lib/pdf/fonts");
+  assert.deepEqual(fontDownloadChoice("ABCDEF+Calibri-Bold"), {
+    family: "Carlito",
+    alternative: true,
+  });
+  assert.deepEqual(fontDownloadChoice("Lato-Regular"), {
+    family: "Lato",
+    alternative: false,
+  });
+  assert.equal(fontDownloadChoice("UnknownPrivateFont"), undefined);
+});

@@ -75,6 +75,7 @@ export function matchingFont(
 // commercial font URL, substitute another family, or send document text online.
 const revision = "23e54b51ddffbc7713c583748e3bd86f62b1fa4a";
 const downloadable = {
+  Carlito: "ofl/carlito/Carlito",
   Lato: "ofl/lato/Lato",
   Ubuntu: "ufl/ubuntu/Ubuntu",
   PTSans: "ofl/ptsans/PT_Sans-Web",
@@ -137,4 +138,15 @@ export function typingFont(
         supportsText(a, text),
     )?.id || fallback
   );
+}
+
+export function fontDownloadChoice(
+  name: string,
+): { family: string; alternative: boolean } | undefined {
+  const family = cleanFontName(name)
+    .replace(/[-, ]?(BoldItalic|Bold|Italic|Regular|Oblique)$/i, "")
+    .replace(/\s/g, "");
+  if (family === "Calibri") return { family: "Carlito", alternative: true };
+  if (Object.hasOwn(downloadable, family))
+    return { family, alternative: false };
 }

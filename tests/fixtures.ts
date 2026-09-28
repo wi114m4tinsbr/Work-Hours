@@ -35,7 +35,7 @@ export async function createFixture() {
   return d.save();
 }
 
-export async function createFontFixture() {
+export async function createFontFixture(originalName?: string) {
   const fontkit = (await import("@pdf-lib/fontkit")).default;
   const fixture = JSON.parse(
     (await import("node:fs")).readFileSync(
@@ -46,7 +46,10 @@ export async function createFontFixture() {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const bytes = Uint8Array.from(atob(fixture.base64), (c) => c.charCodeAt(0));
-  const font = await doc.embedFont(bytes, { subset: false });
+  const font = await doc.embedFont(bytes, {
+    subset: false,
+    ...(originalName ? { customName: originalName } : {}),
+  });
   doc
     .addPage([500, 700])
     .drawText("Original font", { x: 50, y: 600, font, size: 16 });
