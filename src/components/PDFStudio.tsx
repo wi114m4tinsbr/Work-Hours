@@ -66,6 +66,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    dismissFontNotice: "Ocultar aviso de fonte",
     useAlternative: "Usar alternativa gratuita",
     downloadFont: "Baixar e usar",
     usingFont: "Usando",
@@ -152,6 +153,7 @@ const C = {
     restore: "Restaurar original",
   },
   en: {
+    dismissFontNotice: "Dismiss font notice",
     useAlternative: "Use free alternative",
     downloadFont: "Download and use",
     usingFont: "Using",
@@ -237,6 +239,7 @@ const C = {
     restore: "Restore original",
   },
   es: {
+    dismissFontNotice: "Ocultar aviso de fuente",
     useAlternative: "Usar alternativa gratuita",
     downloadFont: "Descargar y usar",
     usingFont: "Usando",
@@ -447,6 +450,7 @@ export function PDFStudio({
     current?.kind === "text" &&
     !!sourceFontName &&
     sourceFontName !== editingFontName &&
+    current.font !== current.sources[0]?.embeddedFontId &&
     !/^(Helvetica|Times|Courier)/.test(sourceFontName) &&
     dismissedFontNotice !== current.id;
   const message = (e: unknown) => {
@@ -1634,7 +1638,7 @@ export function PDFStudio({
           )}
           <button
             type="button"
-            aria-label={t.closePanel}
+            aria-label={t.dismissFontNotice}
             onClick={() => setDismissedFontNotice(current!.id)}
             className="ml-auto shrink-0"
           >

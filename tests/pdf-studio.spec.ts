@@ -599,16 +599,17 @@ test("font notice names the original and loads an explicitly chosen alternative 
     },
   );
   await page.goto("/tests/pdf-studio.html");
-  await page
-    .locator('input[accept=".pdf,application/pdf"]')
-    .setInputFiles({
-      name: "font.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(fixture.bytes),
-    });
+  await page.locator('input[accept=".pdf,application/pdf"]').setInputFiles({
+    name: "font.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(fixture.bytes),
+  });
   await page
     .getByRole("button", { name: "Original font", exact: true })
     .click();
+  await page
+    .getByRole("combobox", { name: "Fonte", exact: true })
+    .selectOption("Helvetica");
   const notice = page.getByTestId("pdf-font-notice");
   await expect(notice).toContainText("Fonte original: Calibri-Bold");
   await notice
