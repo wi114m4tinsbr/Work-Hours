@@ -1073,7 +1073,6 @@ export function PDFStudio({
       }
     >
       <Icon size={17} />
-      <span className="sr-only">{label}</span>
     </button>
   );
   return (
@@ -1199,7 +1198,11 @@ export function PDFStudio({
               </button>
             </>
           )}
-          <span role="status" aria-live="polite" className="sr-only">
+          <span
+            role="status"
+            aria-live="polite"
+            className="sr-only left-0 top-0"
+          >
             {loading
               ? t.loading
               : saving
@@ -1220,7 +1223,7 @@ export function PDFStudio({
           >
             {current.kind === "text" && (
               <>
-                <label className="text-xs text-stone-500">
+                <label className="relative text-xs text-stone-500">
                   <span className="sr-only">{t.font}</span>
                   <select
                     aria-label={t.font}
@@ -1244,7 +1247,7 @@ export function PDFStudio({
                     ))}
                   </select>
                 </label>
-                <label className="text-xs text-stone-500">
+                <label className="relative text-xs text-stone-500">
                   <span className="sr-only">{t.size}</span>
                   <input
                     aria-label={t.size}

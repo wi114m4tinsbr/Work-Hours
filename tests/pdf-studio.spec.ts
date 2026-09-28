@@ -239,11 +239,20 @@ for (const config of [
     await expect(
       page.getByRole("button", { name: "Second page", exact: true }),
     ).toBeVisible();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
+    const overflow = await page.evaluate(() => ({
+      width: innerWidth,
+      scroll: document.documentElement.scrollWidth,
+      outside: [...document.querySelectorAll("body *")]
+        .map((el) => ({
+          tag: el.tagName,
+          cls: el.className,
+          right: el.getBoundingClientRect().right,
+        }))
+        .filter((el) => el.right > innerWidth),
+    }));
+    expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(
+      overflow.width,
+    );
     await expect(
       page.getByRole("button", { name: /^(Baixar|Download|Descargar)$/ }),
     ).toBeEnabled();
@@ -527,11 +536,20 @@ for (const width of [1280, 390]) {
     await expect(
       page.getByRole("button", { name: "Baixar", exact: true }),
     ).toBeInViewport();
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
+    const overflow = await page.evaluate(() => ({
+      width: innerWidth,
+      scroll: document.documentElement.scrollWidth,
+      outside: [...document.querySelectorAll("body *")]
+        .map((el) => ({
+          tag: el.tagName,
+          cls: el.className,
+          right: el.getBoundingClientRect().right,
+        }))
+        .filter((el) => el.right > innerWidth),
+    }));
+    expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(
+      overflow.width,
+    );
     await page.screenshot({ path: info.outputPath("compact-scrolled.png") });
   });
 }
