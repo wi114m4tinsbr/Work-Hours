@@ -1,12 +1,15 @@
+import type { FontAsset, RawFont } from "./fonts";
 import type { SourceText } from "./content";
 import type { EditorState, Geometry } from "./document";
 export type EditRequest =
   | { id: number; kind: "init"; bytes: Uint8Array; geometry: Geometry[] }
-  | { id: number; kind: "preview" | "export"; state: EditorState };
+  | { id: number; kind: "preview" | "export"; state: EditorState }
+  | { id: number; kind: "font"; font: RawFont };
 type Reply = {
   id: number;
   error?: string;
   sources?: SourceText[];
+  fonts?: FontAsset[];
   bytes?: Uint8Array;
   heights?: Record<string, number>;
 };
@@ -38,7 +41,8 @@ export class PdfEditingClient {
   private request(
     data:
       | Omit<Extract<EditRequest, { kind: "init" }>, "id">
-      | Omit<Extract<EditRequest, { kind: "preview" | "export" }>, "id">,
+      | Omit<Extract<EditRequest, { kind: "preview" | "export" }>, "id">
+      | Omit<Extract<EditRequest, { kind: "font" }>, "id">,
   ) {
     if (this.closed)
       return Promise.reject<Reply>(new Error("PDF editor closed"));
@@ -49,7 +53,10 @@ export class PdfEditingClient {
     });
   }
   async initialize(bytes: Uint8Array, geometry: Geometry[]) {
-    return (await this.request({ kind: "init", bytes, geometry })).sources!;
+    return this.request({ kind: "init", bytes, geometry });
+  }
+  async addFont(font: RawFont) {
+    return (await this.request({ kind: "font", font })).fonts![0];
   }
   async preview(state: EditorState) {
     return this.request({ kind: "preview", state });

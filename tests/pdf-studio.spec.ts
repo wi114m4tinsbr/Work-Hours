@@ -39,7 +39,7 @@ test("existing text: replace, format, move, resize, rotate, undo and download wi
   await load(page);
   await page
     .getByRole("button", { name: "Original name", exact: true })
-    .dblclick();
+    .click();
   await expect(page.getByRole("textbox", { name: "Editar texto" })).toHaveValue(
     "Original name",
   );
@@ -112,7 +112,7 @@ test("nested objects are removed from the saved PDF, not masked", async ({
   await load(page);
   await page
     .getByRole("button", { name: "Nested original", exact: true })
-    .dblclick();
+    .click();
   await page
     .getByRole("textbox", { name: "Editar texto" })
     .fill("Nested edited");
@@ -225,7 +225,7 @@ for (const config of [
       ];
     await page
       .getByRole("button", { name: "Original name", exact: true })
-      .dblclick();
+      .click();
     await expect(
       page.getByRole("textbox", { name: editLabel, exact: true }),
     ).toBeVisible();
@@ -274,11 +274,9 @@ test("click to type, live drag and keyboard formatting do not rebuild the page",
   ).toHaveAttribute("aria-pressed", "true");
   await editor.press("Escape");
   await expect(editor).toHaveCount(0);
-  const object = page
-    .locator("[data-pdf-object]")
-    .filter({
-      has: page.getByRole("button", { name: "Instant typing", exact: true }),
-    });
+  const object = page.locator("[data-pdf-object]").filter({
+    has: page.getByRole("button", { name: "Instant typing", exact: true }),
+  });
   const start = await object.boundingBox(),
     move = page.getByRole("button", { name: "Mover", exact: true }),
     handle = await move.boundingBox();
@@ -313,7 +311,7 @@ test("inline typing keeps one undo step and existing text export stays intact af
   await load(page);
   await page
     .getByRole("button", { name: "Original name", exact: true })
-    .dblclick();
+    .click();
   const editor = page.getByTestId("pdf-inline-editor");
   await expect(editor).toBeFocused();
   const before = await page
@@ -334,4 +332,143 @@ test("inline typing keeps one undo step and existing text export stays intact af
     .click();
   const out = await downloaded(page);
   expect(Buffer.from(out).equals(Buffer.from(bytes))).toBe(true);
+});
+
+test("single click edits text; widening reflows capitals without scaling the font", async ({
+  page,
+}, info) => {
+  await load(page);
+  const original = page.getByRole("button", {
+    name: "Original name",
+    exact: true,
+  });
+  await expect(original).toHaveCSS("cursor", "text");
+  await original.click();
+  const editor = page.getByTestId("pdf-inline-editor");
+  await expect(editor).toBeFocused();
+  const text = "UM TEXTO MAIS EXTENSO";
+  await editor.fill(text);
+  const size = page.getByRole("spinbutton", { name: "Tamanho", exact: true });
+  const initialSize = await size.inputValue();
+  const object = page.locator("[data-pdf-object]").filter({ has: editor });
+  const id = await object.getAttribute("data-pdf-object");
+  const stableObject = page.locator(`[data-pdf-object="${id}"]`);
+  const narrow = await stableObject.boundingBox();
+  const handle = page.getByTestId("pdf-width-handle");
+  await expect(handle).toHaveCSS("cursor", "ew-resize");
+  const bounds = await handle.boundingBox();
+  const renders = await page
+    .getByTestId("pdf-stage")
+    .getAttribute("data-background-renders");
+  await page.mouse.move(
+    bounds!.x + bounds!.width / 2,
+    bounds!.y + bounds!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    bounds!.x + bounds!.width / 2 + 280,
+    bounds!.y + bounds!.height / 2,
+    { steps: 10 },
+  );
+  await page.mouse.up();
+  const wide = await stableObject.boundingBox();
+  expect(wide!.width - narrow!.width).toBeGreaterThan(270);
+  expect(wide!.height).toBeLessThan(narrow!.height);
+  await expect(size).toHaveValue(initialSize);
+  expect(
+    await page.getByTestId("pdf-stage").getAttribute("data-background-renders"),
+  ).toBe(renders);
+  await page.getByRole("button", { name: "Desfazer", exact: true }).click();
+  expect((await stableObject.boundingBox())!.width).toBeCloseTo(
+    narrow!.width,
+    0,
+  );
+  await page.getByRole("button", { name: "Refazer", exact: true }).click();
+  await expect(size).toHaveValue(initialSize);
+  const out = await downloaded(page);
+  const native = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  native.PDFiumExt_Init();
+  const texts = extractSources(native, out);
+  expect(texts.filter((t) => t.text === text)).toHaveLength(1);
+  expect(texts.find((t) => t.text === text)!.size).toBeCloseTo(
+    Number(initialSize),
+    2,
+  );
+  expect(texts.some((t) => t.text === "Original name")).toBe(false);
+  await page.screenshot({
+    path: info.outputPath("text-width-single-line.png"),
+    fullPage: true,
+  });
+});
+
+test("font inventory, embedded face, upload and sticky formatting toolbar", async ({
+  page,
+}, info) => {
+  const { createFontFixture } = await import("./fixtures");
+  const fixture = await createFontFixture();
+  await page.goto("/tests/pdf-studio.html?appHeader");
+  await page
+    .locator('input[accept=".pdf,application/pdf"]')
+    .setInputFiles({
+      name: "fonts.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(fixture.bytes),
+    });
+  await page
+    .getByRole("button", { name: "Original font", exact: true })
+    .click();
+  await expect(page.getByTestId("pdf-inline-editor")).toBeFocused();
+  await expect(page.getByTestId("pdf-font-info")).toContainText(
+    "StudioFixture-Regular",
+  );
+  const font = page.getByRole("combobox", { name: "Fonte", exact: true });
+  await expect(font).toHaveValue(/^embedded-/);
+  await page.getByTestId("pdf-font-inventory").locator("summary").click();
+  await expect(page.getByTestId("pdf-font-inventory")).toContainText(
+    "StudioFixture-Regular",
+  );
+  await page.getByTestId("pdf-font-inventory").locator("summary").click();
+  await page.getByTestId("pdf-inline-editor").fill("CUSTOM FONT");
+  // Whole-document scrolling must retain the toolbar below the real app header.
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await expect
+    .poll(async () =>
+      Math.round((await page.getByTestId("pdf-toolbar").boundingBox())!.y),
+    )
+    .toBe(64);
+  await expect(font).toBeInViewport();
+  await page
+    .getByRole("spinbutton", { name: "Tamanho", exact: true })
+    .fill("18");
+  let out = await downloaded(page);
+  const native = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  native.PDFiumExt_Init();
+  expect(extractSources(native, out)[0].originalFont).toContain(
+    "StudioFixture",
+  );
+  await font.selectOption("Helvetica");
+  await page
+    .locator('input[accept=".ttf,.otf"]')
+    .setInputFiles({
+      name: "StudioFixture.ttf",
+      mimeType: "font/ttf",
+      buffer: Buffer.from(fixture.fontBytes),
+    });
+  await expect(font).toHaveValue(/^uploaded-/);
+  out = await downloaded(page);
+  expect(extractSources(native, out)[0].originalFont).toContain(
+    "StudioFixture",
+  );
+  await page.screenshot({
+    path: info.outputPath("sticky-font-toolbar.png"),
+    fullPage: false,
+  });
 });

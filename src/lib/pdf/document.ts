@@ -1,3 +1,5 @@
+import fontkit from "@pdf-lib/fontkit";
+import { matchingFont, supportsText, type FontAsset } from "./fonts";
 import {
   PDFDocument,
   StandardFonts,
@@ -94,6 +96,7 @@ export function groupSources(
       gap >= -s.size * 0.5 &&
       gap < s.size * 0.65 &&
       prev.font === s.font &&
+      prev.sources[0].originalFont === s.originalFont &&
       prev.bold === s.bold &&
       prev.italic === s.italic &&
       prev.color === s.color &&
@@ -234,6 +237,7 @@ export function createExporter(
   bytes: Uint8Array,
   sources: SourceText[],
   geometry: Geometry[],
+  assets: FontAsset[] = [],
 ) {
   let cachedKey = "",
     cachedBase = bytes;
@@ -258,6 +262,7 @@ export function createExporter(
       return bytes.slice();
     const doc = await PDFDocument.load(cachedBase),
       fonts = new Map<string, PDFFont>();
+    doc.registerFontkit(fontkit);
     for (const o of changed) {
       if (o.deleted) continue;
       const p = doc.getPage(o.page - 1),
@@ -268,10 +273,18 @@ export function createExporter(
           (Math.atan2(axis[1] - origin[1], axis[0] - origin[0]) * 180) /
           Math.PI;
       if (o.kind === "text") {
-        const name = fontName(o);
+        const custom = !["Helvetica", "Times", "Courier"].includes(o.font);
+        const asset = matchingFont(assets, o.font, o.bold, o.italic);
+        if (custom && !asset) throw new Error("FONT_VARIANT");
+        if (asset && !supportsText(asset, o.text))
+          throw new Error("FONT_GLYPH");
+        const name = asset?.id || fontName(o);
         let font = fonts.get(name);
         if (!font) {
-          font = await doc.embedFont(name);
+          font = await doc.embedFont(
+            asset ? asset.data : name,
+            asset ? { subset: true, customName: asset.name } : undefined,
+          );
           fonts.set(name, font);
         }
         const lines = wrapText(o.text, font, o.size, Math.max(1, o.width)),

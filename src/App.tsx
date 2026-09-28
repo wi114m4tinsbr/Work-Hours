@@ -499,8 +499,8 @@ export default function App() {
       </header>
 
       {activeTab === 'pdf' ? (
-        <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
-          <PDFStudio language={lang} onBack={() => setActiveTab('hours')} />
+        <main className="flex-1 w-full overflow-visible custom-scrollbar">
+          <PDFStudio language={lang} toolbarTop={64} onBack={() => setActiveTab('hours')} />
         </main>
       ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">

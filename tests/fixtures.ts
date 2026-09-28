@@ -34,3 +34,16 @@ export async function createFixture() {
   dropdown.addToPage(p2, { x: 50, y: 400, width: 180, height: 24 });
   return d.save();
 }
+
+export async function createFontFixture() {
+  const fontkit = (await import("@pdf-lib/fontkit")).default;
+  const fixture = (await import("./font-fixture.json")).default;
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const bytes = Uint8Array.from(atob(fixture.base64), (c) => c.charCodeAt(0));
+  const font = await doc.embedFont(bytes, { subset: false });
+  doc
+    .addPage([500, 700])
+    .drawText("Original font", { x: 50, y: 600, font, size: 16 });
+  return { bytes: await doc.save(), fontBytes: bytes };
+}

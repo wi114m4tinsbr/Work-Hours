@@ -291,3 +291,66 @@ test("unsupported replacement characters fail instead of exporting missing glyph
   );
   assert.ok(extractSources(m, bytes).some((s) => s.text === "Original name"));
 });
+
+test("embedded font identity, glyph coverage and original face survive export", async () => {
+  const { createFontFixture } = await import("./fixtures");
+  const { readFont, supportsText } = await import("../src/lib/pdf/fonts");
+  const { bytes } = await createFontFixture();
+  const raw: any[] = [];
+  const sources = extractSources(m, bytes, raw),
+    assets = raw.map((r) => readFont(r));
+  assert.match(sources[0].originalFont!, /StudioFixture/);
+  assert.ok(supportsText(assets[0], "CAPITALS 123"));
+  assert.ok(!supportsText(assets[0], "你好"));
+  const objects = groupSources(sources, geo).map((o) => ({
+    ...o,
+    font: assets[0].id,
+    text: "CAPITALS 123",
+    width: 200,
+    changed: true,
+  }));
+  const render = createExporter(m, bytes, sources, geo, assets);
+  const out = await render({ objects, fields: {} }),
+    after = extractSources(m, out);
+  assert.equal(after[0].text, "CAPITALS 123");
+  assert.match(after[0].originalFont!, /StudioFixture/);
+  await assert.rejects(
+    () =>
+      render({
+        objects: objects.map((o) => ({ ...o, text: "你好" })),
+        fields: {},
+      }),
+    /FONT_GLYPH/,
+  );
+  await assert.rejects(
+    () =>
+      render({
+        objects: objects.map((o) => ({ ...o, bold: true })),
+        fields: {},
+      }),
+    /FONT_VARIANT/,
+  );
+});
+
+test("automatic font downloads use exact allowlisted families and keep offline PDFs usable", async () => {
+  const { downloadOriginalFonts } = await import("../src/lib/pdf/fonts");
+  const { createFontFixture } = await import("./fixtures");
+  const { fontBytes } = await createFontFixture();
+  const urls: string[] = [];
+  const downloaded = await downloadOriginalFonts(
+    ["ABCDEF+Lato-Regular", "Calibri", "Arial", "../../unexpected"],
+    (async (url) => {
+      urls.push(String(url));
+      return new Response(fontBytes);
+    }) as typeof fetch,
+  );
+  assert.equal(urls.length, 4);
+  assert.equal(downloaded.length, 4);
+  assert.ok(
+    urls.every((u) => u.includes("/ofl/lato/Lato-") && !u.includes("Calibri")),
+  );
+  const offline = await downloadOriginalFonts(["Lato-Regular"], (async () => {
+    throw new Error("offline");
+  }) as typeof fetch);
+  assert.deepEqual(offline, []);
+});

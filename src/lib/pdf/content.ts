@@ -1,3 +1,4 @@
+import type { RawFont } from "./fonts";
 import type { WrappedPdfiumModule } from "@embedpdf/pdfium";
 
 export type Matrix = [number, number, number, number, number, number];
@@ -10,6 +11,8 @@ export type SourceText = {
   size: number;
   color: string;
   font: string;
+  originalFont?: string;
+  embeddedFontId?: string;
   bold: boolean;
   italic: boolean;
 };
@@ -62,9 +65,11 @@ export function withDocument<T>(
 export function extractSources(
   m: WrappedPdfiumModule,
   bytes: Uint8Array,
+  fonts?: RawFont[],
 ): SourceText[] {
   return withDocument(m, bytes, (doc) => {
     const result: SourceText[] = [];
+    const fontIds = new Map<number, string>();
     const buf = m.pdfium.wasmExports.malloc(64);
     const floats = (n: number) =>
       Array.from(m.pdfium.HEAPF32.subarray(buf / 4, buf / 4 + n));
@@ -146,6 +151,43 @@ export function extractSources(
               } finally {
                 m.pdfium.wasmExports.free(namePtr);
               }
+              let embeddedFontId = fontIds.get(fontHandle);
+              if (
+                fonts &&
+                !fontIds.has(fontHandle) &&
+                m.FPDFFont_GetIsEmbedded(fontHandle) === 1
+              ) {
+                fontIds.set(fontHandle, "");
+                if (m.FPDFFont_GetFontData(fontHandle, 0, 0, buf)) {
+                  const dataLength = m.pdfium.HEAPU32[buf / 4];
+                  if (dataLength > 0 && dataLength <= 10 * 1024 * 1024) {
+                    const dataPtr = m.pdfium.wasmExports.malloc(dataLength);
+                    try {
+                      if (
+                        m.FPDFFont_GetFontData(
+                          fontHandle,
+                          dataPtr,
+                          dataLength,
+                          buf,
+                        )
+                      ) {
+                        embeddedFontId = `embedded-${fonts.length}`;
+                        fonts.push({
+                          id: embeddedFontId,
+                          name,
+                          data: m.pdfium.HEAPU8.slice(
+                            dataPtr,
+                            dataPtr + dataLength,
+                          ),
+                        });
+                        fontIds.set(fontHandle, embeddedFontId);
+                      }
+                    } finally {
+                      m.pdfium.wasmExports.free(dataPtr);
+                    }
+                  }
+                }
+              }
               result.push({
                 page: pn + 1,
                 paths: [key],
@@ -159,6 +201,8 @@ export function extractSources(
                 matrix,
                 size,
                 color,
+                originalFont: name,
+                embeddedFontId,
                 font:
                   /Times|serif/i.test(name) && !/sans/i.test(name)
                     ? "Times"

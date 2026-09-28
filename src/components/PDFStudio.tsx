@@ -1,3 +1,9 @@
+import {
+  cleanFontName,
+  matchingFont,
+  supportsText,
+  type FontAsset,
+} from "../lib/pdf/fonts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload,
@@ -28,7 +34,11 @@ import {
   type TextObject,
 } from "../lib/pdf/document";
 import { PdfEditingClient } from "../lib/pdf/worker-client";
-import { initializeLiveFonts } from "../lib/pdf/live-layout";
+import {
+  initializeLiveFonts,
+  registerLiveFonts,
+  clearDocumentFonts,
+} from "../lib/pdf/live-layout";
 import { PDFObjectLayer } from "./PDFObjectLayer";
 
 // Compatibility for PDF.js in browsers without the Map upsert APIs.
@@ -50,13 +60,27 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    documentFonts: "Fontes do documento",
+    originalFont: "Fonte original",
+    loadFont: "Carregar fonte",
+    fontGlyph:
+      "A fonte não contém todos os caracteres digitados. Carregue a versão completa ou escolha outra fonte.",
+    fontVariant:
+      "Esta variação da fonte não está disponível. Escolha outra fonte ou carregue a variação.",
+    fontInvalid:
+      "Não foi possível usar esta fonte. Selecione um arquivo TTF ou OTF válido.",
+    fontFallback:
+      "Fonte original indisponível para edição. A fonte de edição está indicada acima.",
+    fontHelp:
+      "Fontes incorporadas podem conter apenas alguns caracteres. Downloads automáticos: Lato, Ubuntu, PT Sans e PT Serif. Para outras fontes, carregue um arquivo TTF/OTF.",
+
     placeholder: "Digite aqui",
     done: "Concluir edição",
     info: "Sobre a edição",
     saving: "Preparando download…",
     addHint: "Clique na página e comece a digitar.",
     editHint:
-      "Duplo clique para digitar · Arraste o texto ou a borda para mover",
+      "Clique para digitar · Puxe a lateral para ajustar a largura · Arraste a borda para mover",
     open: "Abrir PDF",
     drop: "Solte um PDF aqui ou clique para abrir",
     select: "Selecionar",
@@ -75,6 +99,7 @@ const C = {
     edit: "Editar texto",
     move: "Mover",
     resize: "Redimensionar",
+    resizeText: "Ajustar largura",
     width: "Largura",
     angle: "Rotação",
     undo: "Desfazer",
@@ -90,7 +115,7 @@ const C = {
     unsupported:
       "A fonte escolhida não contém um dos caracteres. Use caracteres latinos ou desfaça a alteração.",
     limits:
-      "Edite diretamente na página. Ao alterar, a fonte será substituída pela escolhida. Imagens, letras convertidas em desenho e alguns PDFs complexos não permitem edição de texto.",
+      "Edite diretamente na página. A fonte original é reutilizada quando compatível; confira a fonte de edição na barra. Imagens, letras convertidas em desenho e alguns PDFs complexos não permitem edição de texto.",
     noText:
       "Nenhum texto editável reconhecido nesta página. Você pode adicionar texto ou imagem.",
     form: "Campo de formulário",
@@ -103,19 +128,33 @@ const C = {
       "Desenhe sua assinatura. Será inserida como imagem, sem certificado digital.",
     tooLarge: "Use um PDF de até 25 MB e 100 páginas.",
     imageError: "Use uma imagem PNG ou JPEG de até 10 MB.",
-    selectHint: "Clique num texto existente para selecionar.",
+    selectHint: "Clique em um texto existente para editar.",
     zoomIn: "Aumentar zoom",
     zoomOut: "Diminuir zoom",
     fieldLocked: "Campo somente leitura ou de tipo não suportado",
     restore: "Restaurar original",
   },
   en: {
+    documentFonts: "Document fonts",
+    originalFont: "Original font",
+    loadFont: "Load font",
+    fontGlyph:
+      "This font does not contain all typed characters. Load the complete font or choose another font.",
+    fontVariant:
+      "This font style is unavailable. Choose another font or load the style.",
+    fontInvalid: "Could not use this font. Select a valid TTF or OTF file.",
+    fontFallback:
+      "Original font unavailable for editing. The editing font is shown above.",
+    fontHelp:
+      "Embedded fonts may contain only some characters. Automatic downloads: Lato, Ubuntu, PT Sans and PT Serif. For other fonts, load a TTF/OTF file.",
+
     placeholder: "Type here",
     done: "Done editing",
     info: "About editing",
     saving: "Preparing download…",
     addHint: "Click on the page and start typing.",
-    editHint: "Double-click to type · Drag the text or its border to move",
+    editHint:
+      "Click to type · Pull the side to adjust width · Drag the border to move",
     open: "Open PDF",
     drop: "Drop a PDF here or click to open",
     select: "Select",
@@ -134,6 +173,7 @@ const C = {
     edit: "Edit text",
     move: "Move",
     resize: "Resize",
+    resizeText: "Adjust text width",
     width: "Width",
     angle: "Rotation",
     undo: "Undo",
@@ -149,7 +189,7 @@ const C = {
     unsupported:
       "The selected font does not support one of the characters. Use Latin characters or undo the change.",
     limits:
-      "Edit directly on the page. Changing text replaces its font with the selected font. Images, outlined letters and some complex PDFs do not support text editing.",
+      "Edit directly on the page. The original font is reused when compatible; check the editing font in the toolbar. Images, outlined letters and some complex PDFs do not support text editing.",
     noText:
       "No editable text recognized on this page. You can add text or an image.",
     form: "Form field",
@@ -162,20 +202,34 @@ const C = {
       "Draw your signature. It will be inserted as an image without a digital certificate.",
     tooLarge: "Use a PDF up to 25 MB and 100 pages.",
     imageError: "Use a PNG or JPEG image up to 10 MB.",
-    selectHint: "Click existing text to select it.",
+    selectHint: "Click existing text to edit it.",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     fieldLocked: "Read-only or unsupported field",
     restore: "Restore original",
   },
   es: {
+    documentFonts: "Fuentes del documento",
+    originalFont: "Fuente original",
+    loadFont: "Cargar fuente",
+    fontGlyph:
+      "La fuente no contiene todos los caracteres escritos. Carga la fuente completa o elige otra.",
+    fontVariant:
+      "Esta variante no está disponible. Elige otra fuente o carga la variante.",
+    fontInvalid:
+      "No se pudo usar la fuente. Selecciona un archivo TTF u OTF válido.",
+    fontFallback:
+      "Fuente original no disponible para editar. La fuente de edición se indica arriba.",
+    fontHelp:
+      "Las fuentes incrustadas pueden contener solo algunos caracteres. Descargas automáticas: Lato, Ubuntu, PT Sans y PT Serif. Para otras fuentes, carga un archivo TTF/OTF.",
+
     placeholder: "Escribe aquí",
     done: "Terminar edición",
     info: "Acerca de la edición",
     saving: "Preparando descarga…",
     addHint: "Haz clic en la página y empieza a escribir.",
     editHint:
-      "Doble clic para escribir · Arrastra el texto o su borde para mover",
+      "Haz clic para escribir · Tira del lateral para ajustar el ancho · Arrastra el borde para mover",
     open: "Abrir PDF",
     drop: "Suelta un PDF aquí o haz clic para abrir",
     select: "Seleccionar",
@@ -194,6 +248,7 @@ const C = {
     edit: "Editar texto",
     move: "Mover",
     resize: "Redimensionar",
+    resizeText: "Ajustar ancho",
     width: "Ancho",
     angle: "Rotación",
     undo: "Deshacer",
@@ -209,7 +264,7 @@ const C = {
     unsupported:
       "La fuente elegida no admite uno de los caracteres. Usa caracteres latinos o deshaz el cambio.",
     limits:
-      "Edita directamente en la página. Al modificarlo, se sustituye su fuente por la elegida. Las imágenes, letras convertidas en dibujos y algunos PDF complejos no permiten editar texto.",
+      "Edita directamente en la página. Se reutiliza la fuente original cuando es compatible; revisa la fuente de edición en la barra. Las imágenes, letras convertidas en dibujos y algunos PDF complejos no permiten editar texto.",
     noText:
       "No se reconoce texto editable en esta página. Puedes añadir texto o una imagen.",
     form: "Campo de formulario",
@@ -222,7 +277,7 @@ const C = {
       "Dibuja tu firma. Se insertará como imagen, sin certificado digital.",
     tooLarge: "Usa un PDF de hasta 25 MB y 100 páginas.",
     imageError: "Usa una imagen PNG o JPEG de hasta 10 MB.",
-    selectHint: "Haz clic en un texto existente para seleccionarlo.",
+    selectHint: "Haz clic en un texto existente para editarlo.",
     zoomIn: "Acercar",
     zoomOut: "Alejar",
     fieldLocked: "Campo de solo lectura o no compatible",
@@ -259,9 +314,11 @@ const control =
 export function PDFStudio({
   language,
   onBack,
+  toolbarTop = 0,
 }: {
   language: Lang;
   onBack: () => void;
+  toolbarTop?: number;
 }) {
   const t = C[language] || C.pt;
   const [file, setFile] = useState<File | null>(null),
@@ -273,6 +330,9 @@ export function PDFStudio({
     [page, setPage] = useState(1),
     [zoom, setZoom] = useState(1.35),
     [tool, setTool] = useState<"select" | "text">("select");
+  const [fontAssets, setFontAssets] = useState<FontAsset[]>([]);
+  const [fontLoading, setFontLoading] = useState(false);
+  const fontInput = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [renderedLayers, setRenderedLayers] = useState({
@@ -316,13 +376,19 @@ export function PDFStudio({
     box = geometry[page - 1];
   const message = (e: unknown) => {
     const s = e instanceof Error ? e.message : String(e);
-    return s.includes("UNSAFE_TEXT_OVERLAP")
-      ? t.unsafe
-      : /encode|WinAnsi/.test(s)
-        ? t.unsupported
-        : s === "LIMIT"
-          ? t.tooLarge
-          : t.error;
+    return s.includes("FONT_GLYPH")
+      ? t.fontGlyph
+      : s.includes("FONT_VARIANT")
+        ? t.fontVariant
+        : s.includes("FONT_INVALID")
+          ? t.fontInvalid
+          : s.includes("UNSAFE_TEXT_OVERLAP")
+            ? t.unsafe
+            : /encode|WinAnsi/.test(s)
+              ? t.unsupported
+              : s === "LIMIT"
+                ? t.tooLarge
+                : t.error;
   };
   const update = (next: EditorState, checkpoint = true) => {
     if (checkpoint) {
@@ -426,6 +492,41 @@ export function PDFStudio({
     };
     return snapshot;
   }, [state, selected, editingId]);
+  const canFormat = (o: TextObject, bold: boolean) =>
+    !fontAssets.some((a) => a.id === o.font) ||
+    !!matchingFont(
+      fontAssets,
+      o.font,
+      bold ? !o.bold : o.bold,
+      bold ? o.italic : !o.italic,
+    );
+  const loadFont = async (f: File) => {
+    const client = editClient.current,
+      token = loadVersion.current,
+      id = selected;
+    if (!client || f.size > 10 * 1024 * 1024) {
+      setError(t.fontInvalid);
+      return;
+    }
+    setFontLoading(true);
+    try {
+      const asset = await client.addFont({
+        id: "uploaded-" + crypto.randomUUID(),
+        name: f.name,
+        data: new Uint8Array(await f.arrayBuffer()),
+      });
+      if (token !== loadVersion.current) return;
+      const accepted = await registerLiveFonts([asset]);
+      if (!accepted.length) throw new Error("FONT_INVALID");
+      setFontAssets((a) => [...a, asset]);
+      if (id)
+        patch(id, { font: asset.id, bold: asset.bold, italic: asset.italic });
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setFontLoading(false);
+    }
+  };
   const load = async (f: File) => {
     const token = ++loadVersion.current;
     version.current++;
@@ -488,18 +589,49 @@ export function PDFStudio({
             });
           }
       }
-      const [sources] = await Promise.all([
+      const [loaded] = await Promise.all([
         client.initialize(bytes, geo),
         initializeLiveFonts(),
       ]);
       if (token !== loadVersion.current) return;
+      clearDocumentFonts();
+      const available = await registerLiveFonts(loaded.fonts || []);
+      if (token !== loadVersion.current) return;
+      setFontAssets(available);
+      const sources = loaded.sources!;
       editClient.current?.destroy();
       editClient.current = client;
       adopted = true;
       backgroundCache.current = null;
       setRenderedLayers({ baked: new Set(), removed: new Set() });
       setEditingId(null);
-      const next = { objects: groupSources(sources, geo), fields: {} };
+      const next = {
+        objects: groupSources(sources, geo).map((o) => {
+          const source = o.sources[0],
+            name = cleanFontName(source.originalFont || "");
+          const family = name
+            .replace(/[-,](Regular|BoldItalic|Bold|Italic|Oblique)$/i, "")
+            .replace(/\s/g, "");
+          const asset =
+            available.find(
+              (a) =>
+                a.origin === "downloaded" &&
+                a.family.replace(/\s/g, "") === family &&
+                a.bold === o.bold &&
+                a.italic === o.italic &&
+                supportsText(a, o.text),
+            ) ||
+            available.find(
+              (a) =>
+                (a.id === source.embeddedFontId || a.name === name) &&
+                supportsText(a, o.text),
+            );
+          return asset
+            ? { ...o, font: asset.id, bold: asset.bold, italic: asset.italic }
+            : o;
+        }),
+        fields: {},
+      };
       original.current = next;
 
       undo.current = [];
@@ -606,6 +738,7 @@ export function PDFStudio({
       renderTask.current?.cancel();
       editClient.current?.destroy();
       openingClient.current?.destroy();
+      clearDocumentFonts();
     },
     [],
   );
@@ -653,13 +786,9 @@ export function PDFStudio({
       patch(
         id,
         resize
-          ? {
-              width: Math.max(5, o.width * scale),
-              height: o.height * scale,
-              ...(o.kind === "text"
-                ? { size: Math.max(4, Math.min(144, o.size * scale)) }
-                : {}),
-            }
+          ? o.kind === "text"
+            ? { width: Math.max(5, Math.min(2000, o.width + local)) }
+            : { width: Math.max(5, o.width * scale), height: o.height * scale }
           : {
               x: Math.max(0, Math.min(box.width - 5, o.x + dx)),
               y: Math.max(0, Math.min(box.height - 5, o.y + dy)),
@@ -822,6 +951,7 @@ export function PDFStudio({
           k === "y" || e.shiftKey ? travel(redo, undo) : travel(undo, redo);
         } else if ((k === "b" || k === "i") && current?.kind === "text") {
           e.preventDefault();
+          if (!canFormat(current, k === "b")) return;
           typingGroup.current = null;
           patch(
             current.id,
@@ -863,7 +993,7 @@ export function PDFStudio({
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [current, box, editingId]);
+  }, [current, box, editingId, fontAssets]);
   const button = (
     label: string,
     Icon: React.ElementType,
@@ -897,275 +1027,384 @@ export function PDFStudio({
   );
   return (
     <div className="min-h-[calc(100vh-72px)] flex flex-col bg-stone-100 dark:bg-stone-950">
-      <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-3 sm:px-5 py-3 flex flex-wrap items-center gap-1 sticky top-0 z-20">
-        <button
-          title={t.back}
-          aria-label={t.back}
-          onClick={onBack}
-          className="mr-2 text-stone-400 hover:text-primary font-bold"
-        >
-          ←
-        </button>
-        <b className="mr-3 dark:text-white">PDF Studio</b>
-        {button(t.open, Upload, () => input.current?.click(), loading)}
-        {file && (
-          <>
-            {button(
-              t.select,
-              MousePointer2,
-              () => setTool("select"),
-              loading,
-              tool === "select",
-            )}
-            {button(
-              t.text,
-              Type,
-              () => {
-                setTool("text");
-                setEditingId(null);
-                setSelected(null);
-              },
-              loading,
-              tool === "text",
-            )}
-            {button(
-              t.image,
-              ImageIcon,
-              () => imageInput.current?.click(),
-              loading,
-            )}
-            {button(
-              t.signature,
-              PenLine,
-              () => {
-                setSignature(true);
-                setSigned(false);
-              },
-              loading,
-            )}
-            {button(
-              t.undo,
-              Undo2,
-              () => travel(undo, redo),
-              !undo.current.length || loading,
-            )}
-            {button(
-              t.redo,
-              Redo2,
-              () => travel(redo, undo),
-              !redo.current.length || loading,
-            )}
-            <div className="ml-auto flex items-center gap-1">
-              {button(
-                t.zoomOut,
-                ZoomOut,
-                () => setZoom((z) => Math.max(0.35, z - 0.15)),
-                loading,
-              )}
-              <span className="text-xs font-bold text-stone-500">
-                {Math.round(zoom * 100)}%
-              </span>
-              {button(
-                t.zoomIn,
-                ZoomIn,
-                () => setZoom((z) => Math.min(3, z + 0.15)),
-                loading,
-              )}
-              <button
-                aria-label={t.download}
-                disabled={loading || saving || !!error}
-                onClick={save}
-                className="h-10 px-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40"
-              >
-                <Download size={17} />
-                <span className="hidden sm:inline">{t.download}</span>
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-      {file && (
-        <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-4 py-3 space-y-2">
-          <p className="text-xs text-stone-500 dark:text-stone-400">
-            {tool === "text" ? t.addHint : t.editHint}
-          </p>
-          {current ? (
+      <input
+        ref={fontInput}
+        type="file"
+        accept=".ttf,.otf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void loadFont(f);
+          e.target.value = "";
+        }}
+      />
+      <div
+        data-testid="pdf-toolbar"
+        className="sticky z-30"
+        style={{ top: toolbarTop }}
+      >
+        <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-3 sm:px-5 py-3 flex flex-wrap items-center gap-1">
+          <button
+            title={t.back}
+            aria-label={t.back}
+            onClick={onBack}
+            className="mr-2 text-stone-400 hover:text-primary font-bold"
+          >
+            ←
+          </button>
+          <b className="mr-3 dark:text-white">PDF Studio</b>
+          {button(t.open, Upload, () => input.current?.click(), loading)}
+          {file && (
             <>
-              <div className="flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
-                {current.kind === "text" &&
-                  button(
-                    editingId === current.id ? t.done : t.edit,
-                    editingId === current.id ? Check : Type,
-                    () =>
-                      editingId === current.id
-                        ? setEditingId(null)
-                        : beginEditing(current.id),
-                  )}
-                {current.kind === "text" && (
-                  <>
-                    <label className="text-xs text-stone-500">
-                      {t.font}{" "}
-                      <select
-                        aria-label={t.font}
-                        className={control}
-                        value={current.font}
-                        onChange={(e) =>
-                          patch(current.id, { font: e.target.value })
-                        }
-                      >
-                        <option>Helvetica</option>
-                        <option>Times</option>
-                        <option>Courier</option>
-                      </select>
-                    </label>
-                    <label className="text-xs text-stone-500">
-                      {t.size}{" "}
-                      <input
-                        aria-label={t.size}
-                        className={control + " w-20"}
-                        type="number"
-                        min="4"
-                        max="144"
-                        step="0.5"
-                        value={Math.round(current.size * 100) / 100}
-                        onChange={(e) => {
-                          const size = +e.target.value;
-                          if (size >= 4 && size <= 144)
-                            patch(current.id, {
-                              size,
-                              height: Math.max(current.height, size * 1.2),
-                            });
-                        }}
-                      />
-                    </label>
-                    <button
-                      onMouseDown={(e) => e.preventDefault()}
-                      title={t.bold}
-                      aria-label={t.bold}
-                      aria-pressed={current.bold}
-                      onClick={() => {
-                        typingGroup.current = null;
-                        patch(current.id, { bold: !current.bold });
-                      }}
-                      className={
-                        control +
-                        " font-black " +
-                        (current.bold ? "ring-2 ring-primary" : "")
-                      }
-                    >
-                      B
-                    </button>
-                    <button
-                      onMouseDown={(e) => e.preventDefault()}
-                      title={t.italic}
-                      aria-label={t.italic}
-                      aria-pressed={current.italic}
-                      onClick={() => {
-                        typingGroup.current = null;
-                        patch(current.id, { italic: !current.italic });
-                      }}
-                      className={
-                        control +
-                        " italic " +
-                        (current.italic ? "ring-2 ring-primary" : "")
-                      }
-                    >
-                      I
-                    </button>
-                    <input
-                      aria-label={t.color}
-                      title={t.color}
-                      type="color"
-                      value={current.color}
-                      onChange={(e) =>
-                        patch(current.id, { color: e.target.value })
-                      }
-                      className="w-9 h-8 bg-transparent"
-                    />
-                  </>
+              {button(
+                t.select,
+                MousePointer2,
+                () => setTool("select"),
+                loading,
+                tool === "select",
+              )}
+              {button(
+                t.text,
+                Type,
+                () => {
+                  setTool("text");
+                  setEditingId(null);
+                  setSelected(null);
+                },
+                loading,
+                tool === "text",
+              )}
+              {button(
+                t.image,
+                ImageIcon,
+                () => imageInput.current?.click(),
+                loading,
+              )}
+              {button(
+                t.signature,
+                PenLine,
+                () => {
+                  setSignature(true);
+                  setSigned(false);
+                },
+                loading,
+              )}
+              {button(
+                t.undo,
+                Undo2,
+                () => travel(undo, redo),
+                !undo.current.length || loading,
+              )}
+              {button(
+                t.redo,
+                Redo2,
+                () => travel(redo, undo),
+                !redo.current.length || loading,
+              )}
+              <div className="ml-auto flex items-center gap-1">
+                {button(
+                  t.zoomOut,
+                  ZoomOut,
+                  () => setZoom((z) => Math.max(0.35, z - 0.15)),
+                  loading,
                 )}
-                <label className="text-xs text-stone-500">
-                  {t.width}{" "}
-                  <input
-                    aria-label={t.width}
-                    type="number"
-                    min="5"
-                    max="2000"
-                    className={control + " w-20"}
-                    value={Math.round(current.width)}
-                    onChange={(e) => {
-                      const width = +e.target.value;
-                      if (width >= 5 && width <= 2000)
-                        patch(current.id, {
-                          width,
-                          ...(current.kind === "image"
-                            ? {
-                                height:
-                                  (current.height * width) / current.width,
-                              }
-                            : {}),
-                        });
-                    }}
-                  />
-                </label>
-                <label className="text-xs text-stone-500">
-                  {t.angle}{" "}
-                  <input
-                    aria-label={t.angle}
-                    type="number"
-                    min="-360"
-                    max="360"
-                    className={control + " w-20"}
-                    value={Math.round(current.rotation)}
-                    onChange={(e) => {
-                      const rotation = +e.target.value;
-                      if (
-                        Number.isFinite(rotation) &&
-                        Math.abs(rotation) <= 360
-                      )
-                        patch(current.id, { rotation });
-                    }}
-                  />
-                </label>
-                {button(t.rotate, RotateCw, () =>
-                  patch(current.id, {
-                    rotation: (current.rotation + 90) % 360,
-                  }),
+                <span className="text-xs font-bold text-stone-500">
+                  {Math.round(zoom * 100)}%
+                </span>
+                {button(
+                  t.zoomIn,
+                  ZoomIn,
+                  () => setZoom((z) => Math.min(3, z + 0.15)),
+                  loading,
                 )}
-                {button(t.remove, Trash2, remove)}
-                {current.kind === "text" && current.sources.length > 0 && (
-                  <button className={control} onClick={restore}>
-                    {t.restore}
-                  </button>
-                )}
+                <button
+                  aria-label={t.download}
+                  disabled={loading || saving || !!error}
+                  onClick={save}
+                  className="h-10 px-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40"
+                >
+                  <Download size={17} />
+                  <span className="hidden sm:inline">{t.download}</span>
+                </button>
               </div>
             </>
-          ) : (
-            <p className="h-12 flex items-center text-xs text-stone-400">
-              {tool === "text" ? t.addHint : t.selectHint}
-            </p>
           )}
-          <div
-            role="status"
-            aria-live="polite"
-            className="text-xs text-stone-500"
-          >
-            {loading
-              ? t.loading
-              : saving
-                ? t.saving
-                : busy
-                  ? t.busy
-                  : error
-                    ? ""
-                    : t.ready}
-            <details className="mt-1">
-              <summary className="cursor-pointer">{t.info}</summary>
-              <p className="mt-1 max-w-3xl">{t.limits}</p>
-            </details>
-          </div>
         </div>
-      )}
+        {file && (
+          <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-4 py-3 space-y-2">
+            <p className="min-h-12 sm:min-h-4 text-xs text-stone-500 dark:text-stone-400">
+              {tool === "text" ? t.addHint : t.editHint}
+            </p>
+            {current ? (
+              <>
+                <div className="flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
+                  {current.kind === "text" &&
+                    button(
+                      editingId === current.id ? t.done : t.edit,
+                      editingId === current.id ? Check : Type,
+                      () =>
+                        editingId === current.id
+                          ? setEditingId(null)
+                          : beginEditing(current.id),
+                    )}
+                  {current.kind === "text" && (
+                    <>
+                      <label className="text-xs text-stone-500">
+                        {t.font}{" "}
+                        <select
+                          aria-label={t.font}
+                          className={control}
+                          value={current.font}
+                          onChange={(e) => {
+                            const a = fontAssets.find(
+                              (a) => a.id === e.target.value,
+                            );
+                            patch(current.id, {
+                              font: e.target.value,
+                              ...(a ? { bold: a.bold, italic: a.italic } : {}),
+                            });
+                          }}
+                        >
+                          <option>Helvetica</option>
+                          <option>Times</option>
+                          <option>Courier</option>
+                          {fontAssets.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs text-stone-500">
+                        {t.size}{" "}
+                        <input
+                          aria-label={t.size}
+                          className={control + " w-20"}
+                          type="number"
+                          min="4"
+                          max="144"
+                          step="0.5"
+                          value={Math.round(current.size * 100) / 100}
+                          onChange={(e) => {
+                            const size = +e.target.value;
+                            if (size >= 4 && size <= 144)
+                              patch(current.id, {
+                                size,
+                                height: Math.max(current.height, size * 1.2),
+                              });
+                          }}
+                        />
+                      </label>
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        title={
+                          canFormat(current, true) ? t.bold : t.fontVariant
+                        }
+                        disabled={!canFormat(current, true)}
+                        aria-label={t.bold}
+                        aria-pressed={current.bold}
+                        onClick={() => {
+                          typingGroup.current = null;
+                          patch(current.id, { bold: !current.bold });
+                        }}
+                        className={
+                          control +
+                          " font-black " +
+                          (current.bold ? "ring-2 ring-primary" : "")
+                        }
+                      >
+                        B
+                      </button>
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        title={
+                          canFormat(current, false) ? t.italic : t.fontVariant
+                        }
+                        disabled={!canFormat(current, false)}
+                        aria-label={t.italic}
+                        aria-pressed={current.italic}
+                        onClick={() => {
+                          typingGroup.current = null;
+                          patch(current.id, { italic: !current.italic });
+                        }}
+                        className={
+                          control +
+                          " italic " +
+                          (current.italic ? "ring-2 ring-primary" : "")
+                        }
+                      >
+                        I
+                      </button>
+                      <button
+                        className={control}
+                        disabled={fontLoading}
+                        onClick={() => fontInput.current?.click()}
+                      >
+                        {t.loadFont}
+                      </button>
+                      <input
+                        aria-label={t.color}
+                        title={t.color}
+                        type="color"
+                        value={current.color}
+                        onChange={(e) =>
+                          patch(current.id, { color: e.target.value })
+                        }
+                        className="w-9 h-8 bg-transparent"
+                      />
+                    </>
+                  )}
+                  <label className="text-xs text-stone-500">
+                    {t.width}{" "}
+                    <input
+                      aria-label={t.width}
+                      type="number"
+                      min="5"
+                      max="2000"
+                      className={control + " w-20"}
+                      value={Math.round(current.width)}
+                      onChange={(e) => {
+                        const width = +e.target.value;
+                        if (width >= 5 && width <= 2000)
+                          patch(current.id, {
+                            width,
+                            ...(current.kind === "image"
+                              ? {
+                                  height:
+                                    (current.height * width) / current.width,
+                                }
+                              : {}),
+                          });
+                      }}
+                    />
+                  </label>
+                  <label className="text-xs text-stone-500">
+                    {t.angle}{" "}
+                    <input
+                      aria-label={t.angle}
+                      type="number"
+                      min="-360"
+                      max="360"
+                      className={control + " w-20"}
+                      value={Math.round(current.rotation)}
+                      onChange={(e) => {
+                        const rotation = +e.target.value;
+                        if (
+                          Number.isFinite(rotation) &&
+                          Math.abs(rotation) <= 360
+                        )
+                          patch(current.id, { rotation });
+                      }}
+                    />
+                  </label>
+                  {button(t.rotate, RotateCw, () =>
+                    patch(current.id, {
+                      rotation: (current.rotation + 90) % 360,
+                    }),
+                  )}
+                  {button(t.remove, Trash2, remove)}
+                  {current.kind === "text" && current.sources.length > 0 && (
+                    <button className={control} onClick={restore}>
+                      {t.restore}
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="h-12 flex items-center text-xs text-stone-400">
+                {tool === "text" ? t.addHint : t.selectHint}
+              </p>
+            )}
+            <div
+              className="min-h-4 text-xs text-stone-500"
+              data-testid="pdf-font-info"
+            >
+              {current?.kind === "text" && (
+                <>
+                  {t.originalFont}:{" "}
+                  {[
+                    ...new Set(
+                      current.sources.map((s) =>
+                        cleanFontName(s.originalFont || s.font),
+                      ),
+                    ),
+                  ].join(", ") || "—"}{" "}
+                  · {t.font}:{" "}
+                  {matchingFont(
+                    fontAssets,
+                    current.font,
+                    current.bold,
+                    current.italic,
+                  )?.name || current.font}
+                  {!fontAssets.some((a) => a.id === current.font) &&
+                    current.sources.some(
+                      (s) =>
+                        !/^Helvetica|^Times|^Courier/.test(
+                          cleanFontName(s.originalFont || s.font),
+                        ),
+                    ) && <span> · {t.fontFallback}</span>}
+                  {matchingFont(
+                    fontAssets,
+                    current.font,
+                    current.bold,
+                    current.italic,
+                  ) &&
+                    !supportsText(
+                      matchingFont(
+                        fontAssets,
+                        current.font,
+                        current.bold,
+                        current.italic,
+                      )!,
+                      current.text,
+                    ) && (
+                      <span className="text-amber-700 dark:text-amber-300">
+                        {" "}
+                        · {t.fontGlyph}
+                      </span>
+                    )}
+                </>
+              )}
+            </div>
+            <div
+              role="status"
+              aria-live="polite"
+              className="text-xs text-stone-500"
+            >
+              {loading
+                ? t.loading
+                : saving
+                  ? t.saving
+                  : busy
+                    ? t.busy
+                    : error
+                      ? ""
+                      : t.ready}
+              <details className="mt-1" data-testid="pdf-font-inventory">
+                <summary className="cursor-pointer">{t.documentFonts}</summary>
+                <p className="max-h-20 overflow-auto">
+                  {[
+                    ...new Set(
+                      original.current.objects.flatMap((o) =>
+                        o.kind === "text"
+                          ? o.sources.map((s) =>
+                              cleanFontName(s.originalFont || s.font),
+                            )
+                          : [],
+                      ),
+                    ),
+                  ].join(", ")}
+                </p>
+                <p className="max-w-3xl">{t.fontHelp}</p>
+              </details>
+              <details className="mt-1">
+                <summary className="cursor-pointer">{t.info}</summary>
+                <p className="mt-1 max-w-3xl">{t.limits}</p>
+              </details>
+            </div>
+          </div>
+        )}
+      </div>
       {error && (
         <div
           role="alert"
