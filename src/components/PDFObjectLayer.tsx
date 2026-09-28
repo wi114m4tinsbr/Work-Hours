@@ -155,7 +155,7 @@ export function PDFObjectLayer({
         <button
           type="button"
           aria-label={o.kind === "text" ? o.text || t.text : t.image}
-          title={o.kind === "text" ? t.editHint : t.move}
+          title={o.kind === "text" ? t.edit : t.move}
           onClick={(e) => {
             e.stopPropagation();
             o.kind === "text" ? onEdit() : onSelect();

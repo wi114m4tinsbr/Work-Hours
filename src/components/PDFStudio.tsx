@@ -20,6 +20,8 @@ import {
   PanelLeft,
   PenLine,
   Check,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
@@ -60,6 +62,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    more: "Mais opções",
+    closePanel: "Fechar painel",
     documentFonts: "Fontes do documento",
     originalFont: "Fonte original",
     loadFont: "Carregar fonte",
@@ -135,6 +139,8 @@ const C = {
     restore: "Restaurar original",
   },
   en: {
+    more: "More options",
+    closePanel: "Close panel",
     documentFonts: "Document fonts",
     originalFont: "Original font",
     loadFont: "Load font",
@@ -209,6 +215,8 @@ const C = {
     restore: "Restore original",
   },
   es: {
+    more: "Más opciones",
+    closePanel: "Cerrar panel",
     documentFonts: "Fuentes del documento",
     originalFont: "Fuente original",
     loadFont: "Cargar fuente",
@@ -330,6 +338,21 @@ export function PDFStudio({
     [page, setPage] = useState(1),
     [zoom, setZoom] = useState(1.35),
     [tool, setTool] = useState<"select" | "text">("select");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const morePanel = useRef<HTMLDivElement>(null),
+    moreButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const outside = (e: PointerEvent) => {
+      if (
+        !morePanel.current?.contains(e.target as Node) &&
+        !moreButton.current?.contains(e.target as Node)
+      )
+        setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, [moreOpen]);
   const [fontAssets, setFontAssets] = useState<FontAsset[]>([]);
   const [fontLoading, setFontLoading] = useState(false);
   const fontInput = useRef<HTMLInputElement>(null);
@@ -667,6 +690,7 @@ export function PDFStudio({
       setHistoryVersion((v) => v + 1);
       setRenderedPage(0);
       setFile(f);
+      setMoreOpen(false);
       setGeometry(geo);
       setWidgets(fields);
       setPage(1);
@@ -967,6 +991,11 @@ export function PDFStudio({
         typing = target.matches("input,textarea,select,[contenteditable=true]");
       const inline = target.hasAttribute("data-pdf-inline");
       if (e.key === "Escape") {
+        if (moreOpen) {
+          setMoreOpen(false);
+          moreButton.current?.focus();
+          return;
+        }
         setEditingId(null);
         typingGroup.current = null;
         editor.current?.blur();
@@ -986,7 +1015,7 @@ export function PDFStudio({
             k === "b" ? { bold: !current.bold } : { italic: !current.italic },
           );
         }
-      } else if (!typing && current) {
+      } else if (!typing && current && !target.closest("button,summary,a")) {
         if (e.key === "Delete" || e.key === "Backspace") {
           e.preventDefault();
           remove();
@@ -1021,7 +1050,7 @@ export function PDFStudio({
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [current, box, editingId, fontAssets]);
+  }, [current, box, editingId, fontAssets, moreOpen]);
   const button = (
     label: string,
     Icon: React.ElementType,
@@ -1037,20 +1066,14 @@ export function PDFStudio({
       aria-pressed={active || undefined}
       onClick={action}
       className={
-        "h-10 px-3 rounded-xl flex items-center gap-2 text-sm font-bold disabled:opacity-30 " +
+        "h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-sm font-semibold disabled:opacity-30 " +
         (active
           ? "bg-primary text-white"
           : "text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-white/10")
       }
     >
       <Icon size={17} />
-      <span
-        className={
-          label === t.text || label === t.select ? "inline" : "hidden lg:inline"
-        }
-      >
-        {label}
-      </span>
+      <span className="sr-only">{label}</span>
     </button>
   );
   return (
@@ -1068,280 +1091,316 @@ export function PDFStudio({
       />
       <div
         data-testid="pdf-toolbar"
-        className="sticky z-30"
+        className="sticky z-30 bg-white/95 dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 shadow-sm"
         style={{ top: toolbarTop }}
       >
-        <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-3 sm:px-5 py-3 flex flex-wrap items-center gap-1">
-          <button
-            title={t.back}
-            aria-label={t.back}
-            onClick={onBack}
-            className="mr-2 text-stone-400 hover:text-primary font-bold"
+        <div className="h-12 flex items-center gap-1 px-2 sm:px-3">
+          {button(t.back, PanelLeft, onBack)}
+          <b className="hidden md:inline text-sm dark:text-white whitespace-nowrap mr-2">
+            PDF Studio
+          </b>
+          <div
+            className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap"
+            data-testid="pdf-primary-tools"
           >
-            ←
-          </button>
-          <b className="mr-3 dark:text-white">PDF Studio</b>
-          {button(t.open, Upload, () => input.current?.click(), loading)}
-          {file && (
-            <>
-              {button(
-                t.select,
-                MousePointer2,
-                () => setTool("select"),
-                loading,
-                tool === "select",
-              )}
-              {button(
-                t.text,
-                Type,
-                () => {
-                  setTool("text");
-                  setEditingId(null);
-                  setSelected(null);
-                },
-                loading,
-                tool === "text",
-              )}
-              {button(
-                t.image,
-                ImageIcon,
-                () => imageInput.current?.click(),
-                loading,
-              )}
-              {button(
-                t.signature,
-                PenLine,
-                () => {
-                  setSignature(true);
-                  setSigned(false);
-                },
-                loading,
-              )}
-              {button(
-                t.undo,
-                Undo2,
-                () => travel(undo, redo),
-                !undo.current.length || loading,
-              )}
-              {button(
-                t.redo,
-                Redo2,
-                () => travel(redo, undo),
-                !redo.current.length || loading,
-              )}
-              <div className="ml-auto flex items-center gap-1">
-                {button(
-                  t.zoomOut,
-                  ZoomOut,
-                  () => setZoom((z) => Math.max(0.35, z - 0.15)),
-                  loading,
-                )}
-                <span className="text-xs font-bold text-stone-500">
-                  {Math.round(zoom * 100)}%
-                </span>
-                {button(
-                  t.zoomIn,
-                  ZoomIn,
-                  () => setZoom((z) => Math.min(3, z + 0.15)),
-                  loading,
-                )}
-                <button
-                  aria-label={t.download}
-                  disabled={loading || saving || !!error}
-                  onClick={save}
-                  className="h-10 px-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40"
-                >
-                  <Download size={17} />
-                  <span className="hidden sm:inline">{t.download}</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-        {file && (
-          <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-4 py-3 space-y-2">
-            <p className="min-h-12 sm:min-h-4 text-xs text-stone-500 dark:text-stone-400">
-              {tool === "text" ? t.addHint : t.editHint}
-            </p>
-            {current ? (
+            {button(t.open, Upload, () => input.current?.click(), loading)}
+            {file && (
               <>
-                <div className="flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
-                  {current.kind === "text" &&
-                    button(
-                      editingId === current.id ? t.done : t.edit,
-                      editingId === current.id ? Check : Type,
-                      () =>
-                        editingId === current.id
-                          ? setEditingId(null)
-                          : beginEditing(current.id),
-                    )}
-                  {current.kind === "text" && (
-                    <>
-                      <label className="text-xs text-stone-500">
-                        {t.font}{" "}
-                        <select
-                          aria-label={t.font}
-                          className={control}
-                          value={current.font}
-                          onChange={(e) => {
-                            const a = fontAssets.find(
-                              (a) => a.id === e.target.value,
-                            );
-                            patch(current.id, {
-                              font: e.target.value,
-                              ...(a ? { bold: a.bold, italic: a.italic } : {}),
-                            });
-                          }}
-                        >
-                          <option>Helvetica</option>
-                          <option>Times</option>
-                          <option>Courier</option>
-                          {fontAssets.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="text-xs text-stone-500">
-                        {t.size}{" "}
-                        <input
-                          aria-label={t.size}
-                          className={control + " w-20"}
-                          type="number"
-                          min="4"
-                          max="144"
-                          step="0.5"
-                          value={Math.round(current.size * 100) / 100}
-                          onChange={(e) => {
-                            const size = +e.target.value;
-                            if (size >= 4 && size <= 144)
-                              patch(current.id, {
-                                size,
-                                height: Math.max(current.height, size * 1.2),
-                              });
-                          }}
-                        />
-                      </label>
-                      <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        title={
-                          canFormat(current, true) ? t.bold : t.fontVariant
-                        }
-                        disabled={!canFormat(current, true)}
-                        aria-label={t.bold}
-                        aria-pressed={current.bold}
-                        onClick={() => {
-                          typingGroup.current = null;
-                          patch(current.id, { bold: !current.bold });
-                        }}
-                        className={
-                          control +
-                          " font-black " +
-                          (current.bold ? "ring-2 ring-primary" : "")
-                        }
-                      >
-                        B
-                      </button>
-                      <button
-                        onMouseDown={(e) => e.preventDefault()}
-                        title={
-                          canFormat(current, false) ? t.italic : t.fontVariant
-                        }
-                        disabled={!canFormat(current, false)}
-                        aria-label={t.italic}
-                        aria-pressed={current.italic}
-                        onClick={() => {
-                          typingGroup.current = null;
-                          patch(current.id, { italic: !current.italic });
-                        }}
-                        className={
-                          control +
-                          " italic " +
-                          (current.italic ? "ring-2 ring-primary" : "")
-                        }
-                      >
-                        I
-                      </button>
-                      <button
-                        className={control}
-                        disabled={fontLoading}
-                        onClick={() => fontInput.current?.click()}
-                      >
-                        {t.loadFont}
-                      </button>
-                      <input
-                        aria-label={t.color}
-                        title={t.color}
-                        type="color"
-                        value={current.color}
-                        onChange={(e) =>
-                          patch(current.id, { color: e.target.value })
-                        }
-                        className="w-9 h-8 bg-transparent"
-                      />
-                    </>
+                <span className="h-5 mx-1 border-l border-stone-200 dark:border-white/10" />
+                {button(
+                  t.select,
+                  MousePointer2,
+                  () => setTool("select"),
+                  loading,
+                  tool === "select",
+                )}
+                {button(
+                  t.text,
+                  Type,
+                  () => {
+                    setTool("text");
+                    setEditingId(null);
+                    setSelected(null);
+                  },
+                  loading,
+                  tool === "text",
+                )}
+                {button(
+                  t.image,
+                  ImageIcon,
+                  () => imageInput.current?.click(),
+                  loading,
+                )}
+                {button(
+                  t.signature,
+                  PenLine,
+                  () => {
+                    setSignature(true);
+                    setSigned(false);
+                  },
+                  loading,
+                )}
+                <span className="h-5 mx-1 border-l border-stone-200 dark:border-white/10" />
+                {button(
+                  t.undo,
+                  Undo2,
+                  () => travel(undo, redo),
+                  !undo.current.length || loading,
+                )}
+                {button(
+                  t.redo,
+                  Redo2,
+                  () => travel(redo, undo),
+                  !redo.current.length || loading,
+                )}
+                <div className="ml-auto flex items-center gap-1 pl-2">
+                  {button(
+                    t.zoomOut,
+                    ZoomOut,
+                    () => setZoom((z) => Math.max(0.35, z - 0.15)),
+                    loading,
                   )}
-                  <label className="text-xs text-stone-500">
-                    {t.width}{" "}
-                    <input
-                      aria-label={t.width}
-                      type="number"
-                      min="5"
-                      max="2000"
-                      className={control + " w-20"}
-                      value={Math.round(current.width)}
-                      onChange={(e) => {
-                        const width = +e.target.value;
-                        if (width >= 5 && width <= 2000)
-                          patch(current.id, {
-                            width,
-                            ...(current.kind === "image"
-                              ? {
-                                  height:
-                                    (current.height * width) / current.width,
-                                }
-                              : {}),
-                          });
-                      }}
-                    />
-                  </label>
-                  <label className="text-xs text-stone-500">
-                    {t.angle}{" "}
-                    <input
-                      aria-label={t.angle}
-                      type="number"
-                      min="-360"
-                      max="360"
-                      className={control + " w-20"}
-                      value={Math.round(current.rotation)}
-                      onChange={(e) => {
-                        const rotation = +e.target.value;
-                        if (
-                          Number.isFinite(rotation) &&
-                          Math.abs(rotation) <= 360
-                        )
-                          patch(current.id, { rotation });
-                      }}
-                    />
-                  </label>
-                  {button(t.rotate, RotateCw, () =>
-                    patch(current.id, {
-                      rotation: (current.rotation + 90) % 360,
-                    }),
-                  )}
-                  {button(t.remove, Trash2, remove)}
-                  {current.kind === "text" && current.sources.length > 0 && (
-                    <button className={control} onClick={restore}>
-                      {t.restore}
-                    </button>
+                  <span className="text-xs tabular-nums text-stone-500 w-10 text-center">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  {button(
+                    t.zoomIn,
+                    ZoomIn,
+                    () => setZoom((z) => Math.min(3, z + 0.15)),
+                    loading,
                   )}
                 </div>
               </>
-            ) : (
-              <p className="h-12 flex items-center text-xs text-stone-400">
-                {tool === "text" ? t.addHint : t.selectHint}
-              </p>
+            )}
+          </div>
+          {file && (
+            <>
+              <button
+                ref={moreButton}
+                type="button"
+                title={t.more}
+                aria-label={t.more}
+                aria-expanded={moreOpen}
+                aria-controls="pdf-options-panel"
+                onClick={() => setMoreOpen((v) => !v)}
+                className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-white/10"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              <button
+                aria-label={t.download}
+                title={saving ? t.saving : t.download}
+                disabled={loading || saving || !!error}
+                onClick={save}
+                className="h-8 shrink-0 px-2 sm:px-3 rounded-lg bg-primary text-white font-semibold text-sm flex items-center gap-2 disabled:opacity-40"
+              >
+                <Download size={16} />
+                <span className="hidden sm:inline">{t.download}</span>
+              </button>
+            </>
+          )}
+          <span role="status" aria-live="polite" className="sr-only">
+            {loading
+              ? t.loading
+              : saving
+                ? t.saving
+                : busy
+                  ? t.busy
+                  : error
+                    ? ""
+                    : file
+                      ? t.ready
+                      : ""}
+          </span>
+        </div>
+        {current && (
+          <div
+            data-testid="pdf-format-tools"
+            className="h-11 px-2 sm:px-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap border-t border-stone-100 dark:border-white/5 [&>*]:shrink-0"
+          >
+            {current.kind === "text" && (
+              <>
+                <label className="text-xs text-stone-500">
+                  <span className="sr-only">{t.font}</span>
+                  <select
+                    aria-label={t.font}
+                    className={control + " h-8 w-32 sm:w-40"}
+                    value={current.font}
+                    onChange={(e) => {
+                      const a = fontAssets.find((a) => a.id === e.target.value);
+                      patch(current.id, {
+                        font: e.target.value,
+                        ...(a ? { bold: a.bold, italic: a.italic } : {}),
+                      });
+                    }}
+                  >
+                    <option>Helvetica</option>
+                    <option>Times</option>
+                    <option>Courier</option>
+                    {fontAssets.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-xs text-stone-500">
+                  <span className="sr-only">{t.size}</span>
+                  <input
+                    aria-label={t.size}
+                    className={control + " h-8 w-14"}
+                    type="number"
+                    min="4"
+                    max="144"
+                    step="0.5"
+                    value={Math.round(current.size * 100) / 100}
+                    onChange={(e) => {
+                      const size = +e.target.value;
+                      if (size >= 4 && size <= 144)
+                        patch(current.id, {
+                          size,
+                          height: Math.max(current.height, size * 1.2),
+                        });
+                    }}
+                  />
+                </label>
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  title={canFormat(current, true) ? t.bold : t.fontVariant}
+                  disabled={!canFormat(current, true)}
+                  aria-label={t.bold}
+                  aria-pressed={current.bold}
+                  onClick={() => {
+                    typingGroup.current = null;
+                    patch(current.id, { bold: !current.bold });
+                  }}
+                  className={
+                    control +
+                    " font-black " +
+                    (current.bold ? "ring-2 ring-primary" : "")
+                  }
+                >
+                  B
+                </button>
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  title={canFormat(current, false) ? t.italic : t.fontVariant}
+                  disabled={!canFormat(current, false)}
+                  aria-label={t.italic}
+                  aria-pressed={current.italic}
+                  onClick={() => {
+                    typingGroup.current = null;
+                    patch(current.id, { italic: !current.italic });
+                  }}
+                  className={
+                    control +
+                    " italic " +
+                    (current.italic ? "ring-2 ring-primary" : "")
+                  }
+                >
+                  I
+                </button>
+                <input
+                  aria-label={t.color}
+                  title={t.color}
+                  type="color"
+                  value={current.color}
+                  onChange={(e) => patch(current.id, { color: e.target.value })}
+                  className="w-8 h-8 bg-transparent shrink-0"
+                />
+                {button(
+                  editingId === current.id ? t.done : t.edit,
+                  editingId === current.id ? Check : Type,
+                  () =>
+                    editingId === current.id
+                      ? setEditingId(null)
+                      : beginEditing(current.id),
+                )}
+              </>
+            )}
+            {button(t.remove, Trash2, remove)}
+          </div>
+        )}
+        {file && moreOpen && (
+          <div
+            ref={morePanel}
+            id="pdf-options-panel"
+            role="region"
+            aria-label={t.more}
+            className="absolute top-full right-2 mt-2 w-80 max-w-[calc(100vw-16px)] rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark shadow-xl overflow-y-auto p-4 space-y-4 text-sm text-stone-600 dark:text-stone-300"
+            style={{ maxHeight: `calc(100dvh - ${toolbarTop + 112}px)` }}
+          >
+            <div className="flex items-center justify-between">
+              <strong>{t.more}</strong>
+              <button
+                type="button"
+                aria-label={t.closePanel}
+                onClick={() => {
+                  setMoreOpen(false);
+                  moreButton.current?.focus();
+                }}
+                className="w-8 h-8 rounded-lg hover:bg-stone-100 dark:hover:bg-white/10 flex items-center justify-center"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {current && (
+              <div className="flex flex-wrap items-center gap-3">
+                {" "}
+                <label className="text-xs text-stone-500">
+                  {t.width}{" "}
+                  <input
+                    aria-label={t.width}
+                    type="number"
+                    min="5"
+                    max="2000"
+                    className={control + " w-20"}
+                    value={Math.round(current.width)}
+                    onChange={(e) => {
+                      const width = +e.target.value;
+                      if (width >= 5 && width <= 2000)
+                        patch(current.id, {
+                          width,
+                          ...(current.kind === "image"
+                            ? {
+                                height:
+                                  (current.height * width) / current.width,
+                              }
+                            : {}),
+                        });
+                    }}
+                  />
+                </label>
+                <label className="text-xs text-stone-500">
+                  {t.angle}{" "}
+                  <input
+                    aria-label={t.angle}
+                    type="number"
+                    min="-360"
+                    max="360"
+                    className={control + " w-20"}
+                    value={Math.round(current.rotation)}
+                    onChange={(e) => {
+                      const rotation = +e.target.value;
+                      if (
+                        Number.isFinite(rotation) &&
+                        Math.abs(rotation) <= 360
+                      )
+                        patch(current.id, { rotation });
+                    }}
+                  />
+                </label>
+                {button(t.rotate, RotateCw, () =>
+                  patch(current.id, {
+                    rotation: (current.rotation + 90) % 360,
+                  }),
+                )}
+                {current.kind === "text" && current.sources.length > 0 && (
+                  <button className={control} onClick={restore}>
+                    {t.restore}
+                  </button>
+                )}
+              </div>
             )}
             <div
               className="min-h-4 text-xs text-stone-500"
@@ -1394,42 +1453,38 @@ export function PDFStudio({
                 </>
               )}
             </div>
-            <div
-              role="status"
-              aria-live="polite"
-              className="text-xs text-stone-500"
-            >
-              {loading
-                ? t.loading
-                : saving
-                  ? t.saving
-                  : busy
-                    ? t.busy
-                    : error
-                      ? ""
-                      : t.ready}
-              <details className="mt-1" data-testid="pdf-font-inventory">
-                <summary className="cursor-pointer">{t.documentFonts}</summary>
-                <p className="max-h-20 overflow-auto">
-                  {[
-                    ...new Set(
-                      original.current.objects.flatMap((o) =>
-                        o.kind === "text"
-                          ? o.sources.map((s) =>
-                              cleanFontName(s.originalFont || s.font),
-                            )
-                          : [],
-                      ),
+
+            {current?.kind === "text" && (
+              <button
+                className={control}
+                disabled={fontLoading}
+                onClick={() => fontInput.current?.click()}
+              >
+                {t.loadFont}
+              </button>
+            )}
+            <details className="mt-1" data-testid="pdf-font-inventory">
+              <summary className="cursor-pointer">{t.documentFonts}</summary>
+              <p className="max-h-20 overflow-auto">
+                {[
+                  ...new Set(
+                    original.current.objects.flatMap((o) =>
+                      o.kind === "text"
+                        ? o.sources.map((s) =>
+                            cleanFontName(s.originalFont || s.font),
+                          )
+                        : [],
                     ),
-                  ].join(", ")}
-                </p>
-                <p className="max-w-3xl">{t.fontHelp}</p>
-              </details>
-              <details className="mt-1">
-                <summary className="cursor-pointer">{t.info}</summary>
-                <p className="mt-1 max-w-3xl">{t.limits}</p>
-              </details>
-            </div>
+                  ),
+                ].join(", ")}
+              </p>
+              <p className="max-w-3xl">{t.fontHelp}</p>
+            </details>
+            <details className="mt-1">
+              <summary className="cursor-pointer">{t.info}</summary>
+              <p className="mt-2">{t.editHint}</p>
+              <p className="mt-2">{t.limits}</p>
+            </details>
           </div>
         )}
       </div>

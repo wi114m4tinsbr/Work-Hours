@@ -52,7 +52,7 @@ The optional check assumes an unrotated reference PDF and writes its result to `
 
 ## Fonts and pinned toolbar
 
-The toolbar stays below the app header while scrolling the PDF. Source font names are retained per text object, and the font inventory lists the fonts detected throughout the document (a PDF may use several fonts). The editing font is shown separately from the original.
+The toolbar stays below the app header while scrolling the PDF. Its main icon row is 48 px tall; a 44 px formatting row appears only for the selected object. Narrow screens scroll tools horizontally while keeping More and Download reachable. More opens a dismissible, scrollable panel for width, rotation, original-font details, font loading and help; instructions and status no longer consume permanent document space. Source font names are retained per text object, and the font inventory lists the fonts detected throughout the document (a PDF may use several fonts). The editing font is shown separately from the original.
 
 Compatible embedded TrueType/OpenType fonts are extracted locally, checked with fontkit and loaded into the browser for editing. Export embeds the same face. Glyph outlines are checked, not only cmap entries: some subsets retain mappings to missing glyphs. Missing characters/styles fail explicitly; they are never silently emitted as missing-glyph boxes. Unsupported embedded formats remain identifiable but require a compatible complete font or an explicit substitute.
 

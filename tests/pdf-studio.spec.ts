@@ -51,12 +51,16 @@ test("existing text: replace, format, move, resize, rotate, undo and download wi
     .fill("18");
   await page.getByRole("button", { name: "Negrito", exact: true }).click();
   await page.getByRole("button", { name: "Itálico", exact: true }).click();
+  await page.getByRole("button", { name: "Mais opções", exact: true }).click();
   await page
     .getByRole("spinbutton", { name: "Largura", exact: true })
     .fill("180");
   await page
     .getByRole("spinbutton", { name: "Rotação", exact: true })
     .fill("15");
+  await page
+    .getByRole("button", { name: "Fechar painel", exact: true })
+    .click();
   const move = page.getByRole("button", { name: "Mover", exact: true }),
     r = await move.boundingBox();
   await page.mouse.move(r!.x + 10, r!.y + 10);
@@ -327,6 +331,7 @@ test("inline typing keeps one undo step and existing text export stays intact af
   await expect(editor).toHaveValue("Original name");
   await editor.press("Control+Shift+z");
   await expect(editor).toHaveValue("Original name with edits");
+  await page.getByRole("button", { name: "Mais opções", exact: true }).click();
   await page
     .getByRole("button", { name: "Restaurar original", exact: true })
     .click();
@@ -420,6 +425,7 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
     .getByRole("button", { name: "Original font", exact: true })
     .click();
   await expect(page.getByTestId("pdf-inline-editor")).toBeFocused();
+  await page.getByRole("button", { name: "Mais opções", exact: true }).click();
   await expect(page.getByTestId("pdf-font-info")).toContainText(
     "StudioFixture-Regular",
   );
@@ -430,6 +436,9 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
     "StudioFixture-Regular",
   );
   await page.getByTestId("pdf-font-inventory").locator("summary").click();
+  await page
+    .getByRole("button", { name: "Fechar painel", exact: true })
+    .click();
   await page.getByTestId("pdf-inline-editor").fill("CUSTOM FONT");
   // Whole-document scrolling must retain the toolbar below the real app header.
   await page.evaluate(() => window.scrollTo(0, 500));
@@ -468,13 +477,11 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
     fullPage: false,
   });
   // Loading a new PDF must reset the last typing font, not retain a stale embedded id.
-  await page
-    .locator('input[accept=".pdf,application/pdf"]')
-    .setInputFiles({
-      name: "second.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(bytes),
-    });
+  await page.locator('input[accept=".pdf,application/pdf"]').setInputFiles({
+    name: "second.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(bytes),
+  });
   await expect(
     page.getByRole("button", { name: "Original name", exact: true }),
   ).toBeVisible();
@@ -487,3 +494,44 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
   await page.getByTestId("pdf-inline-editor").fill("New document text");
   await downloaded(page);
 });
+
+for (const width of [1280, 390]) {
+  test(`compact toolbar preserves document space at ${width}px`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 820 });
+    await load(page, "?appHeader");
+    const toolbar = page.getByTestId("pdf-toolbar");
+    expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(50);
+    await page
+      .getByRole("button", { name: "Original name", exact: true })
+      .click();
+    expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(96);
+    const more = page.getByRole("button", { name: "Mais opções", exact: true });
+    await more.click();
+    await expect(
+      page.getByRole("region", { name: "Mais opções" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("spinbutton", { name: "Largura", exact: true }),
+    ).toBeVisible();
+    expect((await toolbar.boundingBox())!.height).toBeLessThanOrEqual(96);
+    await page.screenshot({ path: info.outputPath("compact-options.png") });
+    await page.keyboard.press("Escape");
+    await expect(more).toBeFocused();
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    await page.evaluate(() => window.scrollTo(0, 450));
+    await expect
+      .poll(async () => Math.round((await toolbar.boundingBox())!.y))
+      .toBe(64);
+    await expect(
+      page.getByRole("button", { name: "Baixar", exact: true }),
+    ).toBeInViewport();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({ path: info.outputPath("compact-scrolled.png") });
+  });
+}
