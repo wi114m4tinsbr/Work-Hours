@@ -626,3 +626,68 @@ test("font notice names the original and loads an explicitly chosen alternative 
   expect(requests.every((url) => url.includes("/ofl/carlito/"))).toBe(true);
   await downloaded(page);
 });
+
+test("segmented fields advance, paste across separators and export without duplicating existing letters", async ({
+  page,
+}, info) => {
+  const { createCellFixture } = await import("./fixtures");
+  await page.setViewportSize({ width: 390, height: 820 });
+  await page.goto("/tests/pdf-studio.html");
+  await page
+    .locator('input[accept=".pdf,application/pdf"]')
+    .setInputFiles({
+      name: "cells.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(await createCellFixture()),
+    });
+  const fields = page.getByTestId("pdf-cell-field");
+  await expect(fields).toHaveCount(2);
+  await fields
+    .nth(0)
+    .getByRole("button", { name: "Posição 1/4", exact: true })
+    .click();
+  await fields
+    .nth(0)
+    .getByRole("textbox", { name: "Posição 1/4", exact: true })
+    .pressSequentially("1234");
+  for (let i = 0; i < 4; i++)
+    await expect(fields.nth(0).getByRole("textbox").nth(i)).toHaveValue(
+      String(i + 1),
+    );
+  const country = fields.nth(1);
+  await country
+    .getByRole("button", { name: "Posição 1/3", exact: true })
+    .click();
+  await expect(country.getByRole("textbox").nth(0)).toHaveValue("P");
+  await country
+    .getByRole("textbox")
+    .nth(0)
+    .evaluate((el) => {
+      const data = new DataTransfer();
+      data.setData("text", "A/B-C");
+      el.dispatchEvent(
+        new ClipboardEvent("paste", {
+          clipboardData: data,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+  for (let i = 0; i < 3; i++)
+    await expect(country.getByRole("textbox").nth(i)).toHaveValue("ABC"[i]);
+  await country.getByRole("textbox").nth(2).press("Backspace");
+  await expect(country.getByRole("textbox").nth(2)).toHaveValue("");
+  await country.getByRole("textbox").nth(2).pressSequentially("C");
+  const out = await downloaded(page);
+  const native = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  native.PDFiumExt_Init();
+  const text = extractSources(native, out).map((s) => s.text.trim());
+  for (const ch of "1234ABC") expect(text).toContain(ch);
+  expect(text).not.toContain("P");
+  expect(text).not.toContain("T");
+  await page.screenshot({ path: info.outputPath("segmented-mobile.png") });
+});

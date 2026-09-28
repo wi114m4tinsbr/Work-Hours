@@ -6,6 +6,7 @@ export type EditRequest =
   | { id: number; kind: "preview" | "export"; state: EditorState }
   | { id: number; kind: "font"; font: RawFont };
 type Reply = {
+  cells?: import("./cells").CellGroup[];
   id: number;
   error?: string;
   sources?: SourceText[];

@@ -23,6 +23,7 @@ import {
 } from "./content";
 export type Geometry = { width: number; height: number; matrix: Matrix };
 export type TextObject = {
+  cells?: import("./cells").Cell[];
   id: string;
   kind: "text";
   page: number;
@@ -287,6 +288,42 @@ export function createExporter(
             asset ? { subset: true, customName: asset.name } : undefined,
           );
           fonts.set(name, font);
+        }
+        if (o.cells) {
+          const chars = [...o.text];
+          for (let i = 0; i < o.cells.length; i++) {
+            const ch = chars[i];
+            if (!ch || ch === " ") continue;
+            const cell = o.cells[i],
+              size = Math.min(
+                o.size,
+                cell.height * 0.9,
+                (o.size * (cell.width - 2)) /
+                  Math.max(1, font.widthOfTextAtSize(ch, o.size)),
+              );
+            const [x, y] = pagePoint(
+              g,
+              o,
+              cell.x + (cell.width - font.widthOfTextAtSize(ch, size)) / 2,
+              cell.y +
+                (cell.height + font.heightAtSize(size, { descender: false })) /
+                  2,
+            );
+            p.drawText(ch, {
+              x,
+              y,
+              font,
+              size,
+              color: rgb(
+                parseInt(o.color.slice(1, 3), 16) / 255,
+                parseInt(o.color.slice(3, 5), 16) / 255,
+                parseInt(o.color.slice(5, 7), 16) / 255,
+              ),
+              rotate: degrees(angle),
+            });
+          }
+          heights[o.id] = o.height;
+          continue;
         }
         const lines = wrapText(o.text, font, o.size, Math.max(1, o.width)),
           hex = o.color.slice(1),

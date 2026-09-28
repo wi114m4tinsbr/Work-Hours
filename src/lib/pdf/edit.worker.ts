@@ -1,3 +1,4 @@
+import { detectCells } from "./cells";
 import {
   readFont,
   downloadOriginalFonts,
@@ -38,7 +39,12 @@ self.onmessage = ({ data }: MessageEvent<EditRequest>) => {
           data.geometry,
           assets,
         );
-        self.postMessage({ id: data.id, sources, fonts: assets });
+        self.postMessage({
+          id: data.id,
+          sources,
+          fonts: assets,
+          cells: detectCells(engine, data.bytes, sources, data.geometry),
+        });
       } else if (data.kind === "font") {
         const asset = readFont(data.font, "uploaded");
         assets.push(asset);

@@ -55,3 +55,24 @@ export async function createFontFixture(originalName?: string) {
     .drawText("Original font", { x: 50, y: 600, font, size: 16 });
   return { bytes: await doc.save(), fontBytes: bytes };
 }
+
+export async function createCellFixture() {
+  const doc = await PDFDocument.create(),
+    page = doc.addPage([500, 700]);
+  page.drawText("Process:", { x: 20, y: 600, size: 12 });
+  for (const x of [100, 120, 140, 180, 200, 220])
+    page.drawText("|", { x, y: 600, size: 14 });
+  page.drawText("-", { x: 160, y: 600, size: 14 });
+  for (const x of [300, 322, 344])
+    page.drawRectangle({
+      x,
+      y: 500,
+      width: 20,
+      height: 20,
+      borderWidth: 1,
+      borderColor: rgb(0, 0, 0),
+    });
+  page.drawText("P", { x: 306, y: 505, size: 12 });
+  page.drawText("T", { x: 328, y: 505, size: 12 });
+  return doc.save();
+}

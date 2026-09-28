@@ -77,3 +77,21 @@ export function liveLayout(o: TextObject) {
     };
   }
 }
+
+export function liveCell(o: TextObject, index: number) {
+  const cell = o.cells![index],
+    ch = [...o.text][index] || " ";
+  const font = fonts.get(
+    matchingFont(assets, o.font, o.bold, o.italic)?.id || fontName(o),
+  );
+  const width = font?.widthOfTextAtSize(ch, o.size) || o.size * 0.6;
+  const size = Math.min(
+    o.size,
+    cell.height * 0.9,
+    (o.size * (cell.width - 2)) / Math.max(1, width),
+  );
+  return {
+    size,
+    ascent: font?.heightAtSize(size, { descender: false }) || size * 0.8,
+  };
+}

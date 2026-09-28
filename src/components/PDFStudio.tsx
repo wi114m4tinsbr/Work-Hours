@@ -1,3 +1,5 @@
+import { cellObjects, sourceKey } from "../lib/pdf/cells";
+import { PDFCellLayer } from "./PDFCellLayer";
 import {
   cleanFontName,
   matchingFont,
@@ -66,6 +68,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    cells: "Campo dividido",
+    cell: "Posição",
     dismissFontNotice: "Ocultar aviso de fonte",
     useAlternative: "Usar alternativa gratuita",
     downloadFont: "Baixar e usar",
@@ -153,6 +157,8 @@ const C = {
     restore: "Restaurar original",
   },
   en: {
+    cells: "Segmented field",
+    cell: "Position",
     dismissFontNotice: "Dismiss font notice",
     useAlternative: "Use free alternative",
     downloadFont: "Download and use",
@@ -239,6 +245,8 @@ const C = {
     restore: "Restore original",
   },
   es: {
+    cells: "Campo dividido",
+    cell: "Posición",
     dismissFontNotice: "Ocultar aviso de fuente",
     useAlternative: "Usar alternativa gratuita",
     downloadFont: "Descargar y usar",
@@ -519,7 +527,8 @@ export function PDFStudio({
   };
   const isLive = (o: EditorObject) =>
     !renderedLayers.baked.has(o.id) &&
-    (renderedLayers.removed.has(o.id) ||
+    ((o.kind === "text" && o.cells && !o.sources.length) ||
+      renderedLayers.removed.has(o.id) ||
       (o.changed && (o.kind === "image" || !o.sources.length)));
   useEffect(() => {
     if (editingId && current?.id === editingId && isLive(current))
@@ -734,8 +743,16 @@ export function PDFStudio({
       backgroundCache.current = null;
       setRenderedLayers({ baked: new Set(), removed: new Set() });
       setEditingId(null);
+      const detected = cellObjects(loaded.cells || [], sources, geo);
       const next = {
-        objects: groupSources(sources, geo).map((o) => {
+        objects: [
+          ...detected.objects,
+          ...groupSources(
+            sources.filter((s) => !detected.consumed.has(sourceKey(s))),
+            geo,
+          ),
+        ].map((o) => {
+          if (!o.sources.length) return o;
           const source = o.sources[0],
             name = cleanFontName(source.originalFont || "");
           const family = name
@@ -902,7 +919,12 @@ export function PDFStudio({
   );
   const remove = () => {
     if (current) {
-      patch(current.id, { deleted: true });
+      patch(
+        current.id,
+        current.kind === "text" && current.cells
+          ? { text: "" }
+          : { deleted: true },
+      );
       setSelected(null);
     }
   };
@@ -1129,6 +1151,7 @@ export function PDFStudio({
           e.preventDefault();
           beginEditing(current.id);
         } else if (
+          !(current.kind === "text" && current.cells) &&
           ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)
         ) {
           e.preventDefault();
@@ -1455,7 +1478,7 @@ export function PDFStudio({
                 <X size={16} />
               </button>
             </div>
-            {current && (
+            {current && !(current.kind === "text" && current.cells) && (
               <div className="flex flex-wrap items-center gap-3">
                 {" "}
                 <label className="text-xs text-stone-500">
@@ -1772,61 +1795,100 @@ export function PDFStudio({
                     .filter((o) => o.page === page && !o.deleted)
                     .map((o) => (
                       <React.Fragment key={o.id}>
-                        <PDFObjectLayer
-                          object={o}
-                          interactive={tool === "select"}
-                          zoom={zoom}
-                          selected={selected === o.id}
-                          live={isLive(o)}
-                          editing={editingId === o.id}
-                          height={layoutHeights[o.id]}
-                          labels={t}
-                          editorRef={editor}
-                          onSelect={() => select(o.id)}
-                          onEdit={() => o.kind === "text" && beginEditing(o.id)}
-                          onDrag={(e, resize) => drag(e, o.id, resize)}
-                          onText={(text) => {
-                            const checkpoint = typingGroup.current !== o.id;
-                            typingGroup.current = o.id;
-                            let font =
-                              o.kind === "text"
-                                ? typingFont(
+                        {o.kind === "text" && o.cells ? (
+                          <PDFCellLayer
+                            object={o}
+                            zoom={zoom}
+                            interactive={tool === "select"}
+                            live={!!isLive(o)}
+                            editing={editingId === o.id}
+                            label={t.cells}
+                            cellLabel={t.cell}
+                            onEdit={() => beginEditing(o.id)}
+                            onText={(text) => {
+                              const checkpoint = typingGroup.current !== o.id;
+                              typingGroup.current = o.id;
+                              patch(
+                                o.id,
+                                {
+                                  text,
+                                  font: typingFont(
                                     fontAssets,
                                     o.font,
                                     o.bold,
                                     o.italic,
                                     text,
                                     o.sources[0]?.font || "Helvetica",
-                                  )
-                                : "Helvetica";
-                            if (o.kind === "text") {
-                              const choice = fontDownloadChoice(
-                                o.sources[0]?.originalFont || "",
+                                  ),
+                                },
+                                checkpoint,
                               );
-                              if (
-                                choice &&
-                                approvedFontFamilies.current.has(
-                                  choice.family,
-                                ) &&
-                                ["Helvetica", "Times", "Courier"].includes(font)
-                              ) {
-                                font =
-                                  fontAssets.find(
-                                    (a) =>
-                                      a.family.replace(/\s/g, "") ===
-                                        choice.family &&
-                                      a.bold === o.bold &&
-                                      a.italic === o.italic &&
-                                      supportsText(a, text),
-                                  )?.id || font;
-                              }
+                            }}
+                            onTypingEnd={() => {
+                              typingGroup.current = null;
+                            }}
+                          />
+                        ) : (
+                          <PDFObjectLayer
+                            object={o}
+                            interactive={tool === "select"}
+                            zoom={zoom}
+                            selected={selected === o.id}
+                            live={!!isLive(o)}
+                            editing={editingId === o.id}
+                            height={layoutHeights[o.id]}
+                            labels={t}
+                            editorRef={editor}
+                            onSelect={() => select(o.id)}
+                            onEdit={() =>
+                              o.kind === "text" && beginEditing(o.id)
                             }
-                            patch(o.id, { text, font }, checkpoint);
-                          }}
-                          onTypingEnd={() => {
-                            typingGroup.current = null;
-                          }}
-                        />
+                            onDrag={(e, resize) => drag(e, o.id, resize)}
+                            onText={(text) => {
+                              const checkpoint = typingGroup.current !== o.id;
+                              typingGroup.current = o.id;
+                              let font =
+                                o.kind === "text"
+                                  ? typingFont(
+                                      fontAssets,
+                                      o.font,
+                                      o.bold,
+                                      o.italic,
+                                      text,
+                                      o.sources[0]?.font || "Helvetica",
+                                    )
+                                  : "Helvetica";
+                              if (o.kind === "text") {
+                                const choice = fontDownloadChoice(
+                                  o.sources[0]?.originalFont || "",
+                                );
+                                if (
+                                  choice &&
+                                  approvedFontFamilies.current.has(
+                                    choice.family,
+                                  ) &&
+                                  ["Helvetica", "Times", "Courier"].includes(
+                                    font,
+                                  )
+                                ) {
+                                  font =
+                                    fontAssets.find(
+                                      (a) =>
+                                        a.family.replace(/\s/g, "") ===
+                                          choice.family &&
+                                        a.bold === o.bold &&
+                                        a.italic === o.italic &&
+                                        supportsText(a, text),
+                                    )?.id || font;
+                                }
+                              }
+                              patch(o.id, { text, font }, checkpoint);
+                            }}
+                            onTypingEnd={() => {
+                              typingGroup.current = null;
+                            }}
+                          />
+                        )}
                       </React.Fragment>
                     ))}
                 {(renderedPage === page ? widgets : [])

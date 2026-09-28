@@ -390,3 +390,82 @@ test("font download offers identify exact families and label Calibri's alternati
   });
   assert.equal(fontDownloadChoice("UnknownPrivateFont"), undefined);
 });
+
+test("segmented fields detect pipe groups and boxes, preserve separators and center exported characters", async () => {
+  const { createCellFixture } = await import("./fixtures");
+  const { detectCells, cellObjects, cellCharacters } = await import(
+    "../src/lib/pdf/cells"
+  );
+  const bytes = await createCellFixture(),
+    sources = extractSources(m, bytes);
+  const geometry = geo.slice(0, 1),
+    groups = detectCells(m, bytes, sources, geometry);
+  assert.deepEqual(
+    groups.map((g) => g.cells.length),
+    [4, 3],
+  );
+  const fields = cellObjects(groups, sources, geometry).objects;
+  assert.equal(fields[1].text, "PT");
+  assert.equal(cellCharacters("12-34/56", 4), "1234");
+  const state = {
+    objects: fields.map((o, i) => ({
+      ...o,
+      text: i ? "ABC" : "1234",
+      changed: true,
+    })),
+    fields: {},
+  };
+  const render = createExporter(m, bytes, sources, geometry);
+  const out = await render(state),
+    after = extractSources(m, out);
+  assert.equal(
+    after.filter((s) => s.text.includes("|")).length,
+    sources.filter((s) => s.text.includes("|")).length,
+  );
+  assert.ok(after.some((s) => s.text.trim() === "-"));
+  for (const o of state.objects)
+    for (let i = 0; i < o.cells!.length; i++) {
+      const cell = o.cells![i],
+        x = o.x + cell.x + cell.width / 2;
+      assert.ok(
+        after.some(
+          (s) =>
+            s.text.trim() === o.text[i] &&
+            Math.abs((s.bounds[0] + s.bounds[2]) / 2 - x) < 2,
+        ),
+      );
+    }
+  assert.deepEqual(
+    detectCells(m, out, after, geometry).map((g) => g.cells.length),
+    [4, 3],
+  );
+  assert.deepEqual(await render({ objects: fields, fields: {} }), bytes);
+});
+
+test("general detection finds shared-border combs at new positions and ignores isolated boxes", async () => {
+  const { detectCells } = await import("../src/lib/pdf/cells");
+  const d = await PDFDocument.create(),
+    p = d.addPage([500, 700]);
+  for (const x of [60, 78, 96, 114, 132])
+    p.drawLine({ start: { x, y: 300 }, end: { x, y: 318 }, thickness: 1 });
+  p.drawLine({
+    start: { x: 60, y: 300 },
+    end: { x: 132, y: 300 },
+    thickness: 1,
+  });
+  p.drawRectangle({
+    x: 300,
+    y: 200,
+    width: 18,
+    height: 18,
+    borderColor: rgb(0, 0, 0),
+    borderWidth: 1,
+  });
+  const bytes = await d.save();
+  assert.deepEqual(
+    detectCells(m, bytes, extractSources(m, bytes), geo.slice(0, 1)).map(
+      (g) => g.cells.length,
+    ),
+    [4],
+  );
+});
