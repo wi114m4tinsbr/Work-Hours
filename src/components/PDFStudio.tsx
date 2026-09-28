@@ -991,7 +991,16 @@ export function PDFStudio({
           </p>
           {current ? (
             <>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex h-12 items-center gap-2 overflow-x-auto whitespace-nowrap [&>*]:shrink-0">
+                {current.kind === "text" &&
+                  button(
+                    editingId === current.id ? t.done : t.edit,
+                    editingId === current.id ? Check : Type,
+                    () =>
+                      editingId === current.id
+                        ? setEditingId(null)
+                        : beginEditing(current.id),
+                  )}
                 {current.kind === "text" && (
                   <>
                     <label className="text-xs text-stone-500">
@@ -1130,18 +1139,11 @@ export function PDFStudio({
                   </button>
                 )}
               </div>
-              {current.kind === "text" &&
-                button(
-                  editingId === current.id ? t.done : t.edit,
-                  editingId === current.id ? Check : Type,
-                  () =>
-                    editingId === current.id
-                      ? setEditingId(null)
-                      : beginEditing(current.id),
-                )}
             </>
           ) : (
-            <p className="text-xs text-stone-400">{t.selectHint}</p>
+            <p className="h-12 flex items-center text-xs text-stone-400">
+              {tool === "text" ? t.addHint : t.selectHint}
+            </p>
           )}
           <div
             role="status"

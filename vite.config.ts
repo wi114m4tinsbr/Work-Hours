@@ -8,6 +8,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss()],
     worker: { format: "es" },
+    // The lazy worker dependency must be ready before the first PDF upload;
+    // discovering it afterwards makes Vite reload the page and lose the file.
+    optimizeDeps: { include: ["@embedpdf/pdfium"] },
     define: {
       "process.env.GEMINI_API_KEY": JSON.stringify(env.GEMINI_API_KEY),
     },
