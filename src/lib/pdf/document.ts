@@ -159,7 +159,14 @@ export function wrapText(
   width: number,
 ): string[] {
   const lines: string[] = [];
-  for (const line of text.normalize("NFKC").split(/\r?\n/)) {
+  for (const line of text
+    .normalize("NFC")
+    .replace(
+      /[\uFB00-\uFB06]/g,
+      (c) =>
+        ["ff", "fi", "fl", "ffi", "ffl", "st", "st"][c.charCodeAt(0) - 0xfb00],
+    )
+    .split(/\r?\n/)) {
     let current = "";
     for (const token of line.split(/(\s+)/)) {
       if (current && font.widthOfTextAtSize(current + token, size) > width) {
@@ -309,10 +316,18 @@ export function createExporter(
       else if (field instanceof PDFCheckBox)
         value ? field.check() : field.uncheck();
       else if (field instanceof PDFDropdown || field instanceof PDFOptionList) {
-        if (Array.isArray(value) && !value.length) field.clear();
+        if (value === "" || (Array.isArray(value) && !value.length)) field.clear();
         else field.select(value as string | string[]);
       } else if (field instanceof PDFRadioGroup) {
-        value ? field.select(String(value)) : field.clear();
+        if (value) {
+          // PDF.js exposes the widget appearance name (often "0" or "1").
+          // pdf-lib select() expects the corresponding /Opt export value.
+          const raw = String(value);
+          const index = field.acroField
+            .getOnValues()
+            .findIndex((v) => v.decodeText() === raw);
+          field.select(index >= 0 ? field.getOptions()[index] : raw);
+        } else field.clear();
       } else throw new Error("Unsupported form field");
     }
     if (Object.keys(state.fields).length)

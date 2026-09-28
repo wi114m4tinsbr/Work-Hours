@@ -35,7 +35,7 @@ test("replacement removes original, preserves other text, forms, backgrounds and
         ? { ...o, text: "Edited name", width: 150, changed: true }
         : o,
     ),
-    fields: { Name: "Carla", Agree: true, Choice: "B", Country: "ES" },
+    fields: { Name: "Carla", Agree: true, Choice: "1", Country: "ES" },
   };
   const out = await render(state),
     text = extractSources(m, out)
@@ -65,7 +65,7 @@ test("move, resize, rotate, delete and accented text survive reopen", async () =
       o === target
         ? {
             ...o,
-            text: "João",
+            text: "João 1ºDTO",
             x: 220,
             y: 160,
             size: 24,
@@ -80,7 +80,9 @@ test("move, resize, rotate, delete and accented text survive reopen", async () =
     ),
     fields: {},
   });
-  const replacement = extractSources(m, out).find((s) => s.text === "João")!;
+  const replacement = extractSources(m, out).find(
+    (s) => s.text === "João 1ºDTO",
+  )!;
   assert.ok(replacement);
   assert.ok(Math.abs(replacement.size - 24) < 0.1);
   assert.equal(replacement.color, "#cc1122");
@@ -168,13 +170,11 @@ if (reference)
     const bytes = new Uint8Array(fs.readFileSync(reference)),
       sources = extractSources(m, bytes),
       doc = await PDFDocument.load(bytes),
-      geometry = doc
-        .getPages()
-        .map((p) => ({
-          width: p.getWidth(),
-          height: p.getHeight(),
-          matrix: [1, 0, 0, -1, 0, p.getHeight()] as Matrix,
-        })),
+      geometry = doc.getPages().map((p) => ({
+        width: p.getWidth(),
+        height: p.getHeight(),
+        matrix: [1, 0, 0, -1, 0, p.getHeight()] as Matrix,
+      })),
       objects = groupSources(sources, geometry);
     const target = objects.find(
       (o) =>
@@ -208,34 +208,86 @@ if (reference)
     );
   });
 
-test('nested synthetic text is replaced without changing sibling page content', async () => {
-  const bytes = await fixture(), sources = extractSources(m, bytes), objects = groupSources(sources, geo);
-  const target = objects.find(o => o.text === 'Nested original')!;
+test("nested synthetic text is replaced without changing sibling page content", async () => {
+  const bytes = await fixture(),
+    sources = extractSources(m, bytes),
+    objects = groupSources(sources, geo);
+  const target = objects.find((o) => o.text === "Nested original")!;
   assert.ok(target.sources[0].paths[0].length > 1);
   const render = createExporter(m, bytes, sources, geo);
-  for (const replacement of ['Nested edited', 'Edited again']) {
-    const output = await render({objects:objects.map(o => o === target ? {...o,text:replacement,width:150,changed:true} : o),fields:{}});
-    const text = extractSources(m, output).map(s => s.text);
-    assert.equal(text.filter(s => s === replacement).length, 1);
-    assert.ok(!text.includes('Nested original'));
-    assert.ok(text.includes('Original name'));
-    assert.ok(text.includes('Keep neighbour'));
+  for (const replacement of ["Nested edited", "Edited again"]) {
+    const output = await render({
+      objects: objects.map((o) =>
+        o === target
+          ? { ...o, text: replacement, width: 150, changed: true }
+          : o,
+      ),
+      fields: {},
+    });
+    const text = extractSources(m, output).map((s) => s.text);
+    assert.equal(text.filter((s) => s === replacement).length, 1);
+    assert.ok(!text.includes("Nested original"));
+    assert.ok(text.includes("Original name"));
+    assert.ok(text.includes("Keep neighbour"));
   }
 });
 
-test('image/signature export inserts image objects and preserves interactive fields', async () => {
-  const bytes = await fixture(), sources = extractSources(m, bytes), objects = groupSources(sources, geo);
-  const data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
-  const output = await createExporter(m, bytes, sources, geo)({objects:[...objects,{id:'image',kind:'image',page:1,x:220,y:240,width:100,height:40,rotation:20,data,changed:true}],fields:{}});
+test("image/signature export inserts image objects and preserves interactive fields", async () => {
+  const bytes = await fixture(),
+    sources = extractSources(m, bytes),
+    objects = groupSources(sources, geo);
+  const data =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
+  const output = await createExporter(
+    m,
+    bytes,
+    sources,
+    geo,
+  )({
+    objects: [
+      ...objects,
+      {
+        id: "image",
+        kind: "image",
+        page: 1,
+        x: 220,
+        y: 240,
+        width: 100,
+        height: 40,
+        rotation: 20,
+        data,
+        changed: true,
+      },
+    ],
+    fields: {},
+  });
   const d = await PDFDocument.load(output);
   assert.ok(d.getPage(0).node.Resources());
-  assert.equal(d.getForm().getTextField('Name').getText(), 'Initial');
-  assert.deepEqual(extractSources(m, output).map(s=>s.text), sources.map(s=>s.text));
+  assert.equal(d.getForm().getTextField("Name").getText(), "Initial");
+  assert.deepEqual(
+    extractSources(m, output).map((s) => s.text),
+    sources.map((s) => s.text),
+  );
 });
 
-test('unsupported replacement characters fail instead of exporting missing glyphs', async () => {
-  const bytes = await fixture(), sources = extractSources(m, bytes), objects = groupSources(sources, geo);
-  const target = objects.find(o=>o.text==='Original name')!;
-  await assert.rejects(createExporter(m, bytes, sources, geo)({objects:objects.map(o=>o===target?{...o,text:'漢字',changed:true}:o),fields:{}}), /encode|WinAnsi/);
-  assert.ok(extractSources(m, bytes).some(s=>s.text==='Original name'));
+test("unsupported replacement characters fail instead of exporting missing glyphs", async () => {
+  const bytes = await fixture(),
+    sources = extractSources(m, bytes),
+    objects = groupSources(sources, geo);
+  const target = objects.find((o) => o.text === "Original name")!;
+  await assert.rejects(
+    createExporter(
+      m,
+      bytes,
+      sources,
+      geo,
+    )({
+      objects: objects.map((o) =>
+        o === target ? { ...o, text: "漢字", changed: true } : o,
+      ),
+      fields: {},
+    }),
+    /encode|WinAnsi/,
+  );
+  assert.ok(extractSources(m, bytes).some((s) => s.text === "Original name"));
 });

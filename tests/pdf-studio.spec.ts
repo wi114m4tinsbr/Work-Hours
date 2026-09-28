@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
 import { init } from "@embedpdf/pdfium";
 import fs from "node:fs";
-import { extractSources } from "../src/lib/pdf/content";
+import { extractSources, withDocument } from "../src/lib/pdf/content";
 import { createFixture } from "./fixtures";
 let bytes: Uint8Array;
 test.beforeAll(async () => {
@@ -10,18 +10,17 @@ test.beforeAll(async () => {
 });
 async function load(page: any, query = "") {
   await page.goto("/tests/pdf-studio.html" + query);
-  await page
-    .locator('input[accept=".pdf,application/pdf"]')
-    .setInputFiles({
-      name: "fixture.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(bytes),
-    });
+  await page.locator('input[accept=".pdf,application/pdf"]').setInputFiles({
+    name: "fixture.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(bytes),
+  });
   await expect(
     page.getByRole("button", { name: "Original name", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('button', {name: /^(Baixar|Download|Descargar)$/})).toBeEnabled();
-
+  await expect(
+    page.getByRole("button", { name: /^(Baixar|Download|Descargar)$/ }),
+  ).toBeEnabled();
 }
 async function downloaded(page: any, label = "Baixar") {
   const button = page.getByRole("button", { name: label, exact: true });
@@ -87,18 +86,19 @@ test("existing text: replace, format, move, resize, rotate, undo and download wi
   expect(text).toContain("Nested original");
   await page.getByRole("button", { name: "Desfazer", exact: true }).click();
   await page.getByRole("button", { name: "Refazer", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Baixar", exact: true }),
+  ).toBeEnabled();
   await page.screenshot({
     path: info.outputPath("editor-desktop.png"),
     fullPage: true,
   });
   expect(errors).toEqual([]);
-  await page
-    .locator('input[accept=".pdf,application/pdf"]')
-    .setInputFiles({
-      name: "reopened.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(out),
-    });
+  await page.locator('input[accept=".pdf,application/pdf"]').setInputFiles({
+    name: "reopened.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(out),
+  });
   await expect(
     page.getByRole("button", { name: "Updated person", exact: true }),
   ).toBeVisible();
@@ -151,16 +151,14 @@ test("AcroForm values stay interactive; image and drawn signature survive export
       exact: true,
     })
     .selectOption("ES");
-  await page
-    .locator('input[accept="image/png,image/jpeg"]')
-    .setInputFiles({
-      name: "pixel.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
-        "base64",
-      ),
-    });
+  await page.locator('input[accept="image/png,image/jpeg"]').setInputFiles({
+    name: "pixel.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
   await page.getByRole("button", { name: "Assinatura", exact: true }).click();
   const canvas = page.getByRole("dialog").locator("canvas"),
     r = await canvas.boundingBox();
@@ -176,7 +174,25 @@ test("AcroForm values stay interactive; image and drawn signature survive export
   expect(f.getCheckBox("Agree").isChecked()).toBe(true);
   expect(f.getRadioGroup("Choice").getSelected()).toBe("B");
   expect(f.getDropdown("Country").getSelected()).toEqual(["ES"]);
-  expect(d.getPage(1).node.Resources()?.lookupMaybe).toBeTruthy();
+  const native = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  native.PDFiumExt_Init();
+  const imageCount = withDocument(native, out, (doc) => {
+    const page = native.FPDF_LoadPage(doc, 1);
+    try {
+      return Array.from(
+        { length: native.FPDFPage_CountObjects(page) },
+        (_, i) =>
+          native.FPDFPageObj_GetType(native.FPDFPage_GetObject(page, i)),
+      ).filter((type) => type === 3).length;
+    } finally {
+      native.FPDF_ClosePage(page);
+    }
+  });
+  expect(imageCount).toBe(2);
   await page.screenshot({
     path: info.outputPath("forms-signature.png"),
     fullPage: true,
@@ -192,6 +208,17 @@ for (const config of [
   }, info) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await load(page, `?lang=${config.lang}${config.dark ? "&dark" : ""}`);
+    if (config.dark) {
+      await page.evaluate(() =>
+        document.documentElement.style.setProperty(
+          "--primary-color",
+          "#7c3aed",
+        ),
+      );
+      await expect(
+        page.getByRole("button", { name: "Select", exact: true }),
+      ).toHaveCSS("background-color", "rgb(124, 58, 237)");
+    }
     const pageLabel = { pt: "Página", en: "Page", es: "Página" }[config.lang],
       editLabel = { pt: "Editar texto", en: "Edit text", es: "Editar texto" }[
         config.lang
@@ -213,6 +240,9 @@ for (const config of [
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
+    await expect(
+      page.getByRole("button", { name: /^(Baixar|Download|Descargar)$/ }),
+    ).toBeEnabled();
     await page.screenshot({
       path: info.outputPath(`mobile-${config.lang}.png`),
       fullPage: true,

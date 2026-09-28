@@ -253,6 +253,7 @@ export function PDFStudio({
     [page, setPage] = useState(1),
     [zoom, setZoom] = useState(1.35),
     [tool, setTool] = useState<"select" | "text">("select");
+  const [renderedPage, setRenderedPage] = useState(0);
   const [layoutHeights, setLayoutHeights] = useState<Record<string, number>>(
     {},
   );
@@ -397,6 +398,7 @@ export function PDFStudio({
       undo.current = [];
       redo.current = [];
       setHistoryVersion((v) => v + 1);
+      setRenderedPage(0);
       setFile(f);
       setGeometry(geo);
       setWidgets(fields);
@@ -465,6 +467,7 @@ export function PDFStudio({
         c.getContext("2d")!.drawImage(off, 0, 0);
         downloadBytes.current = bytes;
         setLayoutHeights(heights);
+        setRenderedPage(page);
         setBusy(false);
       } catch (e: any) {
         if (!cancelled && e?.name !== "RenderingCancelledException") {
@@ -555,7 +558,7 @@ export function PDFStudio({
     target.addEventListener("pointercancel", up, { once: true });
   };
   const addText = (e: React.MouseEvent) => {
-    if (tool !== "text" || !stage.current) return;
+    if (tool !== "text" || !stage.current || renderedPage !== page) return;
     const r = stage.current.getBoundingClientRect(),
       id = crypto.randomUUID(),
       o: TextObject = {
@@ -1055,8 +1058,23 @@ export function PDFStudio({
                   pointerEvents: loading ? "none" : undefined,
                 }}
               >
-                <canvas ref={canvas} className="block" />
-                {tool === "select" &&
+                <canvas
+                  ref={canvas}
+                  className="block"
+                  style={{
+                    visibility: renderedPage === page ? "visible" : "hidden",
+                  }}
+                />
+                {renderedPage !== page && (
+                  <div
+                    role="status"
+                    className="absolute inset-0 flex items-center justify-center text-stone-500 bg-white"
+                  >
+                    {t.busy}
+                  </div>
+                )}
+                {renderedPage === page &&
+                  tool === "select" &&
                   state.objects
                     .filter((o) => o.page === page && !o.deleted)
                     .map((o) => (
@@ -1114,7 +1132,7 @@ export function PDFStudio({
                         )}
                       </div>
                     ))}
-                {widgets
+                {(renderedPage === page ? widgets : [])
                   .filter((w) => w.page === page)
                   .map((w) => {
                     const value = state.fields[w.name] ?? w.value,
