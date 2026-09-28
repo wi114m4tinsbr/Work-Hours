@@ -42,7 +42,7 @@ import {
   registerLiveFonts,
   clearDocumentFonts,
 } from "../lib/pdf/live-layout";
-import { BackButton } from "./BackButton";
+import { ToolIdentity } from "./ToolIdentity";
 import { PDFObjectLayer } from "./PDFObjectLayer";
 
 // Compatibility for PDF.js in browsers without the Map upsert APIs.
@@ -1100,11 +1100,8 @@ export function PDFStudio({
         className="sticky z-30 bg-white/95 dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 shadow-sm"
         style={{ top: toolbarTop }}
       >
-        <div className="h-12 flex items-center gap-1 px-2 sm:px-3">
-          <BackButton label={t.back} onClick={onBack} />
-          <b className="hidden md:inline text-sm dark:text-white whitespace-nowrap mr-2">
-            PDF Studio
-          </b>
+        <div className="h-12 w-full max-w-7xl mx-auto flex items-center gap-2 sm:gap-4 px-4">
+          <ToolIdentity title="PDF Studio" language={language} backLabel={t.back} onBack={onBack} />
           <div
             className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap"
             data-testid="pdf-primary-tools"

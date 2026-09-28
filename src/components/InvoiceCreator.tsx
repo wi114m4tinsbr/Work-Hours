@@ -1,4 +1,4 @@
-import { BackButton } from "./BackButton";
+import { ToolIdentity } from "./ToolIdentity";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -795,14 +795,9 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className={cn("bg-white dark:bg-bg-card-dark border-b border-gray-200 dark:border-white/10 px-4", embedded ? "relative z-20" : "sticky top-0 z-30")}>
-        <div className="max-w-5xl mx-auto py-3 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
-          <div className="flex items-center gap-3 min-w-0 lg:flex-1">
-            <BackButton label={t.back} onClick={onBack} />
-            <span className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-white/10" />
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.16em] font-black text-gray-400">{language === 'en' ? 'Tool' : language === 'es' ? 'Herramienta' : 'Ferramenta'}</p>
-              <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white truncate">{t.invoiceCreator}</h1>
-            </div>
+        <div className="max-w-7xl mx-auto py-3 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
+          <div className="min-w-0 lg:flex-1">
+            <ToolIdentity title={t.invoiceCreator} language={language} backLabel={t.back} onBack={onBack} />
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
