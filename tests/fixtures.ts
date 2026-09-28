@@ -37,7 +37,12 @@ export async function createFixture() {
 
 export async function createFontFixture() {
   const fontkit = (await import("@pdf-lib/fontkit")).default;
-  const fixture = (await import("./font-fixture.json")).default;
+  const fixture = JSON.parse(
+    (await import("node:fs")).readFileSync(
+      new URL("./font-fixture.json", import.meta.url),
+      "utf8",
+    ),
+  );
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
   const bytes = Uint8Array.from(atob(fixture.base64), (c) => c.charCodeAt(0));
