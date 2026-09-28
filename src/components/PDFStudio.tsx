@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Upload,
   ZoomIn,
@@ -13,15 +13,13 @@ import {
   Image as ImageIcon,
   PanelLeft,
   PenLine,
-  Move,
-  Maximize2,
+  Check,
 } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { extractSources, type Matrix } from "../lib/pdf/content";
+import { type Matrix } from "../lib/pdf/content";
 import {
-  createExporter,
   groupSources,
   type EditorObject,
   type EditorState,
@@ -29,7 +27,9 @@ import {
   type Geometry,
   type TextObject,
 } from "../lib/pdf/document";
-import { getPdfium } from "../lib/pdf/runtime";
+import { PdfEditingClient } from "../lib/pdf/worker-client";
+import { initializeLiveFonts } from "../lib/pdf/live-layout";
+import { PDFObjectLayer } from "./PDFObjectLayer";
 
 // Compatibility for PDF.js in browsers without the Map upsert APIs.
 const map = Map.prototype as Map<unknown, unknown> & {
@@ -50,10 +50,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    placeholder: "Digite aqui",
+    done: "Concluir edição",
+    info: "Sobre a edição",
+    saving: "Preparando download…",
+    addHint: "Clique na página e comece a digitar.",
+    editHint:
+      "Duplo clique para digitar · Arraste o texto ou a borda para mover",
     open: "Abrir PDF",
     drop: "Solte um PDF aqui ou clique para abrir",
     select: "Selecionar",
-    text: "Texto",
+    text: "Adicionar texto",
     image: "Imagem",
     signature: "Assinatura",
     rotate: "Girar objeto",
@@ -83,7 +90,7 @@ const C = {
     unsupported:
       "A fonte escolhida não contém um dos caracteres. Use caracteres latinos ou desfaça a alteração.",
     limits:
-      "Selecione um texto e edite abaixo. Ao alterar, a fonte será substituída pela escolhida. Imagens, letras convertidas em desenho e alguns PDFs complexos não permitem edição de texto.",
+      "Edite diretamente na página. Ao alterar, a fonte será substituída pela escolhida. Imagens, letras convertidas em desenho e alguns PDFs complexos não permitem edição de texto.",
     noText:
       "Nenhum texto editável reconhecido nesta página. Você pode adicionar texto ou imagem.",
     form: "Campo de formulário",
@@ -103,10 +110,16 @@ const C = {
     restore: "Restaurar original",
   },
   en: {
+    placeholder: "Type here",
+    done: "Done editing",
+    info: "About editing",
+    saving: "Preparing download…",
+    addHint: "Click on the page and start typing.",
+    editHint: "Double-click to type · Drag the text or its border to move",
     open: "Open PDF",
     drop: "Drop a PDF here or click to open",
     select: "Select",
-    text: "Text",
+    text: "Add text",
     image: "Image",
     signature: "Signature",
     rotate: "Rotate object",
@@ -136,7 +149,7 @@ const C = {
     unsupported:
       "The selected font does not support one of the characters. Use Latin characters or undo the change.",
     limits:
-      "Select text and edit below. Changing text replaces its font with the selected font. Images, outlined letters and some complex PDFs do not support text editing.",
+      "Edit directly on the page. Changing text replaces its font with the selected font. Images, outlined letters and some complex PDFs do not support text editing.",
     noText:
       "No editable text recognized on this page. You can add text or an image.",
     form: "Form field",
@@ -156,10 +169,17 @@ const C = {
     restore: "Restore original",
   },
   es: {
+    placeholder: "Escribe aquí",
+    done: "Terminar edición",
+    info: "Acerca de la edición",
+    saving: "Preparando descarga…",
+    addHint: "Haz clic en la página y empieza a escribir.",
+    editHint:
+      "Doble clic para escribir · Arrastra el texto o su borde para mover",
     open: "Abrir PDF",
     drop: "Suelta un PDF aquí o haz clic para abrir",
     select: "Seleccionar",
-    text: "Texto",
+    text: "Añadir texto",
     image: "Imagen",
     signature: "Firma",
     rotate: "Girar objeto",
@@ -189,7 +209,7 @@ const C = {
     unsupported:
       "La fuente elegida no admite uno de los caracteres. Usa caracteres latinos o deshaz el cambio.",
     limits:
-      "Selecciona un texto y edita abajo. Al modificarlo, se sustituye su fuente por la elegida. Las imágenes, letras convertidas en dibujos y algunos PDF complejos no permiten editar texto.",
+      "Edita directamente en la página. Al modificarlo, se sustituye su fuente por la elegida. Las imágenes, letras convertidas en dibujos y algunos PDF complejos no permiten editar texto.",
     noText:
       "No se reconoce texto editable en esta página. Puedes añadir texto o una imagen.",
     form: "Campo de formulario",
@@ -253,6 +273,21 @@ export function PDFStudio({
     [page, setPage] = useState(1),
     [zoom, setZoom] = useState(1.35),
     [tool, setTool] = useState<"select" | "text">("select");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [renderedLayers, setRenderedLayers] = useState({
+    baked: new Set<string>(),
+    removed: new Set<string>(),
+  });
+  const [backgroundRenders, setBackgroundRenders] = useState(0);
+  const typingGroup = useRef<string | null>(null);
+  const lastTextStyle = useRef({
+    size: 12,
+    font: "Helvetica",
+    bold: false,
+    italic: false,
+    color: "#111111",
+  });
   const [renderedPage, setRenderedPage] = useState(0);
   const [layoutHeights, setLayoutHeights] = useState<Record<string, number>>(
     {},
@@ -271,12 +306,12 @@ export function PDFStudio({
     imageInput = useRef<HTMLInputElement>(null),
     signatureCanvas = useRef<HTMLCanvasElement>(null),
     editor = useRef<HTMLTextAreaElement>(null);
-  const exporter = useRef<ReturnType<typeof createExporter> | null>(null),
+  const editClient = useRef<PdfEditingClient | null>(null),
+    openingClient = useRef<PdfEditingClient | null>(null),
     original = useRef<EditorState>(initial),
     version = useRef(0),
     loadVersion = useRef(0),
-    renderTask = useRef<RenderTask | null>(null),
-    downloadBytes = useRef<Uint8Array | null>(null);
+    renderTask = useRef<RenderTask | null>(null);
   const current = state.objects.find((o) => o.id === selected && !o.deleted),
     box = geometry[page - 1];
   const message = (e: unknown) => {
@@ -297,7 +332,7 @@ export function PDFStudio({
     }
     stateRef.current = next;
     version.current++;
-    setBusy(true);
+    setError("");
     setState(next);
   };
   const patch = (
@@ -320,6 +355,7 @@ export function PDFStudio({
     from: React.RefObject<EditorState[]>,
     to: React.RefObject<EditorState[]>,
   ) => {
+    typingGroup.current = null;
     const next = from.current.pop();
     if (!next) return;
     to.current.push(stateRef.current);
@@ -327,24 +363,85 @@ export function PDFStudio({
     setHistoryVersion((v) => v + 1);
   };
   const select = (id: string) => {
+    if (selected !== id) setEditingId(null);
+    typingGroup.current = null;
     setSelected(id);
     setTool("select");
-    requestAnimationFrame(() => editor.current?.focus());
   };
+  const beginEditing = (id: string) => {
+    select(id);
+    setEditingId(id);
+  };
+  const isLive = (o: EditorObject) =>
+    !renderedLayers.baked.has(o.id) &&
+    (renderedLayers.removed.has(o.id) ||
+      (o.changed && (o.kind === "image" || !o.sources.length)));
+  useEffect(() => {
+    if (editingId && current?.id === editingId && isLive(current))
+      editor.current?.focus();
+  }, [editingId, renderedLayers]);
+  useEffect(() => {
+    if (current?.kind === "text") {
+      const { size, font, bold, italic, color } = current;
+      lastTextStyle.current = { size, font, bold, italic, color };
+    }
+  }, [current]);
+  // Reuse the background snapshot while only the active object changes. Its text
+  // is rendered locally; PDF generation must never be tied to pointer/keypress events.
+  const backgroundCache = useRef<{
+    objects: EditorObject[];
+    fields: EditorState["fields"];
+    active: string | null;
+    state: EditorState;
+  } | null>(null);
+  const backgroundState = useMemo(() => {
+    const active =
+      current && (editingId === current.id || current.changed) ? current : null;
+    const objects = state.objects.filter(
+      (o) => o.id !== active?.id && (o.changed || o.deleted),
+    );
+    const removeActive =
+      active?.kind === "text" && active.sources.length ? active : null;
+    const key = removeActive?.id || null,
+      cache = backgroundCache.current;
+    if (
+      cache &&
+      cache.active === key &&
+      cache.fields === state.fields &&
+      cache.objects.length === objects.length &&
+      objects.every((o, i) => o === cache.objects[i])
+    )
+      return cache.state;
+    const snapshot = {
+      objects: removeActive
+        ? [...objects, { ...removeActive, changed: true, deleted: true }]
+        : objects,
+      fields: state.fields,
+    };
+    backgroundCache.current = {
+      objects,
+      fields: state.fields,
+      active: key,
+      state: snapshot,
+    };
+    return snapshot;
+  }, [state, selected, editingId]);
   const load = async (f: File) => {
     const token = ++loadVersion.current;
     version.current++;
     setLoading(true);
     setError("");
     let doc: PDFDocumentProxy | undefined;
+    openingClient.current?.destroy();
+    const client = new PdfEditingClient();
+    openingClient.current = client;
+    let adopted = false;
     try {
       if (f.size > 25 * 1024 * 1024) throw new Error("LIMIT");
       const bytes = new Uint8Array(await f.arrayBuffer());
       doc = await openPdf(bytes);
       if (doc.numPages > 100) throw new Error("LIMIT");
-      const engine = await getPdfium(),
-        sources = extractSources(engine, bytes),
-        geo: Geometry[] = [],
+      const geo: Geometry[] = [],
         fields: FormWidget[] = [];
       for (let pn = 1; pn <= doc.numPages; pn++) {
         const pg = await doc.getPage(pn),
@@ -391,10 +488,20 @@ export function PDFStudio({
             });
           }
       }
+      const [sources] = await Promise.all([
+        client.initialize(bytes, geo),
+        initializeLiveFonts(),
+      ]);
       if (token !== loadVersion.current) return;
+      editClient.current?.destroy();
+      editClient.current = client;
+      adopted = true;
+      backgroundCache.current = null;
+      setRenderedLayers({ baked: new Set(), removed: new Set() });
+      setEditingId(null);
       const next = { objects: groupSources(sources, geo), fields: {} };
       original.current = next;
-      exporter.current = createExporter(engine, bytes, sources, geo);
+
       undo.current = [];
       redo.current = [];
       setHistoryVersion((v) => v + 1);
@@ -421,26 +528,24 @@ export function PDFStudio({
       if (token === loadVersion.current) setError(message(e));
     } finally {
       await doc?.destroy();
+      if (!adopted) client.destroy();
+      if (openingClient.current === client) openingClient.current = null;
       if (token === loadVersion.current) setLoading(false);
     }
   };
-  // Render the exact generated file used for download. A detached canvas prevents
-  // cancelled/older work from overwriting a newer document or page.
+  // Only render the page background when its content changes, never for active
+  // typing/dragging. The active layer is removed from the PDF, not covered with white.
   useEffect(() => {
-    if (!file || !exporter.current) return;
+    if (!file || !editClient.current) return;
     let cancelled = false,
       doc: PDFDocumentProxy | undefined,
       task: RenderTask | undefined;
-    const token = version.current,
-      build = exporter.current;
+    const client = editClient.current;
     setBusy(true);
     setError("");
     const timer = setTimeout(async () => {
       try {
-        let heights: Record<string, number> = {};
-        const bytes = await build(state, (h) => {
-          heights = h;
-        });
+        const { bytes, heights } = await client.preview(backgroundState);
         if (cancelled) return;
         doc = await openPdf(bytes);
         if (cancelled) return;
@@ -458,38 +563,49 @@ export function PDFStudio({
         });
         renderTask.current = task;
         await task.promise;
-        if (cancelled || token !== version.current || !canvas.current) return;
+        if (cancelled || !canvas.current) return;
         const c = canvas.current;
         c.width = off.width;
         c.height = off.height;
         c.style.width = `${vp.width}px`;
         c.style.height = `${vp.height}px`;
         c.getContext("2d")!.drawImage(off, 0, 0);
-        downloadBytes.current = bytes;
-        setLayoutHeights(heights);
+        setLayoutHeights(heights || {});
+        setRenderedLayers({
+          baked: new Set(
+            backgroundState.objects.filter((o) => !o.deleted).map((o) => o.id),
+          ),
+          removed: new Set(
+            backgroundState.objects
+              .filter((o) => o.kind === "text" && o.sources.length)
+              .map((o) => o.id),
+          ),
+        });
+        setBackgroundRenders((n) => n + 1);
         setRenderedPage(page);
         setBusy(false);
       } catch (e: any) {
         if (!cancelled && e?.name !== "RenderingCancelledException") {
           setError(message(e));
           setBusy(false);
-          downloadBytes.current = null;
         }
       } finally {
         await doc?.destroy();
       }
-    }, 180);
+    }, 30);
     return () => {
       cancelled = true;
       clearTimeout(timer);
       task?.cancel();
     };
-  }, [state, page, zoom, file, language]);
+  }, [backgroundState, page, zoom, file, language]);
   useEffect(
     () => () => {
       loadVersion.current++;
       version.current++;
       renderTask.current?.cancel();
+      editClient.current?.destroy();
+      openingClient.current?.destroy();
     },
     [],
   );
@@ -514,12 +630,15 @@ export function PDFStudio({
     const o = stateRef.current.objects.find((o) => o.id === id);
     if (!o) return;
     setSelected(id);
+    setEditingId(null);
+    typingGroup.current = null;
     const x = e.clientX,
       y = e.clientY,
       target = e.currentTarget;
     target.setPointerCapture(e.pointerId);
     let moved = false;
     const move = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - x, ev.clientY - y) < 3) return;
       if (!moved) {
         undo.current = [...undo.current.slice(-39), stateRef.current];
         redo.current = [];
@@ -558,7 +677,12 @@ export function PDFStudio({
     target.addEventListener("pointercancel", up, { once: true });
   };
   const addText = (e: React.MouseEvent) => {
-    if (tool !== "text" || !stage.current || renderedPage !== page) return;
+    if (tool !== "text") {
+      setSelected(null);
+      setEditingId(null);
+      return;
+    }
+    if (!stage.current || renderedPage !== page) return;
     const r = stage.current.getBoundingClientRect(),
       id = crypto.randomUUID(),
       o: TextObject = {
@@ -571,16 +695,12 @@ export function PDFStudio({
         height: 20,
         rotation: 0,
         text: "",
-        size: 12,
-        font: "Helvetica",
-        bold: false,
-        italic: false,
-        color: "#111111",
+        ...lastTextStyle.current,
         sources: [],
         changed: true,
       };
     update({ ...stateRef.current, objects: [...stateRef.current.objects, o] });
-    select(id);
+    beginEditing(id);
   };
   const addImage = (data: string, width: number, height: number) => {
     const id = crypto.randomUUID(),
@@ -660,20 +780,90 @@ export function PDFStudio({
     c.addEventListener("pointerup", up, { once: true });
     c.addEventListener("pointercancel", up, { once: true });
   };
-  const save = () => {
-    if (!downloadBytes.current || busy || error) return;
-    const url = URL.createObjectURL(
-        new Blob([downloadBytes.current as BlobPart], {
-          type: "application/pdf",
-        }),
-      ),
-      a = document.createElement("a");
-    a.href = url;
-    a.download =
-      (file?.name.replace(/\.pdf$/i, "") || "document") + "-editado.pdf";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const save = async () => {
+    if (!editClient.current || saving || loading) return;
+    const token = loadVersion.current,
+      client = editClient.current;
+    setSaving(true);
+    setError("");
+    try {
+      const bytes = await client.export(stateRef.current);
+      if (token !== loadVersion.current) return;
+      const url = URL.createObjectURL(
+          new Blob([bytes as BlobPart], { type: "application/pdf" }),
+        ),
+        a = document.createElement("a");
+      a.href = url;
+      a.download =
+        (file?.name.replace(/\.pdf$/i, "") || "document") + "-editado.pdf";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      if (token === loadVersion.current) setError(message(e));
+    } finally {
+      setSaving(false);
+    }
   };
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement,
+        typing = target.matches("input,textarea,select,[contenteditable=true]");
+      const inline = target.hasAttribute("data-pdf-inline");
+      if (e.key === "Escape") {
+        setEditingId(null);
+        typingGroup.current = null;
+        editor.current?.blur();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (!typing || inline)) {
+        const k = e.key.toLowerCase();
+        if (k === "z" || k === "y") {
+          e.preventDefault();
+          k === "y" || e.shiftKey ? travel(redo, undo) : travel(undo, redo);
+        } else if ((k === "b" || k === "i") && current?.kind === "text") {
+          e.preventDefault();
+          typingGroup.current = null;
+          patch(
+            current.id,
+            k === "b" ? { bold: !current.bold } : { italic: !current.italic },
+          );
+        }
+      } else if (!typing && current) {
+        if (e.key === "Delete" || e.key === "Backspace") {
+          e.preventDefault();
+          remove();
+        } else if (e.key === "Enter" && current.kind === "text") {
+          e.preventDefault();
+          beginEditing(current.id);
+        } else if (
+          ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)
+        ) {
+          e.preventDefault();
+          const d = e.shiftKey ? 10 : 1;
+          patch(current.id, {
+            x: Math.max(
+              0,
+              Math.min(
+                box.width - 5,
+                current.x +
+                  (e.key === "ArrowRight" ? d : e.key === "ArrowLeft" ? -d : 0),
+              ),
+            ),
+            y: Math.max(
+              0,
+              Math.min(
+                box.height - 5,
+                current.y +
+                  (e.key === "ArrowDown" ? d : e.key === "ArrowUp" ? -d : 0),
+              ),
+            ),
+          });
+        }
+      }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [current, box, editingId]);
   const button = (
     label: string,
     Icon: React.ElementType,
@@ -696,7 +886,13 @@ export function PDFStudio({
       }
     >
       <Icon size={17} />
-      <span className="hidden lg:inline">{label}</span>
+      <span
+        className={
+          label === t.text || label === t.select ? "inline" : "hidden lg:inline"
+        }
+      >
+        {label}
+      </span>
     </button>
   );
   return (
@@ -724,7 +920,11 @@ export function PDFStudio({
             {button(
               t.text,
               Type,
-              () => setTool("text"),
+              () => {
+                setTool("text");
+                setEditingId(null);
+                setSelected(null);
+              },
               loading,
               tool === "text",
             )}
@@ -773,7 +973,7 @@ export function PDFStudio({
               )}
               <button
                 aria-label={t.download}
-                disabled={loading || busy || !!error}
+                disabled={loading || saving || !!error}
                 onClick={save}
                 className="h-10 px-3 rounded-xl bg-primary text-white font-bold text-sm flex items-center gap-2 disabled:opacity-40"
               >
@@ -787,7 +987,7 @@ export function PDFStudio({
       {file && (
         <div className="bg-white dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 px-4 py-3 space-y-2">
           <p className="text-xs text-stone-500 dark:text-stone-400">
-            {t.limits}
+            {tool === "text" ? t.addHint : t.editHint}
           </p>
           {current ? (
             <>
@@ -830,10 +1030,14 @@ export function PDFStudio({
                       />
                     </label>
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       title={t.bold}
                       aria-label={t.bold}
                       aria-pressed={current.bold}
-                      onClick={() => patch(current.id, { bold: !current.bold })}
+                      onClick={() => {
+                        typingGroup.current = null;
+                        patch(current.id, { bold: !current.bold });
+                      }}
                       className={
                         control +
                         " font-black " +
@@ -843,12 +1047,14 @@ export function PDFStudio({
                       B
                     </button>
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       title={t.italic}
                       aria-label={t.italic}
                       aria-pressed={current.italic}
-                      onClick={() =>
-                        patch(current.id, { italic: !current.italic })
-                      }
+                      onClick={() => {
+                        typingGroup.current = null;
+                        patch(current.id, { italic: !current.italic });
+                      }}
                       className={
                         control +
                         " italic " +
@@ -924,24 +1130,15 @@ export function PDFStudio({
                   </button>
                 )}
               </div>
-              {current.kind === "text" && (
-                <textarea
-                  ref={editor}
-                  aria-label={t.edit}
-                  value={current.text}
-                  rows={2}
-                  className={control + " w-full resize-y"}
-                  onChange={(e) =>
-                    patch(current.id, {
-                      text: e.target.value,
-                      height: Math.max(
-                        current.height,
-                        e.target.value.split("\n").length * current.size * 1.2,
-                      ),
-                    })
-                  }
-                />
-              )}
+              {current.kind === "text" &&
+                button(
+                  editingId === current.id ? t.done : t.edit,
+                  editingId === current.id ? Check : Type,
+                  () =>
+                    editingId === current.id
+                      ? setEditingId(null)
+                      : beginEditing(current.id),
+                )}
             </>
           ) : (
             <p className="text-xs text-stone-400">{t.selectHint}</p>
@@ -951,7 +1148,19 @@ export function PDFStudio({
             aria-live="polite"
             className="text-xs text-stone-500"
           >
-            {loading ? t.loading : busy ? t.busy : error ? "" : t.ready}
+            {loading
+              ? t.loading
+              : saving
+                ? t.saving
+                : busy
+                  ? t.busy
+                  : error
+                    ? ""
+                    : t.ready}
+            <details className="mt-1">
+              <summary className="cursor-pointer">{t.info}</summary>
+              <p className="mt-1 max-w-3xl">{t.limits}</p>
+            </details>
           </div>
         </div>
       )}
@@ -998,6 +1207,7 @@ export function PDFStudio({
                 onClick={() => {
                   setPage(i + 1);
                   setSelected(null);
+                  setEditingId(null);
                 }}
                 className={
                   "rounded-xl border p-2 text-xs font-bold " +
@@ -1025,6 +1235,7 @@ export function PDFStudio({
                   onChange={(e) => {
                     setPage(+e.target.value);
                     setSelected(null);
+                    setEditingId(null);
                   }}
                 >
                   {geometry.map((_, i) => (
@@ -1047,6 +1258,7 @@ export function PDFStudio({
               <div
                 ref={stage}
                 data-testid="pdf-stage"
+                data-background-renders={backgroundRenders}
                 onClick={addText}
                 className={
                   "relative bg-white shadow-2xl " +
@@ -1074,63 +1286,33 @@ export function PDFStudio({
                   </div>
                 )}
                 {renderedPage === page &&
-                  tool === "select" &&
                   state.objects
                     .filter((o) => o.page === page && !o.deleted)
                     .map((o) => (
-                      <div
-                        key={o.id}
-                        style={{
-                          position: "absolute",
-                          left: o.x * zoom,
-                          top: o.y * zoom,
-                          width: o.width * zoom,
-                          height: Math.max(
-                            10,
-                            (layoutHeights[o.id] || o.height) * zoom,
-                          ),
-                          transform: `rotate(${o.rotation}deg)`,
-                          transformOrigin: "top left",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          aria-label={o.kind === "text" ? o.text : t.image}
-                          title={o.kind === "text" ? o.text : t.image}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            select(o.id);
+                      <React.Fragment key={o.id}>
+                        <PDFObjectLayer
+                          object={o}
+                          interactive={tool === "select"}
+                          zoom={zoom}
+                          selected={selected === o.id}
+                          live={isLive(o)}
+                          editing={editingId === o.id}
+                          height={layoutHeights[o.id]}
+                          labels={t}
+                          editorRef={editor}
+                          onSelect={() => select(o.id)}
+                          onEdit={() => o.kind === "text" && beginEditing(o.id)}
+                          onDrag={(e, resize) => drag(e, o.id, resize)}
+                          onText={(text) => {
+                            const checkpoint = typingGroup.current !== o.id;
+                            typingGroup.current = o.id;
+                            patch(o.id, { text }, checkpoint);
                           }}
-                          className={
-                            "absolute inset-0 w-full h-full bg-transparent rounded-sm " +
-                            (selected === o.id
-                              ? "outline outline-2 outline-primary"
-                              : "hover:outline hover:outline-1 hover:outline-primary/50 hover:bg-primary/10")
-                          }
+                          onTypingEnd={() => {
+                            typingGroup.current = null;
+                          }}
                         />
-                        {selected === o.id && (
-                          <>
-                            <button
-                              title={t.move}
-                              aria-label={t.move}
-                              onClick={(e) => e.stopPropagation()}
-                              onPointerDown={(e) => drag(e, o.id)}
-                              className="absolute -left-7 -top-7 w-7 h-7 bg-primary text-white rounded-md flex items-center justify-center cursor-move touch-none"
-                            >
-                              <Move size={15} />
-                            </button>
-                            <button
-                              title={t.resize}
-                              aria-label={t.resize}
-                              onClick={(e) => e.stopPropagation()}
-                              onPointerDown={(e) => drag(e, o.id, true)}
-                              className="absolute -right-3 -bottom-3 w-6 h-6 bg-primary text-white rounded-md flex items-center justify-center cursor-nwse-resize touch-none"
-                            >
-                              <Maximize2 size={13} />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      </React.Fragment>
                     ))}
                 {(renderedPage === page ? widgets : [])
                   .filter((w) => w.page === page)
@@ -1157,6 +1339,10 @@ export function PDFStudio({
                         "aria-label": `${t.form}: ${w.name}`,
                         title: w.readOnly ? t.fieldLocked : w.name,
                         disabled: w.readOnly,
+                        onFocus: () => {
+                          setSelected(null);
+                          setEditingId(null);
+                        },
                         onClick: (e: React.MouseEvent) => e.stopPropagation(),
                         className:
                           "border border-blue-300 focus:outline-2 focus:outline-primary px-0.5",

@@ -39,7 +39,7 @@ test("existing text: replace, format, move, resize, rotate, undo and download wi
   await load(page);
   await page
     .getByRole("button", { name: "Original name", exact: true })
-    .click();
+    .dblclick();
   await expect(page.getByRole("textbox", { name: "Editar texto" })).toHaveValue(
     "Original name",
   );
@@ -112,7 +112,7 @@ test("nested objects are removed from the saved PDF, not masked", async ({
   await load(page);
   await page
     .getByRole("button", { name: "Nested original", exact: true })
-    .click();
+    .dblclick();
   await page
     .getByRole("textbox", { name: "Editar texto" })
     .fill("Nested edited");
@@ -225,7 +225,7 @@ for (const config of [
       ];
     await page
       .getByRole("button", { name: "Original name", exact: true })
-      .click();
+      .dblclick();
     await expect(
       page.getByRole("textbox", { name: editLabel, exact: true }),
     ).toBeVisible();
@@ -248,3 +248,90 @@ for (const config of [
       fullPage: true,
     });
   });
+
+test("click to type, live drag and keyboard formatting do not rebuild the page", async ({
+  page,
+}, info) => {
+  await load(page);
+  const stage = page.getByTestId("pdf-stage");
+  await page
+    .getByRole("button", { name: "Adicionar texto", exact: true })
+    .click();
+  const before = await stage.getAttribute("data-background-renders");
+  await stage.click({ position: { x: 300, y: 280 } });
+  const editor = page.getByTestId("pdf-inline-editor");
+  await expect(editor).toBeFocused();
+  await editor.pressSequentially("Instant typing", { delay: 30 });
+  await expect(editor).toHaveValue("Instant typing");
+  expect(await stage.getAttribute("data-background-renders")).toBe(before);
+  await editor.press("Control+b");
+  await expect(
+    page.getByRole("button", { name: "Negrito", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await editor.press("Control+i");
+  await expect(
+    page.getByRole("button", { name: "Itálico", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await editor.press("Escape");
+  await expect(editor).toHaveCount(0);
+  const object = page
+    .locator("[data-pdf-object]")
+    .filter({
+      has: page.getByRole("button", { name: "Instant typing", exact: true }),
+    });
+  const start = await object.boundingBox(),
+    move = page.getByRole("button", { name: "Mover", exact: true }),
+    handle = await move.boundingBox();
+  await page.mouse.move(handle!.x + 10, handle!.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(handle!.x + 80, handle!.y + 50, { steps: 8 });
+  const during = await object.boundingBox();
+  expect(during!.x - start!.x).toBeGreaterThan(60);
+  await expect(object).toHaveAttribute("data-live", "true");
+  await page.mouse.up();
+  expect(await stage.getAttribute("data-background-renders")).toBe(before);
+  await page.screenshot({
+    path: info.outputPath("instant-text-drag.png"),
+    fullPage: true,
+  });
+  const out = await downloaded(page);
+  const native = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  native.PDFiumExt_Init();
+  const texts = extractSources(native, out);
+  expect(texts.filter((t) => t.text === "Instant typing")).toHaveLength(1);
+  expect(texts.find((t) => t.text === "Instant typing")!.bold).toBe(true);
+  expect(texts.find((t) => t.text === "Instant typing")!.italic).toBe(true);
+});
+
+test("inline typing keeps one undo step and existing text export stays intact after selection", async ({
+  page,
+}) => {
+  await load(page);
+  await page
+    .getByRole("button", { name: "Original name", exact: true })
+    .dblclick();
+  const editor = page.getByTestId("pdf-inline-editor");
+  await expect(editor).toBeFocused();
+  const before = await page
+    .getByTestId("pdf-stage")
+    .getAttribute("data-background-renders");
+  await editor.press("Control+End");
+  await editor.pressSequentially(" with edits", { delay: 25 });
+  await expect(editor).toHaveValue("Original name with edits");
+  expect(
+    await page.getByTestId("pdf-stage").getAttribute("data-background-renders"),
+  ).toBe(before);
+  await editor.press("Control+z");
+  await expect(editor).toHaveValue("Original name");
+  await editor.press("Control+Shift+z");
+  await expect(editor).toHaveValue("Original name with edits");
+  await page
+    .getByRole("button", { name: "Restaurar original", exact: true })
+    .click();
+  const out = await downloaded(page);
+  expect(Buffer.from(out).equals(Buffer.from(bytes))).toBe(true);
+});

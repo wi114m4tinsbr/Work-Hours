@@ -128,7 +128,7 @@ export function groupSources(
   }
   return objects;
 }
-function fontName(n: TextObject): StandardFonts {
+export function fontName(n: TextObject): StandardFonts {
   const names =
     n.font === "Times"
       ? [
@@ -316,7 +316,8 @@ export function createExporter(
       else if (field instanceof PDFCheckBox)
         value ? field.check() : field.uncheck();
       else if (field instanceof PDFDropdown || field instanceof PDFOptionList) {
-        if (value === "" || (Array.isArray(value) && !value.length)) field.clear();
+        if (value === "" || (Array.isArray(value) && !value.length))
+          field.clear();
         else field.select(value as string | string[]);
       } else if (field instanceof PDFRadioGroup) {
         if (value) {

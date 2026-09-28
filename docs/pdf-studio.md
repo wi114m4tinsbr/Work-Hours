@@ -8,7 +8,16 @@ PDFium (pinned MIT-licensed `@embedpdf/pdfium` 2.15.1, with its bundled PDFium n
 
 Only changed/deleted objects are removed. Recursive text-only removal preserves images, paths and page backgrounds. After saving and reopening the intermediate PDF, the editor compares every other recognized text string and its position with the original. If the original was not removed, or another recognized text was affected, export fails rather than masking the issue. This also prevents accidental edits to shared form instances that affect other occurrences.
 
-pdf-lib writes the replacement text and AcroForm values. PDF.js renders this generated PDF, and Download returns those exact preview bytes. Selecting text alone does not rewrite it. Text can be moved, scaled, rotated, reformatted, deleted, restored, undone and redone. New PNG/JPEG images and drawn signature images use the same page-coordinate model.
+pdf-lib writes the replacement text and AcroForm values in a dedicated worker. PDF.js renders a background with the active object removed; an immediate SVG/textarea layer handles typing, dragging and formatting without regenerating the document. It uses the same standard-font metrics and wrapping as export; browser glyph appearance can vary slightly while editing. Once deselected, the object is rendered from the generated PDF. Download always generates a complete, validated file from the latest state. Selecting text alone does not rewrite the exported file. Text can be moved, scaled, rotated, reformatted, deleted, restored, undone and redone. New PNG/JPEG images and drawn signature images use the same page-coordinate model.
+
+## Interaction
+
+- Add text, then click the page: the caret appears at that position immediately.
+- Double-click recognized text (or select it and press Enter) to edit in place.
+- Drag text or its border to move it; drag the corner to resize it.
+- Ctrl/Cmd+B and I format the selected block. Escape leaves typing mode; arrows nudge the selected object (Shift moves 10 points). Delete removes it when not typing.
+- Ctrl/Cmd+Z and Shift+Z undo/redo; typing is grouped into one undo operation per focus session.
+- The native PDF engine runs in a Web Worker. Changes to the active object do not trigger page reconstruction; other page changes and final export still take processing time.
 
 ## Limits
 
