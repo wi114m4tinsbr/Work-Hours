@@ -1,0 +1,220 @@
+import { test, expect } from "@playwright/test";
+import { PDFDocument } from "pdf-lib";
+import { init } from "@embedpdf/pdfium";
+import fs from "node:fs";
+import { extractSources } from "../src/lib/pdf/content";
+import { createFixture } from "./fixtures";
+let bytes: Uint8Array;
+test.beforeAll(async () => {
+  bytes = await createFixture();
+});
+async function load(page: any, query = "") {
+  await page.goto("/tests/pdf-studio.html" + query);
+  await page
+    .locator('input[accept=".pdf,application/pdf"]')
+    .setInputFiles({
+      name: "fixture.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(bytes),
+    });
+  await expect(
+    page.getByRole("button", { name: "Original name", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', {name: /^(Baixar|Download|Descargar)$/})).toBeEnabled();
+
+}
+async function downloaded(page: any, label = "Baixar") {
+  const button = page.getByRole("button", { name: label, exact: true });
+  await expect(button).toBeEnabled();
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    button.click(),
+  ]);
+  return new Uint8Array(fs.readFileSync((await download.path())!));
+}
+test("existing text: replace, format, move, resize, rotate, undo and download without duplication", async ({
+  page,
+}, info) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await load(page);
+  await page
+    .getByRole("button", { name: "Original name", exact: true })
+    .click();
+  await expect(page.getByRole("textbox", { name: "Editar texto" })).toHaveValue(
+    "Original name",
+  );
+  await page
+    .getByRole("textbox", { name: "Editar texto" })
+    .fill("Updated person");
+  await page
+    .getByRole("spinbutton", { name: "Tamanho", exact: true })
+    .fill("18");
+  await page.getByRole("button", { name: "Negrito", exact: true }).click();
+  await page.getByRole("button", { name: "Itálico", exact: true }).click();
+  await page
+    .getByRole("spinbutton", { name: "Largura", exact: true })
+    .fill("180");
+  await page
+    .getByRole("spinbutton", { name: "Rotação", exact: true })
+    .fill("15");
+  const move = page.getByRole("button", { name: "Mover", exact: true }),
+    r = await move.boundingBox();
+  await page.mouse.move(r!.x + 10, r!.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(r!.x + 50, r!.y + 40, { steps: 4 });
+  await page.mouse.up();
+  const handle = page.getByRole("button", {
+      name: "Redimensionar",
+      exact: true,
+    }),
+    h = await handle.boundingBox();
+  await page.mouse.move(h!.x + 10, h!.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(h!.x + 40, h!.y + 20, { steps: 4 });
+  await page.mouse.up();
+  const out = await downloaded(page);
+  const m = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  m.PDFiumExt_Init();
+  const text = extractSources(m, out).map((s) => s.text);
+  expect(text.filter((s) => s === "Updated person")).toHaveLength(1);
+  expect(text).not.toContain("Original name");
+  expect(text).toContain("Keep neighbour");
+  expect(text).toContain("Nested original");
+  await page.getByRole("button", { name: "Desfazer", exact: true }).click();
+  await page.getByRole("button", { name: "Refazer", exact: true }).click();
+  await page.screenshot({
+    path: info.outputPath("editor-desktop.png"),
+    fullPage: true,
+  });
+  expect(errors).toEqual([]);
+  await page
+    .locator('input[accept=".pdf,application/pdf"]')
+    .setInputFiles({
+      name: "reopened.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(out),
+    });
+  await expect(
+    page.getByRole("button", { name: "Updated person", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Original name", exact: true }),
+  ).toHaveCount(0);
+});
+test("nested objects are removed from the saved PDF, not masked", async ({
+  page,
+}) => {
+  await load(page);
+  await page
+    .getByRole("button", { name: "Nested original", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Editar texto" })
+    .fill("Nested edited");
+  const out = await downloaded(page);
+  const m = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  m.PDFiumExt_Init();
+  const text = extractSources(m, out).map((s) => s.text);
+  expect(text).toContain("Nested edited");
+  expect(text).not.toContain("Nested original");
+  expect(text).toContain("Original name");
+});
+test("AcroForm values stay interactive; image and drawn signature survive export", async ({
+  page,
+}, info) => {
+  await load(page);
+  await page
+    .getByRole("combobox", { name: "Página", exact: true })
+    .selectOption("2");
+  await page
+    .getByRole("textbox", { name: "Campo de formulário: Name", exact: true })
+    .fill("Updated field");
+  await page
+    .getByRole("checkbox", { name: "Campo de formulário: Agree", exact: true })
+    .check();
+  await page
+    .getByRole("radio", { name: "Campo de formulário: Choice", exact: true })
+    .nth(1)
+    .check();
+  await page
+    .getByRole("combobox", {
+      name: "Campo de formulário: Country",
+      exact: true,
+    })
+    .selectOption("ES");
+  await page
+    .locator('input[accept="image/png,image/jpeg"]')
+    .setInputFiles({
+      name: "pixel.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
+  await page.getByRole("button", { name: "Assinatura", exact: true }).click();
+  const canvas = page.getByRole("dialog").locator("canvas"),
+    r = await canvas.boundingBox();
+  await page.mouse.move(r!.x + 30, r!.y + 50);
+  await page.mouse.down();
+  await page.mouse.move(r!.x + 160, r!.y + 90, { steps: 10 });
+  await page.mouse.up();
+  await page.getByRole("button", { name: "Inserir", exact: true }).click();
+  const out = await downloaded(page),
+    d = await PDFDocument.load(out),
+    f = d.getForm();
+  expect(f.getTextField("Name").getText()).toBe("Updated field");
+  expect(f.getCheckBox("Agree").isChecked()).toBe(true);
+  expect(f.getRadioGroup("Choice").getSelected()).toBe("B");
+  expect(f.getDropdown("Country").getSelected()).toEqual(["ES"]);
+  expect(d.getPage(1).node.Resources()?.lookupMaybe).toBeTruthy();
+  await page.screenshot({
+    path: info.outputPath("forms-signature.png"),
+    fullPage: true,
+  });
+});
+for (const config of [
+  { lang: "pt", dark: false },
+  { lang: "en", dark: true },
+  { lang: "es", dark: false },
+])
+  test(`mobile ${config.lang} ${config.dark ? "dark" : "light"} selection and page navigation`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, `?lang=${config.lang}${config.dark ? "&dark" : ""}`);
+    const pageLabel = { pt: "Página", en: "Page", es: "Página" }[config.lang],
+      editLabel = { pt: "Editar texto", en: "Edit text", es: "Editar texto" }[
+        config.lang
+      ];
+    await page
+      .getByRole("button", { name: "Original name", exact: true })
+      .click();
+    await expect(
+      page.getByRole("textbox", { name: editLabel, exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("combobox", { name: pageLabel, exact: true })
+      .selectOption("2");
+    await expect(
+      page.getByRole("button", { name: "Second page", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: info.outputPath(`mobile-${config.lang}.png`),
+      fullPage: true,
+    });
+  });
