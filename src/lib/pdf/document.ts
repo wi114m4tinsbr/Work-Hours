@@ -206,7 +206,8 @@ function verifyRemoval(
   const group = (items: SourceText[]) => {
     const map = new Map<string, SourceText[]>();
     for (const s of items) {
-      const key = `${s.page}:${s.text}`;
+      // PDFium may change generated boundary word separators after a neighbour is removed.
+      const key = `${s.page}:${s.text.trim()}`;
       map.set(key, [...(map.get(key) || []), s]);
     }
     for (const group of map.values())

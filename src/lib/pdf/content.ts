@@ -236,16 +236,29 @@ export function removeSources(
     for (const pn of new Set(sources.map((s) => s.page))) {
       const page = m.FPDF_LoadPage(doc, pn - 1);
       try {
+        // Top-level text is removed by identity, never by a box that can touch neighbours.
+        const pageSources = sources.filter((s) => s.page === pn);
+        const objects = pageSources
+          .filter((s) => s.paths[0].length === 1)
+          .map((s) => m.FPDFPage_GetObject(page, s.paths[0][0]));
+        for (const obj of objects) {
+          if (!obj || !m.FPDFPage_RemoveObject(page, obj))
+            throw new Error("UNSAFE_TEXT_OVERLAP");
+          m.FPDFPageObj_Destroy(obj);
+        }
+        // Nested form streams need the recursive redactor to persist their changes.
+        // A previous region may already have removed a fragment; verifyRemoval checks the result.
         const rect = m.pdfium.wasmExports.malloc(16);
         try {
-          for (const source of sources.filter((s) => s.page === pn)) {
+          for (const source of pageSources.filter(
+            (s) => s.paths[0].length > 1,
+          )) {
             const [l, b, r, t] = source.bounds;
             m.pdfium.HEAPF32.set(
               [l - 0.01, t + 0.01, r + 0.01, b - 0.01],
               rect / 4,
             );
-            if (!m.EPDFText_RedactInRect(page, rect, true, false))
-              throw new Error("Could not remove original text");
+            m.EPDFText_RedactInRect(page, rect, true, false);
           }
         } finally {
           m.pdfium.wasmExports.free(rect);

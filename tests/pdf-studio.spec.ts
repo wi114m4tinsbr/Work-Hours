@@ -553,3 +553,30 @@ for (const width of [1280, 390]) {
     await page.screenshot({ path: info.outputPath("compact-scrolled.png") });
   });
 }
+
+test("numeric replacement remains visible in dark mode and exports every digit", async ({
+  page,
+}) => {
+  await load(page, "?dark");
+  await page
+    .getByRole("button", { name: "Original name", exact: true })
+    .click();
+  const editor = page.getByTestId("pdf-inline-editor");
+  await editor.fill("");
+  await editor.pressSequentially("0123456789");
+  await expect(editor).toHaveValue("0123456789");
+  await expect(editor).toHaveCSS("color", "rgb(0, 0, 0)");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  const out = await downloaded(page);
+  const native = await init({
+    wasmBinary: fs.readFileSync(
+      "node_modules/@embedpdf/pdfium/dist/pdfium.wasm",
+    ),
+  });
+  native.PDFiumExt_Init();
+  const texts = extractSources(native, out)
+    .map((s) => s.text)
+    .join("");
+  expect(texts).toContain("0123456789");
+  expect(texts).not.toContain("Original name");
+});

@@ -98,7 +98,7 @@ test("move, resize, rotate, delete and accented text survive reopen", async () =
     !extractSources(m, deleted).some((s) => s.text === "Original name"),
   );
 });
-test("overlapping text is blocked rather than deleting neighbouring content", async () => {
+test("editing overlapping page text removes only the selected object", async () => {
   const d = await PDFDocument.create(),
     p = d.addPage([500, 700]);
   p.drawText("Overlap A", { x: 50, y: 600, size: 16 });
@@ -107,21 +107,23 @@ test("overlapping text is blocked rather than deleting neighbouring content", as
     sources = extractSources(m, bytes),
     objects = groupSources(sources, geo),
     target = objects[0];
-  await assert.rejects(
-    createExporter(
-      m,
-      bytes,
-      sources,
-      geo,
-    )({
-      objects: objects.map((o) =>
-        o === target ? { ...o, text: "Changed", changed: true } : o,
-      ),
-      fields: {},
-    }),
-    /UNSAFE_TEXT_OVERLAP/,
-  );
+  const out = await createExporter(
+    m,
+    bytes,
+    sources,
+    geo,
+  )({
+    objects: objects.map((o) =>
+      o === target ? { ...o, text: "Changed", changed: true } : o,
+    ),
+    fields: {},
+  });
+  const texts = extractSources(m, out).map((s) => s.text.trim());
+  assert.ok(texts.includes("Changed"));
+  assert.ok(texts.includes("Overlap B"));
+  assert.ok(!texts.includes("Overlap A"));
 });
+
 test("crop and page rotation map edits back into the correct PDF coordinates", async () => {
   const d = await PDFDocument.create(),
     p = d.addPage([500, 700]);
@@ -199,7 +201,7 @@ if (reference)
       ),
       fields: {},
     });
-    const texts = extractSources(m, out).map((s) => s.text);
+    const texts = extractSources(m, out).map((s) => s.text.trim());
     assert.ok(!texts.includes(target.text));
     assert.ok(texts.includes("Teste de edição"));
     fs.writeFileSync("/tmp/shifthours-reference-edited.pdf", out);
@@ -353,4 +355,25 @@ test("automatic font downloads use exact allowlisted families and keep offline P
     throw new Error("offline");
   }) as typeof fetch);
   assert.deepEqual(offline, []);
+});
+
+test("typing digits into a subset chooses a complete same-family face or a visible standard fallback", async () => {
+  const { typingFont, readFont } = await import("../src/lib/pdf/fonts");
+  const { createFontFixture } = await import("./fixtures");
+  const fixture = await createFontFixture();
+  const full = readFont({ id: "full", name: "Full", data: fixture.fontBytes });
+  const subset = {
+    ...full,
+    id: "subset",
+    characters: full.characters.filter((c) => c < 48 || c > 57),
+  };
+  assert.equal(
+    typingFont([subset, full], "subset", false, false, "123"),
+    "full",
+  );
+  assert.equal(
+    typingFont([subset], "subset", false, false, "123"),
+    "Helvetica",
+  );
+  assert.equal(typingFont([subset], "subset", false, false, "ABC"), "subset");
 });

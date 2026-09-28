@@ -2,6 +2,7 @@ import {
   cleanFontName,
   matchingFont,
   supportsText,
+  typingFont,
   type FontAsset,
 } from "../lib/pdf/fonts";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -63,6 +64,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 type Lang = "pt" | "en" | "es";
 const C = {
   pt: {
+    fontSubstitution: "A fonte original está incompleta. Fonte de edição:",
     more: "Mais opções",
     closePanel: "Fechar painel",
     documentFonts: "Fontes do documento",
@@ -140,6 +142,7 @@ const C = {
     restore: "Restaurar original",
   },
   en: {
+    fontSubstitution: "The original font is incomplete. Editing font:",
     more: "More options",
     closePanel: "Close panel",
     documentFonts: "Document fonts",
@@ -216,6 +219,7 @@ const C = {
     restore: "Restore original",
   },
   es: {
+    fontSubstitution: "La fuente original está incompleta. Fuente de edición:",
     more: "Más opciones",
     closePanel: "Cerrar panel",
     documentFonts: "Fuentes del documento",
@@ -339,6 +343,7 @@ export function PDFStudio({
     [page, setPage] = useState(1),
     [zoom, setZoom] = useState(1.35),
     [tool, setTool] = useState<"select" | "text">("select");
+  const [fontNotice, setFontNotice] = useState("");
   const [moreOpen, setMoreOpen] = useState(false);
   const morePanel = useRef<HTMLDivElement>(null),
     moreButton = useRef<HTMLButtonElement>(null);
@@ -622,6 +627,7 @@ export function PDFStudio({
       const available = await registerLiveFonts(loaded.fonts || []);
       if (token !== loadVersion.current) return;
       setFontAssets(available);
+      setFontNotice("");
       const sources = loaded.sources!;
       editClient.current?.destroy();
       editClient.current = client;
@@ -1492,6 +1498,31 @@ export function PDFStudio({
           </div>
         )}
       </div>
+      {fontNotice && (
+        <div
+          role="status"
+          className="flex items-center gap-2 px-4 py-2 text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/30"
+        >
+          <span>
+            {t.fontSubstitution} {fontNotice}. {t.loadFont} (TTF/OTF).
+          </span>
+          <button
+            type="button"
+            onClick={() => fontInput.current?.click()}
+            className="underline whitespace-nowrap"
+          >
+            {t.loadFont}
+          </button>
+          <button
+            type="button"
+            aria-label={t.closePanel}
+            onClick={() => setFontNotice("")}
+            className="ml-auto shrink-0"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {error && (
         <div
           role="alert"
@@ -1634,7 +1665,23 @@ export function PDFStudio({
                           onText={(text) => {
                             const checkpoint = typingGroup.current !== o.id;
                             typingGroup.current = o.id;
-                            patch(o.id, { text }, checkpoint);
+                            const font =
+                              o.kind === "text"
+                                ? typingFont(
+                                    fontAssets,
+                                    o.font,
+                                    o.bold,
+                                    o.italic,
+                                    text,
+                                    o.sources[0]?.font || "Helvetica",
+                                  )
+                                : "Helvetica";
+                            if (o.kind === "text" && font !== o.font)
+                              setFontNotice(
+                                fontAssets.find((a) => a.id === font)?.name ||
+                                  font,
+                              );
+                            patch(o.id, { text, font }, checkpoint);
                           }}
                           onTypingEnd={() => {
                             typingGroup.current = null;

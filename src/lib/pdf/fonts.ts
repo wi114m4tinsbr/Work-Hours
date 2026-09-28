@@ -116,3 +116,25 @@ export async function downloadOriginalFonts(
   );
   return out;
 }
+
+// Prefer a complete face of the same family before falling back to a standard PDF font.
+export function typingFont(
+  assets: FontAsset[],
+  font: string,
+  bold: boolean,
+  italic: boolean,
+  text: string,
+  fallback = "Helvetica",
+) {
+  const current = matchingFont(assets, font, bold, italic);
+  if (!current || supportsText(current, text)) return font;
+  return (
+    assets.find(
+      (a) =>
+        a.family === current.family &&
+        a.bold === bold &&
+        a.italic === italic &&
+        supportsText(a, text),
+    )?.id || fallback
+  );
+}
