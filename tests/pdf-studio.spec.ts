@@ -411,13 +411,11 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
   const { createFontFixture } = await import("./fixtures");
   const fixture = await createFontFixture();
   await page.goto("/tests/pdf-studio.html?appHeader");
-  await page
-    .locator('input[accept=".pdf,application/pdf"]')
-    .setInputFiles({
-      name: "fonts.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(fixture.bytes),
-    });
+  await page.locator('input[accept=".pdf,application/pdf"]').setInputFiles({
+    name: "fonts.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(fixture.bytes),
+  });
   await page
     .getByRole("button", { name: "Original font", exact: true })
     .click();
@@ -455,13 +453,11 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
     "StudioFixture",
   );
   await font.selectOption("Helvetica");
-  await page
-    .locator('input[accept=".ttf,.otf"]')
-    .setInputFiles({
-      name: "StudioFixture.ttf",
-      mimeType: "font/ttf",
-      buffer: Buffer.from(fixture.fontBytes),
-    });
+  await page.locator('input[accept=".ttf,.otf"]').setInputFiles({
+    name: "StudioFixture.ttf",
+    mimeType: "font/ttf",
+    buffer: Buffer.from(fixture.fontBytes),
+  });
   await expect(font).toHaveValue(/^uploaded-/);
   out = await downloaded(page);
   expect(extractSources(native, out)[0].originalFont).toContain(
@@ -471,4 +467,23 @@ test("font inventory, embedded face, upload and sticky formatting toolbar", asyn
     path: info.outputPath("sticky-font-toolbar.png"),
     fullPage: false,
   });
+  // Loading a new PDF must reset the last typing font, not retain a stale embedded id.
+  await page
+    .locator('input[accept=".pdf,application/pdf"]')
+    .setInputFiles({
+      name: "second.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(bytes),
+    });
+  await expect(
+    page.getByRole("button", { name: "Original name", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Adicionar texto", exact: true })
+    .click();
+  await page.getByTestId("pdf-stage").click({ position: { x: 300, y: 280 } });
+  await expect(page.getByTestId("pdf-inline-editor")).toBeFocused();
+  await expect(font).toHaveValue("Helvetica");
+  await page.getByTestId("pdf-inline-editor").fill("New document text");
+  await downloaded(page);
 });

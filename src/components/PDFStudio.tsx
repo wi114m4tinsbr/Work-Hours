@@ -632,6 +632,34 @@ export function PDFStudio({
         }),
         fields: {},
       };
+      // New text starts with the predominant detected style of this document.
+      // Never carry a previous PDF's embedded font id into a new document.
+      const styles = new Map<string, { object: TextObject; count: number }>();
+      for (const o of next.objects) {
+        const key = JSON.stringify([o.font, o.size, o.bold, o.italic, o.color]);
+        const entry = styles.get(key);
+        styles.set(key, {
+          object: o,
+          count: (entry?.count || 0) + o.text.length,
+        });
+      }
+      const dominant = [...styles.values()].sort((a, b) => b.count - a.count)[0]
+        ?.object;
+      lastTextStyle.current = dominant
+        ? {
+            font: dominant.font,
+            size: dominant.size,
+            bold: dominant.bold,
+            italic: dominant.italic,
+            color: dominant.color,
+          }
+        : {
+            font: "Helvetica",
+            size: 12,
+            bold: false,
+            italic: false,
+            color: "#111111",
+          };
       original.current = next;
 
       undo.current = [];
