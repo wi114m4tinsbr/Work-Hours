@@ -49,6 +49,13 @@ export default function App() {
     footerText: 'SHIFTHOURS • Professional Edition • 2026'
   });
 
+  const goHome = () => {
+    setActiveTab('hours');
+    setCurrentJobId(null);
+    setIsToolsMenuOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
   // Restore the user's last visual identity immediately, before Firestore finishes loading.
   useEffect(() => {
     applyTheme(bootThemeColor);
@@ -308,11 +315,15 @@ export default function App() {
         isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
       )}>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
-          <button
-            type="button"
+          <a
+            href="/"
             className="brand-trigger group flex items-center gap-2.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg"
-            onClick={() => setCurrentJobId(null)}
-            aria-label={`${settings.appName} - Home`}
+            onClick={(event) => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              goHome();
+            }}
+            aria-label={`${settings.appName} — ${lang === 'en' ? 'Home' : lang === 'es' ? 'Inicio' : 'Início'}`}
           >
             <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm" aria-hidden="true">
               <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
@@ -326,7 +337,7 @@ export default function App() {
               <span className="brand-shift font-black text-base sm:text-xl tracking-[-0.04em] text-stone-900 dark:text-white">Shift</span>
               <span className="brand-hours ml-1 font-black text-base sm:text-xl tracking-[-0.04em] text-primary">Hours</span>
             </span>
-          </button>
+          </a>
 
           {/* Product switcher: app-specific tools live here so the global header stays clean. */}
           <div ref={toolsMenuRef} className="hidden sm:flex items-center relative mr-auto">
@@ -500,11 +511,11 @@ export default function App() {
 
       {activeTab === 'pdf' ? (
         <main className="flex-1 w-full overflow-visible custom-scrollbar">
-          <PDFStudio language={lang} toolbarTop={64} onBack={() => setActiveTab('hours')} />
+          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} />
         </main>
       ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
-          <InvoiceCreator language={lang} onBack={() => setActiveTab('hours')} isAdmin={isOwner} embedded />
+          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded />
         </main>
       ) : (
       <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">

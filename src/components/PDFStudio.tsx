@@ -41,6 +41,7 @@ import {
   registerLiveFonts,
   clearDocumentFonts,
 } from "../lib/pdf/live-layout";
+import { BackButton } from "./BackButton";
 import { PDFObjectLayer } from "./PDFObjectLayer";
 
 // Compatibility for PDF.js in browsers without the Map upsert APIs.
@@ -1094,7 +1095,7 @@ export function PDFStudio({
         style={{ top: toolbarTop }}
       >
         <div className="h-12 flex items-center gap-1 px-2 sm:px-3">
-          {button(t.back, PanelLeft, onBack)}
+          <BackButton label={t.back} onClick={onBack} />
           <b className="hidden md:inline text-sm dark:text-white whitespace-nowrap mr-2">
             PDF Studio
           </b>

@@ -1,3 +1,4 @@
+import { BackButton } from "./BackButton";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -796,10 +797,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
       <header className={cn("bg-white dark:bg-bg-card-dark border-b border-gray-200 dark:border-white/10 px-4", embedded ? "relative z-20" : "sticky top-0 z-30")}>
         <div className="max-w-5xl mx-auto py-3 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
           <div className="flex items-center gap-3 min-w-0 lg:flex-1">
-            <button onClick={onBack} className="shrink-0 flex items-center gap-1.5 text-gray-500 dark:text-gray-300 hover:text-primary font-semibold">
-              <ChevronLeft size={18} />
-              <span>{t.back}</span>
-            </button>
+            <BackButton label={t.back} onClick={onBack} />
             <span className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-white/10" />
             <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-[0.16em] font-black text-gray-400">{language === 'en' ? 'Tool' : language === 'es' ? 'Herramienta' : 'Ferramenta'}</p>
