@@ -217,6 +217,12 @@
       "kind": "improved",
       "title": "Avisos Telegram com identificação e mensagem separadas",
       "details": "Usuário confirmou envio e respostas em produção. Avisos agora usam títulos em negrito, rótulos de usuário/ocorrência, mensagem destacada em citação, instrução de resposta e link nomeado. PT/EN/ES, escape de conteúdo e indicação de mensagens truncadas."
+    },
+    {
+      "at": "2026-10-03T12:01:50.904798+00:00",
+      "kind": "improved",
+      "title": "Conferência e regra de alinhamento entre oficial e teste",
+      "details": "Arquivos idênticos nas duas branches e mesmo arquivo principal de interface nos dois endereços; publicações e checks anteriores aprovados. Check completo passa a executar também na main. Contexto corrigido para refletir Telegram validado. Registrada rotina permanente de publicação e conferência dos dois ambientes, sem sincronização automática de branches nem cópia de segredos."
     }
   ]
 }

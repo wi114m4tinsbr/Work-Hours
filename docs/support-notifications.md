@@ -31,6 +31,6 @@ Próxima evolução para entrega garantida: outbox transacional ou gatilhos Fire
 
 ## Verificação
 
-Testes de autorização, segredo de webhook, vínculo expirado/grupo, destino, atualização repetida, encerramento, atribuição, desativação e /stop. Interface PT/EN/ES, temas e celular com testes de navegador. Validação real de entrega permanece pendente até configurar e vincular.
+Testes de autorização, segredo de webhook, vínculo expirado/grupo, destino, atualização repetida, encerramento, atribuição, desativação e /stop. Interface PT/EN/ES, temas e celular com testes de navegador. O dono confirmou recebimento e respostas reais em produção. Testes no preview não enviam avisos.
 
 Referências: https://core.telegram.org/bots/api e https://firebase.google.com/docs/admin/setup
