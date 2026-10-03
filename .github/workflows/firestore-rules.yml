@@ -1,10 +1,10 @@
 name: Publish Firestore rules
 # Publishes firestore.rules to Firebase whenever it changes on the work branch or main.
-# Needs the repository secret FIREBASE_SERVICE_ACCOUNT (the JSON key from Firebase → Project settings → Service accounts).
+# Needs the repository secret FIREBASE_SERVICE_ACCOUNT (JSON key of a service account with the Firebase Rules Admin role).
 on:
   push:
     branches: [feature/free-plan-job-limit, main]
-    paths: ['firestore.rules', 'deploy/firebase.json', '.github/workflows/firestore-rules.yml']
+    paths: ['firestore.rules', 'deploy/publish-rules.mjs', '.github/workflows/firestore-rules.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,8 +34,5 @@ jobs:
         run: |
           umask 077
           printf '%s' "$KEY" > "$RUNNER_TEMP/sa.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          cp firestore.rules deploy/firestore.rules
-          cd deploy
-          npx --yes firebase-tools@15 deploy --only firestore:rules --project gen-lang-client-0275590292 --non-interactive
-          rm -f "$RUNNER_TEMP/sa.json"
+          trap 'rm -f "$RUNNER_TEMP/sa.json"' EXIT
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" node deploy/publish-rules.mjs
