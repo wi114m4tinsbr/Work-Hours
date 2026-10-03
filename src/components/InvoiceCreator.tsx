@@ -1,4 +1,5 @@
 import { ToolIdentity } from "./ToolIdentity";
+import { isPremium } from '../lib/subscription';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -311,7 +312,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
           count: data.usage?.dailyInvoiceCount || 0,
           lastDate: data.usage?.lastInvoiceDate || ''
         });
-        setSubscription(data.subscription?.type || 'free');
+        setSubscription(isPremium(data.subscription) ? 'monthly' : 'free');
       }
     });
 

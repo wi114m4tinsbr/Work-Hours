@@ -3,7 +3,6 @@ import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onA
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
 import { JobView } from './components/JobView';
-import { AdminSettings } from './components/AdminSettings';
 import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
@@ -15,6 +14,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
 import { syncFormulaSession, clearFormulaSession, fetchFormulaPublic, setFormulaPublic, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
 import { FormulaFacilView } from './components/FormulaFacilView';
+import { AdminDashboard } from './components/AdminDashboard';
+import { isPremium, accountStatus, type AccountStatus } from './lib/subscription';
+import { increment } from 'firebase/firestore';
+
+const ADMIN_PANEL_PATH = '/admin';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,25 +36,27 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin';
+  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin';
   const tabFromPath = (): Tab =>
-    window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
+    window.location.pathname === ADMIN_PANEL_PATH ? 'admin'
+      : window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
       : window.location.pathname === FORMULA_ADMIN_PATH ? 'formula-admin'
       : 'hours';
   const [activeTab, setActiveTabState] = useState<Tab>(tabFromPath);
   // Fórmula Fácil has its own address so it can be opened or shared directly.
   const setActiveTab = (tab: Tab) => {
-    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : '/';
+    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : '/';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
     setActiveTabState(tab);
   };
   const [formulaSessionReady, setFormulaSessionReady] = useState(false);
   const [formulaPublic, setFormulaPublicState] = useState(false);
   const [lang, setLang] = useState<Language>('pt');
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
+  const [userStatus, setUserStatus] = useState<AccountStatus>('active');
+  const [userStatusReason, setUserStatusReason] = useState('');
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -159,6 +165,9 @@ export default function App() {
           }
         }
 
+        // Last access feeds the admin panel's active-user numbers; blocked accounts are refused by the rules.
+        updateDoc(userRef, { lastLoginAt: Timestamp.now(), loginCount: increment(1) }).catch(() => {});
+
         // Increment total logins stat
         const statsRef = doc(db, 'stats', 'global');
         const statsSnap = await getDoc(statsRef);
@@ -193,7 +202,9 @@ export default function App() {
         setLang(userData.language || 'pt');
         setIsDarkMode(!!userData.isDarkMode);
         localStorage.setItem('shift-hours-dark-mode', String(!!userData.isDarkMode));
-        setSubscriptionType(userData.subscription?.type === 'monthly' ? 'monthly' : 'free');
+        setSubscriptionType(isPremium(userData.subscription) ? 'monthly' : 'free');
+        setUserStatus(accountStatus(userData));
+        setUserStatusReason(typeof userData.statusReason === 'string' ? userData.statusReason : '');
         const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
         setProfileFirstName(userData.firstName || storedName[0] || '');
         setProfileLastName(userData.lastName || (storedName.length > 1 ? storedName[storedName.length - 1] : ''));
@@ -350,6 +361,27 @@ export default function App() {
     );
   }
 
+  if (userStatus !== 'active' && !isOwner) {
+    const banned = userStatus === 'banned';
+    return (
+      <div className={cn("min-h-screen flex items-center justify-center p-6 transition-colors duration-300", isDarkMode ? "bg-bg-dark" : "bg-stone-50")}>
+        <div className="w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-xl p-7 text-center" data-testid="account-blocked">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-300 flex items-center justify-center mb-4"><ShieldCheck size={22} /></div>
+          <h1 className="text-xl font-black text-stone-900 dark:text-white">
+            {banned
+              ? (lang === 'en' ? 'Account banned' : lang === 'es' ? 'Cuenta bloqueada permanentemente' : 'Conta banida')
+              : (lang === 'en' ? 'Account suspended' : lang === 'es' ? 'Cuenta suspendida' : 'Conta suspensa')}
+          </h1>
+          <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">
+            {lang === 'en' ? 'Access to this account was restricted by the administrator.' : lang === 'es' ? 'El administrador restringió el acceso a esta cuenta.' : 'O acesso a esta conta foi restringido pelo administrador.'}
+          </p>
+          {userStatusReason && <p className="mt-3 text-sm font-semibold text-stone-700 dark:text-stone-200">{userStatusReason}</p>}
+          <button type="button" onClick={handleLogout} className="mt-6 w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 font-black">{t.logout}</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
       "min-h-screen font-sans flex flex-col transition-colors duration-300 custom-scrollbar",
@@ -463,9 +495,9 @@ export default function App() {
 
             {isOwner && (
               <button 
-                onClick={() => setIsAdminModalOpen(true)}
-                className="p-2 text-stone-400 hover:text-primary transition-colors"
-                title="Admin Settings"
+                onClick={() => setActiveTab('admin')}
+                className={cn("p-2 transition-colors", activeTab === 'admin' ? "text-primary" : "text-stone-400 hover:text-primary")}
+                title={lang === 'en' ? 'Admin panel' : lang === 'es' ? 'Panel de administración' : 'Painel Admin'}
               >
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -563,7 +595,11 @@ export default function App() {
         </div>
       </header>
 
-      {activeTab === 'formula' || (activeTab === 'formula-admin' && canSeeFormulaAdmin) ? (
+      {activeTab === 'admin' && isOwner ? (
+        <main className="flex-1 w-full">
+          <AdminDashboard language={lang} onBack={goHome} settings={settings} t={t} />
+        </main>
+      ) : activeTab === 'formula' || (activeTab === 'formula-admin' && canSeeFormulaAdmin) ? (
         <main className="flex-1 w-full">
           <FormulaFacilView
             variant={activeTab === 'formula' ? 'public' : 'admin'}
@@ -617,12 +653,6 @@ export default function App() {
       </main>
       )}
 
-      <AdminSettings 
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        currentSettings={settings}
-        t={t}
-      />
 
       <ThemeModal
         isOpen={isThemeModalOpen}
@@ -698,7 +728,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {activeTab !== 'formula' && activeTab !== 'formula-admin' && <footer className={cn(
+      {activeTab !== 'formula' && activeTab !== 'formula-admin' && activeTab !== 'admin' && <footer className={cn(
         "pt-48 pb-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>

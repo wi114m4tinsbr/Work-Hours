@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isPremium } from '../lib/subscription';
 import { db, auth, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, getDocs, query, where, setDoc } from '../firebase';
 import { X, Briefcase, Coffee, Car, Home, ShoppingBag, Utensils, Code, Camera, Music, Heart, Image as ImageIcon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -166,7 +167,7 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
         await updateDoc(doc(db, 'jobs', jobToEdit.id), jobData);
       } else {
         const userSnap = await getDoc(doc(db, 'users', userId));
-        const subscriptionType = userSnap.exists() ? userSnap.data().subscription?.type || 'free' : 'free';
+        const subscriptionType = userSnap.exists() && isPremium(userSnap.data().subscription) ? 'monthly' : 'free';
         const isAdmin = auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com';
 
         if (!isAdmin && subscriptionType !== 'monthly') {

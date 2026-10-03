@@ -15,6 +15,11 @@ rules_version = '2';
 //   - isDarkMode: bool (optional)
 //   - primaryColor: string (optional)
 //   - createdAt: timestamp (required)
+//   - lastLoginAt: timestamp, loginCount: number (written by the user on login)
+//   - subscription: { type: 'free' | 'monthly', expiryDate: timestamp | null, grantedBy?, grantedAt? } (admin only after creation)
+//   - status: 'active' | 'blocked' | 'banned', statusReason, statusUpdatedAt (admin only)
+//
+// Collection: adminLog (admin only) - every action taken in the admin panel
 //
 // Collection: jobs
 // Document ID: {jobId}
@@ -70,6 +75,18 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
              (request.auth.token.email.lower() == "martinswilliam2004@gmail.com");
+    }
+
+    // Blocked or banned users keep their data but cannot change anything.
+    function isActiveUser() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return isAdmin() || !exists(path) || get(path).data.get('status', 'active') == 'active';
+    }
+
+    // Fields only the admin may change on a user document.
+    function touchesProtectedUserFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['uid', 'createdAt', 'subscription', 'status', 'statusReason', 'statusUpdatedAt']);
     }
 
     function isValidEmail(email) {
@@ -154,6 +171,12 @@ service cloud.firestore {
              (!('totalLogins' in data) || data.totalLogins is number);
     }
 
+    // Users may only add one to the public counters; anything else is the admin's.
+    function stepsByOne(field) {
+      return request.resource.data.get(field, 0) == resource.data.get(field, 0) ||
+             request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -164,30 +187,39 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) &&
+                    !('status' in request.resource.data) &&
+                    request.resource.data.get('subscription', {'type': 'free'}).type == 'free';
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) &&
+                        !touchesProtectedUserFields() && isActiveUser()) ||
+                       isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /adminLog/{entryId} {
+      allow read, write: if isAdmin();
     }
 
     match /jobs/{jobId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidJob(request.resource.data);
-      allow update: if isAuthenticated() && isDocOwner() && isValidJob(request.resource.data);
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isActiveUser() && isValidJob(request.resource.data);
+      allow update: if isAuthenticated() && isActiveUser() && isDocOwner() && isValidJob(request.resource.data);
+      allow delete: if (isAuthenticated() && isActiveUser() && isDocOwner()) || isAdmin();
     }
 
     match /sessions/{sessionId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidSession(request.resource.data);
-      allow update: if isAuthenticated() && isDocOwner() && isValidSession(request.resource.data);
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isActiveUser() && isValidSession(request.resource.data);
+      allow update: if isAuthenticated() && isActiveUser() && isDocOwner() && isValidSession(request.resource.data);
+      allow delete: if (isAuthenticated() && isActiveUser() && isDocOwner()) || isAdmin();
     }
 
     match /invoices/{invoiceId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidInvoice(request.resource.data);
-      allow update: if isAuthenticated() && isDocOwner() && isValidInvoice(request.resource.data);
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isActiveUser() && isValidInvoice(request.resource.data);
+      allow update: if isAuthenticated() && isActiveUser() && isDocOwner() && isValidInvoice(request.resource.data);
+      allow delete: if (isAuthenticated() && isActiveUser() && isDocOwner()) || isAdmin();
     }
 
     match /shared_invoices/{invoiceId} {
@@ -197,7 +229,12 @@ service cloud.firestore {
 
     match /stats/global {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isValidStats(request.resource.data);
+      allow create: if isAuthenticated() && isValidStats(request.resource.data) &&
+                    request.resource.data.get('totalUsers', 0) <= 1 &&
+                    request.resource.data.get('totalLogins', 0) <= 1;
+      allow update: if isAdmin() || (isAuthenticated() && isValidStats(request.resource.data) &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalUsers', 'totalLogins']) &&
+                    stepsByOne('totalUsers') && stepsByOne('totalLogins'));
     }
     
     match /test/connection {
