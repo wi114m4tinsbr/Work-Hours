@@ -12,7 +12,7 @@ function memory(initial: Record<string, any>) {
   const doc = (path: string): any => ({ path, get: async () => ({ exists: data.has(path), data: () => data.get(path) }), set: async (value: any, options?: any) => data.set(path, options?.merge ? { ...data.get(path), ...value } : value), collection: (name: string) => ({ doc: (id: string) => doc(`${path}/${name}/${id}`) }) });
   const db: any = { doc, batch: () => { const staged: any[] = []; return { set: (ref: any, value: any, options: any) => staged.push([ref, value, options]), commit: async () => { for (const [ref, value, options] of staged) await ref.set(value, options); } }; }, runTransaction: async (fn: any) => {
     const staged = new Map(data);
-    const tx = { get: async (ref: any) => ({ exists: staged.has(ref.path), data: () => staged.get(ref.path) }), set: (ref: any, val: any) => staged.set(ref.path, val), update: (ref: any, val: any) => staged.set(ref.path, { ...staged.get(ref.path), ...val }), create: (ref: any, val: any) => { assert.ok(!staged.has(ref.path)); staged.set(ref.path, val); } };
+    const tx = { get: async (ref: any) => ({ exists: staged.has(ref.path), data: () => staged.get(ref.path) }), set: (ref: any, val: any) => { assert.ok(!Object.values(val).some((v: any) => v?.constructor?.name === 'DeleteTransform'), 'Firestore delete transforms require update or merged set'); staged.set(ref.path, val); }, update: (ref: any, val: any) => staged.set(ref.path, { ...staged.get(ref.path), ...val }), create: (ref: any, val: any) => { assert.ok(!staged.has(ref.path)); staged.set(ref.path, val); } };
     const result = await fn(tx); data.clear(); staged.forEach((v,k) => data.set(k,v)); return result;
   } };
   return { db, data };
