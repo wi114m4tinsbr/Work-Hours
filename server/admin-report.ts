@@ -66,10 +66,13 @@ const when = (iso: string) => {
 };
 
 /** The copy-and-paste prompt, ending with the latest pushes so it is always current. */
-export function buildPrompt(base: string, branch: string, commits: Commit[] | null): string {
-  if (!commits?.length) return `${base.trim()}\n\n_(Não foi possível ler os envios do GitHub agora.)_\n`;
+export function buildPrompt(base: string, branch: string, commits: Commit[] | null, milestones: Milestone[] = []): string {
+  const history = [...milestones].sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+    .map(m => `### ${when(m.at)} · ${m.title}\n${m.details}`).join('\n\n');
+  const full = `${base.trim()}${history ? `\n\n## Histórico completo dos marcos registrados\n\n${history}` : ''}`;
+  if (!commits?.length) return `${full}\n\n_(Não foi possível ler os envios do GitHub agora; os marcos registrados estão preservados.)_\n`;
   const recent = commits.slice(0, 25).map((c) => `- ${when(c.at)} · ${c.sha} · ${c.message}`).join('\n');
-  return `${base.trim()}\n\n### Últimos envios na branch \`${branch}\` (mais recente primeiro)\n${recent}\n`;
+  return `${full}\n\n### Últimos envios na branch \`${branch}\` (mais recente primeiro)\n${recent}\n`;
 }
 
 /** GET with the owner's Bearer token: milestones, every push from GitHub and the context prompt. */
@@ -81,7 +84,7 @@ export async function handleAdminReport(request: Request, deps: ReportDeps = def
 
   const branch = deps.branch();
   const [milestones, base, commits] = await Promise.all([deps.loadMilestones(), deps.loadPrompt(), deps.loadCommits(branch)]);
-  const body = { branch, milestones, commits: commits ?? [], commitsAvailable: commits !== null, prompt: buildPrompt(base, branch, commits) };
+  const body = { branch, milestones, commits: commits ?? [], commitsAvailable: commits !== null, prompt: buildPrompt(base, branch, commits, milestones) };
   return new Response(JSON.stringify(body), {
     status: 200,
     headers: { ...PRIVATE_HEADERS, 'Content-Type': 'application/json; charset=utf-8' },
