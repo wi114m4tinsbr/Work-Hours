@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDoc, collection, doc, onSnapshot, setDoc, Timestamp } from 'firebase/firestore';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Plus, RotateCcw, Save, Star, Trash2 } from 'lucide-react';
+import { logAdmin } from '../lib/adminLog';
 import { auth, db } from '../firebase';
 import { cn } from '../lib/utils';
 import {
@@ -119,10 +120,7 @@ export function PlansEditor({ language }: { language: Lang }) {
       const clean = normalizePlans(draft);
       await setDoc(doc(db, 'settings', 'plans'), { plans: clean.plans, updatedAt: Timestamp.now(), updatedBy: auth.currentUser?.email || '' });
       const summary = sortedPlans(clean).map(([, p]) => `${p.name.pt}: ${TOOL_IDS.map((tool) => describeLimit(tool, p.limits[tool], 'pt')).join(', ')}`).join(' | ');
-      await addDoc(collection(db, 'adminLog'), {
-        action: 'plansSaved', targetUid: '', targetEmail: '', details: summary.slice(0, 900),
-        by: auth.currentUser?.email || '', at: Timestamp.now(),
-      }).catch(() => {});
+      await logAdmin('plansSaved', {}, summary).catch(() => {});
       setDraft(null);
       setStatus('saved');
     } catch (error) {

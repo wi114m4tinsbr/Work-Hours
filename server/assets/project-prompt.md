@@ -15,7 +15,7 @@ Site de produtividade para quem trabalha por turnos: registro de horas por traba
 - **Branch de trabalho: `feature/free-plan-job-limit`.** Não criar outras branches. Tudo é testado no preview desta branch e só depois eu aplico no `main` (site oficial).
 - Preview: https://work-hours-git-feature-free-plan-9d3e73-wi114m4tinsbrs-projects.vercel.app/
 - Hospedagem: Vercel (site + funções em `api/*.ts`, armazenamento privado Vercel Blob).
-- Banco e login: Firebase, projeto `gen-lang-client-0275590292`, banco Firestore com nome `ai-studio-df43dc48-1bac-453f-8185-49b595d5483a`. As regras ficam em `firestore.rules` e precisam ser coladas e publicadas por mim no console do Firebase (Firestore → esse banco → Regras) sempre que mudarem.
+- Banco e login: Firebase, projeto `gen-lang-client-0275590292`, banco Firestore com nome `ai-studio-df43dc48-1bac-453f-8185-49b595d5483a`. As regras ficam em `firestore.rules` e são publicadas sozinhas pelo GitHub Actions (`.github/workflows/firestore-rules.yml` + `deploy/publish-rules.mjs`) quando mudam nesta branch ou no `main`, usando o segredo `FIREBASE_SERVICE_ACCOUNT` que eu já configurei.
 
 ## Tecnologia
 React 19 + Vite 6 + Tailwind 4 (app de página única em `src/App.tsx`), Firebase Auth + Firestore, funções Vercel em `api/` com lógica em `server/`, verificação de login no servidor com `jose`, `@vercel/blob`. Testes: `npm run lint`, `npm run test:formula` (servidor e limites), `npm run test:pdf` (PDF Studio, roda no GitHub Actions), `npm run build`.
@@ -37,6 +37,9 @@ React 19 + Vite 6 + Tailwind 4 (app de página única em `src/App.tsx`), Firebas
    - Plano grátis (valores padrão, editáveis no painel): 1 fatura por dia e 1 PDF por dia (contam ao baixar ou compartilhar) e 15 minutos de Fórmula Fácil a cada 24 h (bloqueia 24 h quando acaba). Premium e admin ilimitados. Selo verde (disponível) / vermelho ("Limite diário atingido · plano grátis") em todas as ferramentas.
    - Limites travados no servidor: uso guardado em `quota/{email}` no Firestore, validado pelas regras com o relógio do servidor (só sobe, só zera no dia/janela seguinte, só o admin apaga). O download só acontece depois que o uso é aceito. A Fórmula Fácil comum agora é servida pela função `api/formula-public` (arquivo em `server/assets/formula-facil.html`), que confere login, plano e tempo restante; o link direto antigo `/formula-facil.html` não existe mais.
    - **Planos e ferramentas** (Painel admin): limites de cada ferramenta por plano (ilimitado, limitado por dia/semana/mês, não incluído), criação de planos novos, plano escolhido ao dar plano a um usuário. Guardado em `settings/plans`, lido ao vivo pelo app, pelas regras e pelo servidor. Ferramentas ficam listadas em `src/lib/plans.ts` (TOOLS); uma ferramenta nova só precisa entrar ali para aparecer no painel, nos selos e no Upgrade.
+   - Publicação automática das regras do Firestore pelo GitHub Actions.
+   - **Dúvidas e sugestões** (`/suporte`, no menu Ferramentas): o usuário abre uma ocorrência; a equipe aceita na aba **Suporte** do painel e conversa em tempo real (selo "Ao vivo" quando os dois estão online; senão a conversa fica guardada). Fechadas continuam para consulta; só eu (dono) apago. Dados em `tickets/{id}` e `tickets/{id}/messages`; presença online em `presence/{uid}`.
+   - **Staff** (aba só do dono): adiciono pessoas pelo Gmail em `staff/{email}` com poderes `tickets`, `users_view`, `users_manage`, `plans`, `activity` (lista em `src/lib/staff.ts`). O painel mostra só as abas permitidas e as regras conferem os mesmos poderes. Relatório, Configurações e Staff são só do dono.
    - Aba pública **Atualizações** (`/atualizacoes`, só com login, conteúdo em `src/data/updates.ts`) e **Relatório** no painel admin (marcos em `server/assets/project-report.json` + envios ao GitHub ao vivo).
 
 ## Limitações conhecidas
@@ -45,7 +48,7 @@ React 19 + Vite 6 + Tailwind 4 (app de página única em `src/App.tsx`), Firebas
 
 ## Como manter atualizado
 - A cada envio ao GitHub: adicionar o marco em `server/assets/project-report.json`, atualizar este arquivo (`server/assets/project-prompt.md`) se algo importante mudou e, se for uma mudança visível ao público, adicionar em `src/data/updates.ts` (sem detalhes internos ou de segurança).
-- Se mudar `firestore.rules`, me avisar para eu publicar no Firebase.
+- Se mudar `firestore.rules`, conferir no GitHub Actions que a publicação automática passou.
 
 ## Onde paramos
 Os envios mais recentes aparecem logo abaixo, gerados automaticamente a partir do GitHub. Continue a partir deles e do que eu pedir em seguida.

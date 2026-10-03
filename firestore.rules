@@ -77,6 +77,24 @@ service cloud.firestore {
              (request.auth.token.email.lower() == "martinswilliam2004@gmail.com");
     }
 
+    // ---- Staff: people the owner gave specific powers to, by Gmail (collection staff/{email}) ----
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function staffPath() {
+      return /databases/$(database)/documents/staff/$(myEmail());
+    }
+
+    function isStaff() {
+      return isAuthenticated() && request.auth.token.email_verified == true && exists(staffPath());
+    }
+
+    // Powers: tickets (answer questions), users_view, users_manage, plans, activity.
+    function can(power) {
+      return isAdmin() || (isStaff() && get(staffPath()).data.get('permissions', {}).get(power, false) == true);
+    }
+
     // Blocked or banned users keep their data but cannot change anything.
     function isActiveUser() {
       let path = /databases/$(database)/documents/users/$(request.auth.uid);
@@ -289,7 +307,7 @@ service cloud.firestore {
     // Plans and tool limits: everyone reads them live, only the admin changes them.
     match /settings/plans {
       allow read: if true;
-      allow write: if isAdmin() && isValidPlans(request.resource.data);
+      allow write: if can('plans') && isValidPlans(request.resource.data);
     }
 
     match /settings/global {
@@ -298,25 +316,106 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || can('users_view');
       allow create: if isOwner(userId) && isValidUser(request.resource.data) &&
                     !('status' in request.resource.data) &&
                     request.resource.data.get('subscription', {'type': 'free'}).type == 'free';
       allow update: if (isOwner(userId) && isValidUser(request.resource.data) &&
                         !touchesProtectedUserFields() && isActiveUser()) ||
-                       isAdmin();
+                       isAdmin() ||
+                       (can('users_manage') && resource.data.get('email', '').lower() != "martinswilliam2004@gmail.com" &&
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['subscription', 'status', 'statusReason', 'statusUpdatedAt']));
       allow delete: if isAdmin();
     }
 
     match /quota/{email} {
-      allow read: if isQuotaOwner(email) || isAdmin();
+      allow read: if isQuotaOwner(email) || can('users_view');
       allow create: if isQuotaOwner(email) && isActiveUser() && validQuota({}, request.resource.data);
       allow update: if (isQuotaOwner(email) && isActiveUser() && validQuota(resource.data, request.resource.data)) || isAdmin();
-      allow delete: if isAdmin();
+      allow delete: if can('users_manage');
     }
 
     match /adminLog/{entryId} {
-      allow read, write: if isAdmin();
+      allow read: if can('activity');
+      allow create: if isAdmin() || (isStaff() && request.resource.data.by == myEmail());
+      allow update, delete: if isAdmin();
+    }
+
+    // Only the owner gives or removes staff powers. Staff can read their own powers.
+    match /staff/{email} {
+      allow read: if isAdmin() || (isAuthenticated() && myEmail() == email);
+      allow write: if isAdmin() && email != "martinswilliam2004@gmail.com";
+    }
+
+    // Online indicator for the support chat: just the last time the page was open.
+    match /presence/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
+    }
+
+    // ---- Support: questions and suggestions (tickets) with a chat per ticket ----
+    function isValidNewTicket(d) {
+      return d.keys().hasOnly(['uid', 'email', 'name', 'type', 'subject', 'status', 'createdAt', 'updatedAt',
+                               'lastMessageAt', 'lastMessageBy', 'userUnread', 'staffUnread']) &&
+             d.uid == request.auth.uid && d.email == myEmail() &&
+             d.name is string && d.name.size() <= 100 &&
+             d.type in ['question', 'suggestion'] &&
+             d.subject is string && d.subject.size() >= 1 && d.subject.size() <= 120 &&
+             d.status == 'open' && d.createdAt == request.time && d.updatedAt == request.time &&
+             d.lastMessageAt == request.time && d.lastMessageBy == 'user' &&
+             d.userUnread == false && d.staffUnread == true;
+    }
+
+    function ticketChange() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Ticket owner: send messages (timestamps and unread flags) and close it; never reopen or reassign.
+    function validUserTicketUpdate() {
+      return resource.data.uid == request.auth.uid && resource.data.status != 'closed' &&
+             ticketChange().hasOnly(['updatedAt', 'lastMessageAt', 'lastMessageBy', 'userUnread', 'staffUnread', 'status', 'closedAt', 'closedBy']) &&
+             request.resource.data.status in [resource.data.status, 'closed'];
+    }
+
+    // Staff with the tickets power: accept an open ticket for themselves; the one who accepted
+    // (or the owner) answers, closes or reopens it.
+    function validStaffTicketUpdate() {
+      let d = request.resource.data;
+      let accepting = resource.data.status == 'open' && d.status == 'accepted' && d.assignedTo == myEmail();
+      let assigned = resource.data.get('assignedTo', '') == myEmail() || isAdmin();
+      return can('tickets') &&
+             ticketChange().hasOnly(['status', 'assignedTo', 'assignedName', 'assignedUid', 'acceptedAt', 'updatedAt',
+                                     'lastMessageAt', 'lastMessageBy', 'userUnread', 'staffUnread', 'closedAt', 'closedBy']) &&
+             d.status in ['open', 'accepted', 'closed'] &&
+             (accepting || assigned);
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || can('tickets'));
+      allow create: if isAuthenticated() && request.auth.token.email_verified == true && isActiveUser() &&
+                    isValidNewTicket(request.resource.data);
+      allow update: if isAuthenticated() && (validUserTicketUpdate() || validStaffTicketUpdate());
+      // Only the master admin deletes, and closed conversations stay readable until then.
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        function ticket() {
+          return get(/databases/$(database)/documents/tickets/$(ticketId)).data;
+        }
+        allow read: if isAuthenticated() && (ticket().uid == request.auth.uid || can('tickets'));
+        allow create: if isAuthenticated() &&
+                      request.resource.data.keys().hasOnly(['by', 'uid', 'name', 'text', 'at']) &&
+                      request.resource.data.uid == request.auth.uid &&
+                      request.resource.data.name is string && request.resource.data.name.size() <= 100 &&
+                      request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 4000 &&
+                      request.resource.data.at == request.time &&
+                      ticket().status != 'closed' &&
+                      ((request.resource.data.by == 'user' && ticket().uid == request.auth.uid && isActiveUser()) ||
+                       (request.resource.data.by == 'staff' && can('tickets') &&
+                        (ticket().get('assignedTo', '') == myEmail() || isAdmin())));
+        allow delete: if isAdmin();
+      }
     }
 
     match /jobs/{jobId} {

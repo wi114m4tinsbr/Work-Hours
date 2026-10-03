@@ -15,6 +15,12 @@ export interface UpdateEntry {
 
 export const UPDATES: UpdateEntry[] = [
   {
+    date: '2026-10-03', kind: 'new',
+    pt: { title: 'Dúvidas e sugestões', body: 'Mande sua dúvida ou ideia pelo menu Ferramentas. Quando a equipe responder, vocês conversam ali mesmo, ao vivo se estiverem online ao mesmo tempo.' },
+    en: { title: 'Questions and suggestions', body: 'Send your question or idea from the Tools menu. When the team answers, you talk right there, live if you are both online.' },
+    es: { title: 'Dudas y sugerencias', body: 'Envía tu duda o idea desde el menú Herramientas. Cuando el equipo responda, conversan ahí mismo, en vivo si están conectados a la vez.' },
+  },
+  {
     date: '2026-10-03', kind: 'improved',
     pt: { title: 'Comparação de planos sempre atualizada', body: 'A janela de Upgrade mostra o que cada plano inclui em cada ferramenta, sempre com os limites atuais.' },
     en: { title: 'Plan comparison always up to date', body: 'The Upgrade window shows what each plan includes for every tool, always with the current limits.' },

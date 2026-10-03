@@ -8,7 +8,7 @@ import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PDFStudio } from './components/PDFStudio';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound, Sheet, Megaphone } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound, Sheet, Megaphone, MessageCircleQuestion } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
@@ -16,12 +16,15 @@ import { syncFormulaSession, syncUserSession, clearFormulaSession, fetchFormulaP
 import { FormulaFacilView } from './components/FormulaFacilView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { UpdatesView } from './components/UpdatesView';
+import { SupportView } from './components/SupportView';
+import { ALL_POWERS, hasAnyPower, type Powers } from './lib/staff';
 import { PlansModal } from './components/PlansModal';
 import { effectivePlanId, normalizePlans, sortedPlans, type PlansConfig, type ToolId } from './lib/plans';
 
 const UPDATES_PATH = '/atualizacoes';
+const SUPPORT_PATH = '/suporte';
 import { accountStatus, type AccountStatus } from './lib/subscription';
-import { increment } from 'firebase/firestore';
+import { increment, collection, query, where } from 'firebase/firestore';
 import { serverTimestamp } from 'firebase/firestore';
 import { dailyQuota, formulaQuota, SERVER_TIME, type Access, type QuotaDoc } from './lib/quota';
 
@@ -43,17 +46,18 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin' | 'updates';
+  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin' | 'updates' | 'support';
   const tabFromPath = (): Tab =>
     window.location.pathname === ADMIN_PANEL_PATH ? 'admin'
       : window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
       : window.location.pathname === FORMULA_ADMIN_PATH ? 'formula-admin'
       : window.location.pathname === UPDATES_PATH ? 'updates'
+      : window.location.pathname === SUPPORT_PATH ? 'support'
       : 'hours';
   const [activeTab, setActiveTabState] = useState<Tab>(tabFromPath);
   // Fórmula Fácil has its own address so it can be opened or shared directly.
   const setActiveTab = (tab: Tab) => {
-    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : tab === 'updates' ? UPDATES_PATH : '/';
+    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : tab === 'updates' ? UPDATES_PATH : tab === 'support' ? SUPPORT_PATH : '/';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
     setActiveTabState(tab);
   };
@@ -251,6 +255,46 @@ export default function App() {
     }, () => setQuotaDoc(undefined));
   }, [user]);
 
+  // Staff powers given by the owner (staff/{email}); the owner has them all.
+  const [staffPowers, setStaffPowers] = useState<Powers>({});
+  useEffect(() => {
+    const email = user?.email?.toLowerCase();
+    setStaffPowers({});
+    if (!email || email === 'martinswilliam2004@gmail.com') return;
+    return onSnapshot(doc(db, 'staff', email), (snap) => setStaffPowers((snap.data()?.permissions || {}) as Powers), () => setStaffPowers({}));
+  }, [user]);
+  const myPowers: Powers = user?.email?.toLowerCase() === 'martinswilliam2004@gmail.com' ? ALL_POWERS : staffPowers;
+
+  // "Online" for the support chat: the page reports in every 30 s while it is visible.
+  useEffect(() => {
+    if (!user) return;
+    const beat = () => {
+      if (document.visibilityState === 'visible') setDoc(doc(db, 'presence', user.uid), { at: serverTimestamp() }).catch(() => {});
+    };
+    beat();
+    const timer = window.setInterval(beat, 30000);
+    document.addEventListener('visibilitychange', beat);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', beat); };
+  }, [user]);
+
+  // Red dot on the menu when the team answered one of my tickets.
+  const [supportUnread, setSupportUnread] = useState(false);
+  useEffect(() => {
+    setSupportUnread(false);
+    if (!user) return;
+    return onSnapshot(query(collection(db, 'tickets'), where('uid', '==', user.uid), where('userUnread', '==', true)),
+      (snap) => setSupportUnread(!snap.empty), () => setSupportUnread(false));
+  }, [user]);
+
+  // Red dot on the panel shield when tickets are waiting for the team.
+  const [staffPending, setStaffPending] = useState(0);
+  useEffect(() => {
+    setStaffPending(0);
+    if (!user || !myPowers.tickets) return;
+    return onSnapshot(query(collection(db, 'tickets'), where('status', '==', 'open')),
+      (snap) => setStaffPending(snap.size), () => setStaffPending(0));
+  }, [user, !!myPowers.tickets]);
+
   useEffect(() => {
     if (!isToolsMenuOpen) return;
     const closeOnOutside = (event: MouseEvent | TouchEvent) => {
@@ -365,6 +409,7 @@ export default function App() {
   }
 
   const canSeeFormulaAdmin = isOwner || formulaPublic;
+  const isPanelUser = isOwner || hasAnyPower(myPowers);
   const planId = effectivePlanId(userSubscription as Parameters<typeof effectivePlanId>[0], plansConfig);
   const plan = plansConfig.plans[planId];
   const subscriptionType: 'free' | 'monthly' = planId === 'free' ? 'free' : 'monthly';
@@ -515,13 +560,19 @@ export default function App() {
                       <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><Megaphone size={18}/></span>
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{lang === 'en' ? 'Updates' : lang === 'es' ? 'Novedades' : 'Atualizações'}</span>
                     </a>
+                    <a href={SUPPORT_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('support'); setIsToolsMenuOpen(false); }} data-testid="tools-support" className="group relative flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="relative w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><MessageCircleQuestion size={18}/>
+                        {supportUnread && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 ring-2 ring-white dark:ring-stone-900" data-testid="tools-support-unread" />}
+                      </span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{lang === 'en' ? 'Questions and suggestions' : lang === 'es' ? 'Dudas y sugerencias' : 'Dúvidas e sugestões'}</span>
+                    </a>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 shrink-0 lg:ml-auto">
+          <div className="flex items-center gap-0.5 sm:gap-2.5 lg:gap-3 shrink-0 lg:ml-auto">
             <button
               onClick={() => setActiveTab('invoices')}
               className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 sm:hidden"
@@ -539,19 +590,21 @@ export default function App() {
 
             <button 
               onClick={() => setIsThemeModalOpen(true)}
-              className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:inline-flex"
+              className="w-10 h-10 shrink-0 items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:inline-flex"
               title={t.theme}
             >
               <Palette className="w-5 h-5" />
             </button>
 
-            {isOwner && (
+            {isPanelUser && (
               <button 
                 onClick={() => setActiveTab('admin')}
-                className={cn("p-2 transition-colors", activeTab === 'admin' ? "text-primary" : "text-stone-400 hover:text-primary")}
+                data-testid="admin-shield"
+                className={cn("relative p-2 transition-colors", activeTab === 'admin' ? "text-primary" : "text-stone-400 hover:text-primary")}
                 title={lang === 'en' ? 'Admin panel' : lang === 'es' ? 'Panel de administración' : 'Painel Admin'}
               >
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                {staffPending > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black leading-4 text-center">{staffPending}</span>}
               </button>
             )}
 
@@ -617,7 +670,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-3 lg:ml-5 pl-3 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
+              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-1 pl-2 sm:ml-3 sm:pl-3 lg:ml-5 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
@@ -637,7 +690,7 @@ export default function App() {
             </button>
             <button 
               onClick={handleLogout}
-              className="account-logout h-10 flex items-center gap-1.5 ml-1 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent"
+              className="account-logout h-10 flex items-center gap-1.5 sm:ml-1 px-1.5 sm:px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -647,10 +700,10 @@ export default function App() {
         </div>
       </header>
 
-      {activeTab === 'admin' && isOwner ? (
+      {activeTab === 'admin' && isPanelUser ? (
         <main className="flex-1 w-full">
           <AdminDashboard
-            language={lang} onBack={goHome} settings={settings} t={t}
+            language={lang} onBack={goHome} settings={settings} t={t} powers={myPowers} isOwner={isOwner}
             formulaPublic={{ enabled: formulaPublic, onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user!, enabled)) }}
           />
         </main>
@@ -668,6 +721,10 @@ export default function App() {
               onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user, enabled)),
             } : undefined}
           />
+        </main>
+      ) : activeTab === 'support' && user ? (
+        <main className="flex-1 w-full">
+          <SupportView user={user} language={lang} onBack={goHome} />
         </main>
       ) : activeTab === 'updates' ? (
         <main className="flex-1 w-full">

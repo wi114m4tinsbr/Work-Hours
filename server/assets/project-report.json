@@ -145,6 +145,24 @@
       "kind": "new",
       "title": "Planos e limites editáveis no painel",
       "details": "Aba Planos e ferramentas: para cada plano e ferramenta escolher ilimitado, limitado (quantidade por dia, semana ou mês, ou minutos) ou não incluído; criar, ocultar, destacar, ordenar e excluir planos; dar a um usuário qualquer plano criado. Tudo salvo em settings/plans, aplicado na hora para todos, nas regras do Firestore, no servidor da Fórmula Fácil, nos selos e na janela de Upgrade."
+    },
+    {
+      "at": "2026-10-03T09:09:00+00:00",
+      "kind": "new",
+      "title": "Regras do Firebase publicadas automaticamente",
+      "details": "Ao mudar firestore.rules nesta branch ou no main, o GitHub Actions publica as regras no banco do Firestore pela API de regras do Firebase, com a chave guardada no segredo FIREBASE_SERVICE_ACCOUNT (papel Firebase Rules Admin). Primeira publicação automática confirmada."
+    },
+    {
+      "at": "2026-10-03T09:30:00+00:00",
+      "kind": "new",
+      "title": "Dúvidas e sugestões com chat ao vivo",
+      "details": "Usuários abrem ocorrências em /suporte (menu Ferramentas). A equipe vê tudo na aba Suporte do painel, aceita, conversa e fecha. Chat em tempo real com selo Ao vivo quando os dois estão online; se não, as mensagens ficam na ocorrência. Ocorrências fechadas continuam para consulta; só o dono apaga."
+    },
+    {
+      "at": "2026-10-03T09:30:01+00:00",
+      "kind": "new",
+      "title": "Staff com poderes por Gmail",
+      "details": "Aba Staff (só o dono): adiciona pessoas pelo Gmail e liga ou desliga poderes (atender dúvidas, ver usuários, gerenciar usuários, editar planos, ver atividade). O painel mostra só as abas permitidas e as regras do Firestore garantem o mesmo. A atividade registra quem fez cada ação."
     }
   ]
 }

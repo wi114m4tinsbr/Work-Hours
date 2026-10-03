@@ -5,19 +5,23 @@ import {
 } from 'firebase/firestore';
 import {
   Activity, BarChart3, Ban, Crown, Download, Lock, LogIn, Search, Settings, ShieldCheck, Trash2, Unlock, UserPlus, Users, X,
-  ArrowDownRight, ArrowUpRight, Copy, ScrollText,
+  ArrowDownRight, ArrowUpRight, Copy, ScrollText, LifeBuoy, UserCog,
 } from 'lucide-react';
 import { auth, db } from '../firebase';
+import { logAdmin } from '../lib/adminLog';
 import { cn } from '../lib/utils';
 import { ToolIdentity } from './ToolIdentity';
 import { AppSettingsForm } from './AdminSettings';
 import { ProjectReport } from './ProjectReport';
+import { SupportAdmin } from './SupportAdmin';
+import { StaffAdmin } from './StaffAdmin';
+import type { Powers } from '../lib/staff';
 import { PlansEditor } from './PlansEditor';
 import { normalizePlans, sortedPlans, type PlansConfig } from '../lib/plans';
 import { accountStatus, isPremium, OWNER_EMAIL, type AccountStatus, type Subscription } from '../lib/subscription';
 
 type Lang = 'pt' | 'en' | 'es';
-type Section = 'overview' | 'users' | 'plans' | 'activity' | 'report' | 'settings';
+type Section = 'overview' | 'users' | 'support' | 'plans' | 'activity' | 'staff' | 'report' | 'settings';
 type Range = 'day' | 'week' | 'month' | 'year';
 type PlanFilter = 'all' | 'free' | 'premium' | 'expired';
 type StatusFilter = 'all' | AccountStatus;
@@ -44,6 +48,7 @@ interface LogRow {
   action: string;
   targetEmail: string;
   details: string;
+  by: string;
   at: number | null;
 }
 
@@ -52,7 +57,7 @@ const DAY = 86_400_000;
 const C = {
   pt: {
     title: 'Painel Admin', back: 'Voltar',
-    sections: { overview: 'Visão geral', users: 'Usuários', plans: 'Planos e ferramentas', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
+    sections: { overview: 'Visão geral', users: 'Usuários', support: 'Suporte', staff: 'Staff', plans: 'Planos e ferramentas', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
     total: 'Total de contas', today: 'Novas hoje', week: 'Últimos 7 dias', month: 'Últimos 30 dias', year: 'Últimos 12 meses',
     active: 'Ativos (7 dias)', premium: 'Premium', restricted: 'Bloqueados / banidos', logins: 'Acessos totais',
     vsPrev: 'vs período anterior', ofTotal: 'do total',
@@ -78,13 +83,13 @@ const C = {
     typeEmail: 'Digite o e-mail para confirmar', confirm: 'Confirmar', cancel: 'Cancelar', owner: 'Esta é a conta do administrador.',
     saved: 'Salvo.', failed: 'Não foi possível salvar. Confira se as regras novas do Firebase foram publicadas.',
     logEmpty: 'Nenhuma ação registrada ainda.', when: 'Quando', action: 'Ação', target: 'Usuário',
-    actions: { grant: 'Deu Premium', revoke: 'Voltou para grátis', block: 'Bloqueou', unblock: 'Desbloqueou', ban: 'Baniu', unban: 'Removeu banimento', remove: 'Excluiu dados', plansSaved: 'Alterou planos e limites', resetQuota: 'Zerou limites', formulaOn: 'Ligou Fórmula Fácil Admin na página inicial', formulaOff: 'Desligou Fórmula Fácil Admin na página inicial' } as Record<string, string>,
+    actions: { grant: 'Deu Premium', revoke: 'Voltou para grátis', block: 'Bloqueou', unblock: 'Desbloqueou', ban: 'Baniu', unban: 'Removeu banimento', remove: 'Excluiu dados', plansSaved: 'Alterou planos e limites', resetQuota: 'Zerou limites', formulaOn: 'Ligou Fórmula Fácil Admin na página inicial', formulaOff: 'Desligou Fórmula Fácil Admin na página inicial', ticketAccept: 'Aceitou ocorrência', ticketClose: 'Fechou ocorrência', ticketDelete: 'Apagou ocorrência', staffAdd: 'Adicionou à staff', staffUpdate: 'Mudou poderes da staff', staffRemove: 'Removeu da staff' } as Record<string, string>,
     loadError: 'Não foi possível ler os usuários. Publique as regras novas do Firebase (passo a passo na conversa).',
     loading: 'Carregando dados…',
   },
   en: {
     title: 'Admin panel', back: 'Back',
-    sections: { overview: 'Overview', users: 'Users', plans: 'Plans and tools', activity: 'Activity', report: 'Report', settings: 'Settings' },
+    sections: { overview: 'Overview', users: 'Users', support: 'Support', staff: 'Staff', plans: 'Plans and tools', activity: 'Activity', report: 'Report', settings: 'Settings' },
     total: 'Total accounts', today: 'New today', week: 'Last 7 days', month: 'Last 30 days', year: 'Last 12 months',
     active: 'Active (7 days)', premium: 'Premium', restricted: 'Blocked / banned', logins: 'Total sign-ins',
     vsPrev: 'vs previous period', ofTotal: 'of total',
@@ -110,13 +115,13 @@ const C = {
     typeEmail: 'Type the email to confirm', confirm: 'Confirm', cancel: 'Cancel', owner: 'This is the administrator account.',
     saved: 'Saved.', failed: 'Could not save. Check that the new Firebase rules were published.',
     logEmpty: 'No actions recorded yet.', when: 'When', action: 'Action', target: 'User',
-    actions: { grant: 'Gave Premium', revoke: 'Back to free', block: 'Blocked', unblock: 'Unblocked', ban: 'Banned', unban: 'Lifted ban', remove: 'Deleted data', plansSaved: 'Changed plans and limits', resetQuota: 'Reset limits', formulaOn: 'Turned on Fórmula Fácil Admin on the home page', formulaOff: 'Turned off Fórmula Fácil Admin on the home page' } as Record<string, string>,
+    actions: { grant: 'Gave Premium', revoke: 'Back to free', block: 'Blocked', unblock: 'Unblocked', ban: 'Banned', unban: 'Lifted ban', remove: 'Deleted data', plansSaved: 'Changed plans and limits', resetQuota: 'Reset limits', formulaOn: 'Turned on Fórmula Fácil Admin on the home page', formulaOff: 'Turned off Fórmula Fácil Admin on the home page', ticketAccept: 'Accepted ticket', ticketClose: 'Closed ticket', ticketDelete: 'Deleted ticket', staffAdd: 'Added to staff', staffUpdate: 'Changed staff powers', staffRemove: 'Removed from staff' } as Record<string, string>,
     loadError: 'Could not read users. Publish the new Firebase rules (steps in the conversation).',
     loading: 'Loading data…',
   },
   es: {
     title: 'Panel de administración', back: 'Volver',
-    sections: { overview: 'Resumen', users: 'Usuarios', plans: 'Planes y herramientas', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
+    sections: { overview: 'Resumen', users: 'Usuarios', support: 'Soporte', staff: 'Staff', plans: 'Planes y herramientas', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
     total: 'Total de cuentas', today: 'Nuevas hoy', week: 'Últimos 7 días', month: 'Últimos 30 días', year: 'Últimos 12 meses',
     active: 'Activos (7 días)', premium: 'Premium', restricted: 'Bloqueados / baneados', logins: 'Accesos totales',
     vsPrev: 'vs período anterior', ofTotal: 'del total',
@@ -142,7 +147,7 @@ const C = {
     typeEmail: 'Escribe el correo para confirmar', confirm: 'Confirmar', cancel: 'Cancelar', owner: 'Esta es la cuenta del administrador.',
     saved: 'Guardado.', failed: 'No se pudo guardar. Revisa que las reglas nuevas de Firebase estén publicadas.',
     logEmpty: 'Aún no hay acciones registradas.', when: 'Cuándo', action: 'Acción', target: 'Usuario',
-    actions: { grant: 'Dio Premium', revoke: 'Volvió a gratis', block: 'Bloqueó', unblock: 'Desbloqueó', ban: 'Baneó', unban: 'Quitó baneo', remove: 'Eliminó datos', plansSaved: 'Cambió planes y límites', resetQuota: 'Reinició límites', formulaOn: 'Activó Fórmula Fácil Admin en el inicio', formulaOff: 'Desactivó Fórmula Fácil Admin en el inicio' } as Record<string, string>,
+    actions: { grant: 'Dio Premium', revoke: 'Volvió a gratis', block: 'Bloqueó', unblock: 'Desbloqueó', ban: 'Baneó', unban: 'Quitó baneo', remove: 'Eliminó datos', plansSaved: 'Cambió planes y límites', resetQuota: 'Reinició límites', formulaOn: 'Activó Fórmula Fácil Admin en el inicio', formulaOff: 'Desactivó Fórmula Fácil Admin en el inicio', ticketAccept: 'Aceptó incidencia', ticketClose: 'Cerró incidencia', ticketDelete: 'Borró incidencia', staffAdd: 'Agregó a la staff', staffUpdate: 'Cambió poderes de la staff', staffRemove: 'Quitó de la staff' } as Record<string, string>,
     loadError: 'No se pudieron leer los usuarios. Publica las reglas nuevas de Firebase (pasos en la conversación).',
     loading: 'Cargando datos…',
   },
@@ -356,8 +361,11 @@ function ConfirmButton({ label, icon, onConfirm, t, tone = 'default', disabled }
   );
 }
 
-export function AdminDashboard({ language, onBack, settings, t: appT, formulaPublic }: {
+export function AdminDashboard({ language, onBack, settings, t: appT, formulaPublic, powers, isOwner }: {
   language: Lang;
+  /** What this person may see and do; the owner has every power. firestore.rules enforces the same. */
+  powers: Powers;
+  isOwner: boolean;
   /** Owner switch: shows the admin Fórmula Fácil on the home page for every visitor. */
   formulaPublic?: { enabled: boolean; onChange: (enabled: boolean) => Promise<void> };
   onBack: () => void;
@@ -366,7 +374,12 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
 }) {
   const t = C[language] || C.pt;
   const locale = language === 'en' ? 'en-GB' : language === 'es' ? 'es-ES' : 'pt-BR';
-  const [section, setSection] = useState<Section>('overview');
+  const allowed: Record<Section, boolean> = {
+    overview: !!powers.users_view, users: !!powers.users_view, support: !!powers.tickets, plans: !!powers.plans,
+    activity: !!powers.activity, staff: isOwner, report: isOwner, settings: isOwner,
+  };
+  const [sectionChoice, setSection] = useState<Section>('overview');
+  const section = allowed[sectionChoice] ? sectionChoice : (Object.keys(allowed) as Section[]).find((id) => allowed[id]) ?? 'support';
   const [plans, setPlans] = useState<PlansConfig>(() => normalizePlans(null));
   useEffect(() => onSnapshot(doc(db, 'settings', 'plans'), (snap) => setPlans(normalizePlans(snap.exists() ? snap.data() : null)), () => {}), []);
   const [users, setUsers] = useState<UserRow[] | null>(null);
@@ -385,18 +398,23 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
   const now = Date.now();
 
   useEffect(() => {
+    if (!powers.users_view) { setUsers([]); return; }
     const unsubUsers = onSnapshot(collection(db, 'users'),
       (snap) => { setUsers(snap.docs.map((d) => toRow(d.id, d.data()))); setLoadError(false); },
       () => setLoadError(true));
     const unsubStats = onSnapshot(doc(db, 'stats', 'global'), (snap) => setTotalLogins(snap.data()?.totalLogins || 0), () => {});
-    const unsubLogs = onSnapshot(query(collection(db, 'adminLog'), orderBy('at', 'desc'), limit(200)),
-      (snap) => setLogs(snap.docs.map((d) => ({ id: d.id, action: d.data().action, targetEmail: d.data().targetEmail || '', details: d.data().details || '', at: millis(d.data().at) }))),
-      () => {});
     Promise.all(['jobs', 'sessions', 'invoices'].map((name) =>
       getCountFromServer(collection(db, name)).then((r) => r.data().count).catch(() => null)))
       .then(([jobs, sessions, invoices]) => setPlatform({ jobs, sessions, invoices }));
-    return () => { unsubUsers(); unsubStats(); unsubLogs(); };
-  }, []);
+    return () => { unsubUsers(); unsubStats(); };
+  }, [powers.users_view]);
+
+  useEffect(() => {
+    if (!powers.activity) return;
+    return onSnapshot(query(collection(db, 'adminLog'), orderBy('at', 'desc'), limit(200)),
+      (snap) => setLogs(snap.docs.map((d) => ({ id: d.id, action: d.data().action, targetEmail: d.data().targetEmail || '', details: d.data().details || '', by: d.data().by || '', at: millis(d.data().at) }))),
+      () => {});
+  }, [powers.activity]);
 
   const list = users ?? [];
   const created = useMemo(() => list.map((u) => u.createdAt).filter((v): v is number => v !== null), [users]);
@@ -456,11 +474,13 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
   const tabs: { id: Section; icon: ReactNode }[] = [
     { id: 'overview', icon: <BarChart3 size={15} /> },
     { id: 'users', icon: <Users size={15} /> },
+    { id: 'support', icon: <LifeBuoy size={15} /> },
     { id: 'plans', icon: <Crown size={15} /> },
     { id: 'activity', icon: <Activity size={15} /> },
+    { id: 'staff', icon: <UserCog size={15} /> },
     { id: 'report', icon: <ScrollText size={15} /> },
     { id: 'settings', icon: <Settings size={15} /> },
-  ];
+  ].filter((tab) => allowed[tab.id as Section]) as { id: Section; icon: ReactNode }[];
 
   return (
     <div className="w-full" data-testid="admin-dashboard">
@@ -481,7 +501,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
 
       <div className="max-w-7xl mx-auto p-4 pb-16 space-y-5">
         {loadError && <div className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 text-amber-800 dark:text-amber-200 p-4 text-sm font-semibold">{t.loadError}</div>}
-        {!users && !loadError && section !== 'settings' && section !== 'report' && section !== 'plans' && <div className="text-sm text-stone-400 font-semibold">{t.loading}</div>}
+        {!users && !loadError && (section === 'overview' || section === 'users') && <div className="text-sm text-stone-400 font-semibold">{t.loading}</div>}
 
         {section === 'overview' && users && (
           <>
@@ -623,7 +643,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
                     <td className="px-4 py-2 tabular-nums whitespace-nowrap">{fmtDateTime(l.at)}</td>
                     <td className="px-3 py-2 font-bold">{t.actions[l.action] || l.action}</td>
                     <td className="px-3 py-2">{l.targetEmail}</td>
-                    <td className="px-3 py-2 text-stone-500 dark:text-stone-400">{l.details}</td>
+                    <td className="px-3 py-2 text-stone-500 dark:text-stone-400">{l.details}{l.by && l.by !== OWNER_EMAIL && <span className="block text-[11px] text-stone-400">{l.by}</span>}</td>
                   </tr>
                 ))}
                 {logs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-stone-400 font-semibold">{t.logEmpty}</td></tr>}
@@ -631,6 +651,10 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
             </table>
           </section>
         )}
+
+        {section === 'support' && <SupportAdmin language={language} locale={locale} isOwner={isOwner} />}
+
+        {section === 'staff' && <StaffAdmin language={language} locale={locale} />}
 
         {section === 'report' && <ProjectReport language={language} locale={locale} />}
 
@@ -646,7 +670,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
         )}
       </div>
 
-      {selectedRow && <UserDrawer row={selectedRow} t={t} locale={locale} plans={plans} lang={language} onClose={() => setSelected(null)} fmtDate={fmtDate} fmtDateTime={fmtDateTime} />}
+      {selectedRow && <UserDrawer row={selectedRow} canManage={!!powers.users_manage} isOwner={isOwner} t={t} locale={locale} plans={plans} lang={language} onClose={() => setSelected(null)} fmtDate={fmtDate} fmtDateTime={fmtDateTime} />}
     </div>
   );
 }
@@ -661,10 +685,7 @@ function FormulaSwitch({ t, value }: { t: Dict; value: { enabled: boolean; onCha
     setFailed(false);
     try {
       await value.onChange(next);
-      await addDoc(collection(db, 'adminLog'), {
-        action: next ? 'formulaOn' : 'formulaOff', targetUid: '', targetEmail: '', details: '',
-        by: auth.currentUser?.email || '', at: Timestamp.now(),
-      }).catch(() => {});
+      await logAdmin(next ? 'formulaOn' : 'formulaOff').catch(() => {});
     } catch {
       setFailed(true);
     } finally {
@@ -701,14 +722,11 @@ function FormulaSwitch({ t, value }: { t: Dict; value: { enabled: boolean; onCha
 }
 
 async function logAction(action: string, row: UserRow, details: string) {
-  await addDoc(collection(db, 'adminLog'), {
-    action, targetUid: row.uid, targetEmail: row.email, details,
-    by: auth.currentUser?.email || '', at: Timestamp.now(),
-  });
+  await logAdmin(action, { uid: row.uid, email: row.email }, details);
 }
 
-function UserDrawer({ row, t, locale, plans, lang, onClose, fmtDate, fmtDateTime }: {
-  row: UserRow; t: Dict; locale: string; plans: PlansConfig; lang: Lang; onClose: () => void;
+function UserDrawer({ row, canManage, isOwner, t, locale, plans, lang, onClose, fmtDate, fmtDateTime }: {
+  row: UserRow; canManage: boolean; isOwner: boolean; t: Dict; locale: string; plans: PlansConfig; lang: Lang; onClose: () => void;
   fmtDate: (v: number | null) => string; fmtDateTime: (v: number | null) => string;
 }) {
   const [days, setDays] = useState(30);
@@ -818,7 +836,7 @@ function UserDrawer({ row, t, locale, plans, lang, onClose, fmtDate, fmtDateTime
 
         {isOwnerRow ? (
           <p className="text-sm font-semibold text-stone-500">{t.owner}</p>
-        ) : (
+        ) : !canManage ? null : (
           <>
             {block(t.planSection, (
               <>
@@ -863,7 +881,7 @@ function UserDrawer({ row, t, locale, plans, lang, onClose, fmtDate, fmtDateTime
               </>
             ))}
 
-            {block(t.danger, (
+            {isOwner && block(t.danger, (
               <>
                 <p className="text-xs text-stone-500 dark:text-stone-400">{t.removeHint}</p>
                 <input value={confirmEmail} onChange={(e) => setConfirmEmail(e.target.value)} placeholder={t.typeEmail} aria-label={t.typeEmail}
