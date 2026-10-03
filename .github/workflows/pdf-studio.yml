@@ -1,7 +1,7 @@
 name: PDF Studio checks
 on:
   push:
-    branches: [feature/free-plan-job-limit]
+    branches: [feature/free-plan-job-limit, main]
   pull_request:
     paths: ['src/components/PDFStudio.tsx', 'src/components/PDFObjectLayer.tsx', 'src/App.tsx', 'src/lib/pdf/**', 'tests/**', 'package*.json', '.github/workflows/pdf-studio.yml']
 permissions:

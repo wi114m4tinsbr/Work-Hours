@@ -12,7 +12,7 @@ Site de produtividade para quem trabalha por turnos: registro de horas por traba
 
 ## Onde está
 - Repositório: github.com/wi114m4tinsbr/Work-Hours (público).
-- **Branch de trabalho: `feature/free-plan-job-limit`.** Não criar outras branches. Tudo é testado no preview desta branch e só depois eu aplico no `main` (site oficial).
+- **Branch de trabalho: `feature/free-plan-job-limit`.** Não criar outras branches. Tudo é validado nesta branch antes de publicar no `main` (site oficial). Ao concluir cada publicação autorizada, manter os arquivos das duas branches iguais e confirmar os dois deployments. Se houver correção direta no oficial, incorporá-la à branch de teste sem sobrescrever trabalho em andamento. Não criar outro link de teste. Consulte `docs/releases.md`.
 - Preview: https://work-hours-git-feature-free-plan-9d3e73-wi114m4tinsbrs-projects.vercel.app/
 - Hospedagem: Vercel (site + funções em `api/*.ts`, armazenamento privado Vercel Blob).
 - Banco e login: Firebase, projeto `gen-lang-client-0275590292`, banco Firestore com nome `ai-studio-df43dc48-1bac-453f-8185-49b595d5483a`. As regras ficam em `firestore.rules` e são publicadas sozinhas pelo GitHub Actions (`.github/workflows/firestore-rules.yml` + `deploy/publish-rules.mjs`) quando mudam nesta branch ou no `main`, usando o segredo `FIREBASE_SERVICE_ACCOUNT` que eu já configurei.
@@ -60,16 +60,14 @@ Os envios mais recentes aparecem logo abaixo, gerados automaticamente a partir d
 - A home pública começa clara e usa paleta própria; o botão de tema público não lê nem grava a preferência visual da conta. O tema do usuário continua disponível após o login.
 - Catálogo de ferramentas e planos ao vivo preservados.
 
-## Próxima solicitação: notificações externas de suporte
-- O dono pediu alertas de ocorrências e mensagens por e-mail, SMS ou WhatsApp, configuráveis numa aba do admin; também atendimento pelo WhatsApp enquanto o chamado estiver aceito e aberto.
-- Ainda não implementado. Telegram aprovado como primeira etapa gratuita de mensageria, mantendo o chat do usuário no site. Aguardando criação do bot pelo dono e configuração segura; integração ainda não implementada. Detalhes em `docs/support-notifications.md`.
+## Notificações de suporte — estado atual
+- Telegram implementado e confirmado pelo dono em produção: recebimento de avisos e respostas no chat do site funcionam. Bot @ShiftHoursAvisoBot.
+- Vínculo e controles na aba Admin → Notificações, exclusiva do dono. Respostas por texto usando Responder no aviso, apenas em ocorrências aceitas pelo dono e ainda abertas. /stop desliga avisos e respostas.
+- Credenciais configuradas pelo dono na Vercel. Nunca pedir segredos na conversa. A chave da automação de regras no GitHub é independente da configuração do servidor na Vercel.
+- Só o site oficial envia avisos e configura o webhook. Preview compartilha as conversas, mas não dispara Telegram; para testar envio, ambas as contas devem usar shifthours.com.
+- Avisos usam título e rótulos em negrito, usuário/ocorrência identificados, texto em citação, instruções e link nomeado. Conteúdo do usuário escapado; PT/EN/ES preservados.
+- Limites: disparo pelo navegador após gravação, sem fila durável/gatilho Firestore; pode perder aviso se a aba fechar ou a rede cair. E-mail, SMS e WhatsApp continuam não implementados. Detalhes em docs/support-notifications.md.
+- Vercel usa imports relativos do servidor com extensão .js. O teste test:server compila NodeNext e importa a API com Node nativo. A transação de vínculo usa update para remover o nonce com FieldValue.delete.
 
-
-## Telegram — 03/10/2026
-Integração inicial implementada em api/support-telegram.ts e server/support-*.ts, tela SupportNotifications. Bot @ShiftHoursAvisoBot criado; dono informou ter salvo TELEGRAM_BOT_TOKEN e enviado /start. Ativação NÃO confirmada. Precisa FIREBASE_SERVICE_ACCOUNT Secret na Vercel (JSON do projeto correto, Cloud Datastore User), redeploy, vínculo pelo link de Admin → Notificações e teste real. Não pedir segredos na conversa. Apenas produção opera bot; preview não pode substituir webhook. Chat permanece no site. Respostas apenas texto e via Responder no aviso, somente ocorrência aceita pelo dono ainda aberta, opção ligada. /stop desliga. docs/support-notifications.md registra limites: disparos partem do navegador após gravação, sem fila durável/gatilho Firestore; pode perder aviso se fechar aba ou rede cair. Não prometer entrega garantida. Produção anterior Aurora publicada no merge b2bb5fd.
-
-Validação posterior: consumo do nonce de vínculo usa transaction.update (FieldValue.delete não funciona em set sem merge). Suíte Telegram cobre essa restrição. Não confundir publicação com ativação real.
-
-API Vercel: imports relativos no servidor devem terminar em .js. Um smoke test inicial da rota publicada retornou FUNCTION_INVOCATION_FAILED por imports sem extensão; corrigidos e adicionado test:server que compila NodeNext e importa o resultado com Node nativo. Validar 404 sem login no domínio após deploy.
-
-Telegram validado pelo dono em produção em 03/10: avisos e respostas funcionando após usar shifthours.com também na conta do usuário (preview não envia). Formatação refinada: HTML Telegram escapado, título e rótulos em negrito, texto em blockquote, instrução de Responder e link nomeado. Configuração existente permanece.
+## Regra permanente de publicação
+Pedido do dono em 03/10/2026: manter site oficial e versão de teste sempre atualizados com as mesmas alterações concluídas. Conferir igualdade dos arquivos das duas branches, testes e status dos dois deployments antes de afirmar que ambos estão atualizados. Diferenças intencionais de ambiente (como Telegram apenas em produção) devem ser explicadas; não copiar segredos nem remover proteções para igualar ambientes.
