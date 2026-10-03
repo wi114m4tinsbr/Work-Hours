@@ -1,4 +1,4 @@
-
+import { periodKey, WINDOW_MS, type ToolLimit } from './plans';
 /** Who is using a tool: the owner and Premium are unlimited, free accounts get daily allowances. */
 export type Access = 'admin' | 'premium' | 'free';
 
@@ -14,7 +14,6 @@ export const SERVER_TIME = '__server_time__';
 /** Merges fields into the user's quota document. Rejects when the rules refuse the change. */
 export type UsageWriter = (fields: Record<string, unknown>) => Promise<void>;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Milliseconds from a Firestore Timestamp, a number or nothing. */
 export function toMs(value: unknown): number | null {
@@ -28,18 +27,25 @@ export const deviceTz = () => -new Date().getTimezoneOffset();
 
 const tzOf = (doc: QuotaDoc) => (typeof doc?.tz === 'number' ? doc.tz : deviceTz());
 
-/** Calendar day (yyyymmdd) in the account's time zone, the same way the rules compute it. */
-export function dayOf(ms: number, tz: number): number {
-  const d = new Date(ms + tz * 60000);
-  return d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate();
+export interface Allowance {
+  /** Plan name shown on the badge, e.g. "Grátis" or "Premium". */
+  planName: string;
+  limit: ToolLimit;
 }
+
+const UNLIMITED_ALLOWANCE: Allowance = { planName: '', limit: { mode: 'unlimited', amount: 0, period: 'day' } };
 
 export interface DailyQuota {
   access: Access;
-  limit: number;
+  planName: string;
+  limit: ToolLimit;
+  /** Uses allowed per period (Infinity when unlimited, 0 when not included). */
+  allowed: number;
   used: number;
   remaining: number;
   reached: boolean;
+  /** The plan does not include this tool at all. */
+  blocked: boolean;
   /** Counts one use before the file is handed over; throws when the allowance is gone. */
   consume: () => Promise<void>;
 }
@@ -49,27 +55,30 @@ const DAILY_FIELDS = {
   pdf: { at: 'pdfAt', count: 'pdfCount' },
 } as const;
 
-export const FREE_DAILY_LIMIT = 1;
-
 export class QuotaError extends Error {
-  constructor() { super('Daily limit reached'); this.name = 'QuotaError'; }
+  constructor() { super('Limit reached'); this.name = 'QuotaError'; }
 }
 
-export function dailyQuota(kind: keyof typeof DAILY_FIELDS, access: Access, doc: QuotaDoc, write: UsageWriter | undefined, now = Date.now()): DailyQuota {
+export function dailyQuota(kind: keyof typeof DAILY_FIELDS, access: Access, doc: QuotaDoc, write: UsageWriter | undefined, allowance: Allowance = UNLIMITED_ALLOWANCE, now = Date.now()): DailyQuota {
   const fields = DAILY_FIELDS[kind];
   const tz = tzOf(doc);
+  const { limit } = allowance;
+  const unlimited = access === 'admin' || limit.mode === 'unlimited';
+  const blocked = !unlimited && (limit.mode === 'off' || limit.amount <= 0);
+  const allowed = unlimited ? Infinity : blocked ? 0 : limit.amount;
   const at = toMs(doc?.[fields.at]);
-  const sameDay = at !== null && dayOf(at, tz) === dayOf(now, tz);
-  const used = sameDay && typeof doc?.[fields.count] === 'number' ? (doc[fields.count] as number) : 0;
-  const limit = FREE_DAILY_LIMIT;
-  const unlimited = access !== 'free';
-  const remaining = unlimited ? Infinity : Math.max(0, limit - used);
+  const samePeriod = at !== null && periodKey(at, tz, limit.period) === periodKey(now, tz, limit.period);
+  const used = samePeriod && typeof doc?.[fields.count] === 'number' ? (doc[fields.count] as number) : 0;
+  const remaining = unlimited ? Infinity : Math.max(0, allowed - used);
   return {
     access,
+    planName: allowance.planName,
     limit,
+    allowed,
     used,
     remaining,
     reached: !unlimited && remaining <= 0,
+    blocked,
     consume: async () => {
       if (unlimited) return;
       if (remaining <= 0 || !write) throw new QuotaError();
@@ -82,51 +91,60 @@ export function dailyQuota(kind: keyof typeof DAILY_FIELDS, access: Access, doc:
   };
 }
 
-export const FORMULA_FREE_SECONDS = 15 * 60;
-export const FORMULA_LOCK_MS = DAY_MS;
-
 export interface TimeQuota {
   access: Access;
+  planName: string;
+  limit: ToolLimit;
   limitSeconds: number;
   usedSeconds: number;
   remainingSeconds: number;
   /** When the time ran out, the tool stays closed until this moment. */
   lockedUntil: number | null;
+  /** The plan does not include this tool at all. */
+  blocked: boolean;
   /** Saves the seconds used so far in this window; marks the end when nothing is left. */
   save: (usedSeconds: number) => Promise<void>;
 }
 
 /**
- * Fórmula Fácil for free accounts: 15 minutes per 24-hour window. When the minutes run out
- * the tool locks for 24 hours from that moment; an unfinished window also resets after 24 hours.
+ * Fórmula Fácil: minutes per window (a day, a week or 30 days, from the first use). When the
+ * minutes run out the tool locks for one window length from that moment.
  */
-export function formulaQuota(access: Access, doc: QuotaDoc, write: UsageWriter | undefined, now = Date.now()): TimeQuota {
-  const unlimited = access !== 'free';
+export function formulaQuota(access: Access, doc: QuotaDoc, write: UsageWriter | undefined, allowance: Allowance = UNLIMITED_ALLOWANCE, now = Date.now()): TimeQuota {
+  const { limit } = allowance;
+  const unlimited = access === 'admin' || limit.mode === 'unlimited';
+  const blocked = !unlimited && (limit.mode === 'off' || limit.amount <= 0);
+  const limitSeconds = unlimited ? Infinity : blocked ? 0 : limit.amount * 60;
+  const windowMs = WINDOW_MS[limit.period];
   const tz = tzOf(doc);
   const start = toMs(doc?.formulaStart);
   const exhaustedAt = toMs(doc?.formulaExhaustedAt);
   const storedUsed = typeof doc?.formulaUsed === 'number' ? doc.formulaUsed : 0;
 
-  const expired = start === null || (exhaustedAt !== null ? now >= exhaustedAt + FORMULA_LOCK_MS : now >= start + FORMULA_LOCK_MS);
-  const usedSeconds = expired ? 0 : Math.min(FORMULA_FREE_SECONDS, storedUsed);
-  const lockedUntil = !unlimited && !expired && exhaustedAt !== null ? exhaustedAt + FORMULA_LOCK_MS : null;
-  const remainingSeconds = unlimited ? Infinity : lockedUntil ? 0 : FORMULA_FREE_SECONDS - usedSeconds;
+  const expired = start === null || (exhaustedAt !== null ? now >= exhaustedAt + windowMs : now >= start + windowMs);
+  const usedSeconds = expired ? 0 : Math.min(limitSeconds, storedUsed);
+  const lockedUntil = !unlimited && !blocked && !expired && (exhaustedAt !== null || usedSeconds >= limitSeconds)
+    ? (exhaustedAt ?? now) + windowMs : null;
+  const remainingSeconds = unlimited ? Infinity : lockedUntil || blocked ? 0 : limitSeconds - usedSeconds;
 
   return {
     access,
-    limitSeconds: FORMULA_FREE_SECONDS,
+    planName: allowance.planName,
+    limit,
+    limitSeconds,
     usedSeconds,
     remainingSeconds,
     lockedUntil,
+    blocked,
     save: async (nextUsed: number) => {
-      if (unlimited || !write || lockedUntil) return;
-      const total = Math.min(FORMULA_FREE_SECONDS, Math.max(usedSeconds, Math.round(nextUsed)));
+      if (unlimited || blocked || !write || lockedUntil) return;
+      const total = Math.min(limitSeconds, Math.max(usedSeconds, Math.round(nextUsed)));
       await write({
         tz,
         ...(expired ? { formulaStart: SERVER_TIME } : {}),
         formulaTick: SERVER_TIME,
         formulaUsed: total,
-        formulaExhaustedAt: total >= FORMULA_FREE_SECONDS ? SERVER_TIME : null,
+        formulaExhaustedAt: total >= limitSeconds ? SERVER_TIME : null,
       });
     },
   };

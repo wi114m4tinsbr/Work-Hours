@@ -16,7 +16,7 @@ rules_version = '2';
 //   - primaryColor: string (optional)
 //   - createdAt: timestamp (required)
 //   - lastLoginAt: timestamp, loginCount: number (written by the user on login)
-//   - subscription: { type: 'free' | 'monthly', expiryDate: timestamp | null, grantedBy?, grantedAt? } (admin only after creation)
+//   - subscription: { type: 'free' | 'monthly', plan?: plan id in settings/plans, expiryDate: timestamp | null, grantedBy?, grantedAt? } (admin only after creation)
 //   - status: 'active' | 'blocked' | 'banned', statusReason, statusUpdatedAt (admin only)
 //
 // Collection: adminLog (admin only) - every action taken in the admin panel
@@ -190,38 +190,76 @@ service cloud.firestore {
              request.auth.token.email.lower() == email;
     }
 
-    // Calendar day (yyyymmdd) in the time zone fixed on the first use.
-    function dayOf(t, tz) {
+    // ---- Plans: limits come from settings/plans, edited in the admin panel ----
+
+    // A paid plan counts while it has no expiry or the expiry is ahead; otherwise Grátis.
+    function currentPlanId() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      let sub = exists(path) ? get(path).data.get('subscription', {}) : {};
+      let paid = sub.get('type', 'free') == 'monthly' &&
+                 (sub.get('expiryDate', null) == null || sub.expiryDate > request.time);
+      return paid ? sub.get('plan', 'premium') : 'free';
+    }
+
+    // Same defaults as src/lib/plans.ts when the owner has not saved plans yet.
+    function toolLimit(tool) {
+      let path = /databases/$(database)/documents/settings/plans;
+      let plans = exists(path) ? get(path).data.get('plans', {}) : {};
+      let id = currentPlanId();
+      let freeDefaults = {
+        'invoice': {'mode': 'limited', 'amount': 1, 'period': 'day'},
+        'pdf': {'mode': 'limited', 'amount': 1, 'period': 'day'},
+        'formula': {'mode': 'limited', 'amount': 15, 'period': 'day'}
+      };
+      let fallback = id == 'free' ? freeDefaults[tool] : {'mode': 'unlimited', 'amount': 0, 'period': 'day'};
+      let plan = plans.get(id, plans.get('free', {}));
+      return plan.get('limits', {}).get(tool, fallback);
+    }
+
+    // Calendar period in the time zone fixed on the first use (weeks start on Monday).
+    function periodOf(t, tz, period) {
       let local = t + duration.value(tz, 'm');
-      return local.year() * 10000 + local.month() * 100 + local.day();
+      return period == 'month' ? local.year() * 100 + local.month()
+           : period == 'week' ? math.floor((local.toMillis() + 259200000) / 604800000)
+           : local.year() * 10000 + local.month() * 100 + local.day();
+    }
+
+    function windowOf(period) {
+      return period == 'month' ? duration.value(30, 'd') : period == 'week' ? duration.value(7, 'd') : duration.value(1, 'd');
     }
 
     function sameField(b, a, field) {
       return a.get(field, null) == b.get(field, null);
     }
 
-    // One invoice / one PDF per day: the count restarts only on a new day and never passes 1.
-    function validDaily(b, a, at, count, tz) {
+    // Uses per period (invoices, PDFs): the count restarts only in a new period and never passes the plan.
+    function validDaily(b, a, at, count, tz, limit) {
+      let period = limit.get('period', 'day');
       return (sameField(b, a, at) && sameField(b, a, count)) ||
              (a.get(at, null) == request.time && a.get(count, null) is int &&
-              a.get(count, 0) == ((b.get(at, null) != null && dayOf(b.get(at, null), tz) == dayOf(request.time, tz))
+              a.get(count, 0) == ((b.get(at, null) != null && periodOf(b.get(at, null), tz, period) == periodOf(request.time, tz, period))
                                    ? b.get(count, 0) + 1 : 1) &&
-              a.get(count, 0) <= 1);
+              limit.get('mode', 'limited') != 'off' &&
+              (limit.get('mode', 'limited') == 'unlimited' || a.get(count, 0) <= limit.get('amount', 0)));
     }
 
-    // Fórmula Fácil: 15 minutes (900 s) per window. The window ends 24 h after it starts,
-    // or, once the minutes run out, 24 h after that moment. Used seconds never go down.
-    function validFormulaWindow(b, a) {
-      let exhaustedNow = a.get('formulaUsed', 0) >= 900;
-      let stamped = a.get('formulaTick', null) == request.time &&
-                    a.get('formulaUsed', null) is int && a.get('formulaUsed', 0) >= 0 && a.get('formulaUsed', 0) <= 900 &&
+    // Fórmula Fácil: minutes per window (from the first use). Once the minutes run out the tool
+    // stays locked for one window from that moment. Used seconds never go down.
+    function validFormulaWindow(b, a, limit) {
+      let mode = limit.get('mode', 'limited');
+      let maxSeconds = mode == 'unlimited' ? 100000000 : limit.get('amount', 0) * 60;
+      let span = windowOf(limit.get('period', 'day'));
+      let exhaustedNow = mode != 'unlimited' && a.get('formulaUsed', 0) >= maxSeconds;
+      let stamped = mode != 'off' &&
+                    a.get('formulaTick', null) == request.time &&
+                    a.get('formulaUsed', null) is int && a.get('formulaUsed', 0) >= 0 && a.get('formulaUsed', 0) <= maxSeconds &&
                     (exhaustedNow ? a.get('formulaExhaustedAt', null) == request.time : a.get('formulaExhaustedAt', null) == null);
       let open = b.get('formulaStart', null) != null && b.get('formulaExhaustedAt', null) == null &&
-                 request.time < b.formulaStart + duration.value(24, 'h');
+                 request.time < b.formulaStart + span;
       let canRestart = b.get('formulaStart', null) == null ||
                        (b.get('formulaExhaustedAt', null) != null
-                         ? request.time >= b.formulaExhaustedAt + duration.value(24, 'h')
-                         : request.time >= b.formulaStart + duration.value(24, 'h'));
+                         ? request.time >= b.formulaExhaustedAt + span
+                         : request.time >= b.formulaStart + span);
       return (sameField(b, a, 'formulaStart') && sameField(b, a, 'formulaUsed') &&
               sameField(b, a, 'formulaTick') && sameField(b, a, 'formulaExhaustedAt')) ||
              (stamped && open && a.formulaStart == b.formulaStart && a.formulaUsed >= b.get('formulaUsed', 0)) ||
@@ -234,14 +272,25 @@ service cloud.firestore {
                                'formulaStart', 'formulaUsed', 'formulaTick', 'formulaExhaustedAt']) &&
              tz is int && tz >= -720 && tz <= 840 &&
              (b.get('tz', null) == null || tz == b.tz) &&
-             validDaily(b, a, 'invoiceAt', 'invoiceCount', tz) &&
-             validDaily(b, a, 'pdfAt', 'pdfCount', tz) &&
-             validFormulaWindow(b, a);
+             validDaily(b, a, 'invoiceAt', 'invoiceCount', tz, toolLimit('invoice')) &&
+             validDaily(b, a, 'pdfAt', 'pdfCount', tz, toolLimit('pdf')) &&
+             validFormulaWindow(b, a, toolLimit('formula'));
+    }
+
+    function isValidPlans(data) {
+      return data.keys().hasOnly(['plans', 'updatedAt', 'updatedBy']) &&
+             data.plans is map && 'free' in data.plans && data.plans.size() <= 20;
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
+
+    // Plans and tool limits: everyone reads them live, only the admin changes them.
+    match /settings/plans {
+      allow read: if true;
+      allow write: if isAdmin() && isValidPlans(request.resource.data);
+    }
 
     match /settings/global {
       allow read: if true;

@@ -1,6 +1,7 @@
 import { ToolIdentity } from "./ToolIdentity";
 import { isPremium } from '../lib/subscription';
 import { QuotaError, type DailyQuota } from '../lib/quota';
+import { availableText, limitNotice as planLimitNotice } from '../lib/plans';
 import { UsageBadge, QuotaNotice } from './UsageBadge';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -356,9 +357,10 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
   // Free accounts get one downloaded or shared invoice per day; saving drafts is never counted.
   const limitReached = !!quota?.reached;
   const [limitNotice, setLimitNotice] = useState(false);
-  const usageText = language === 'en' ? '1 invoice available today' : language === 'es' ? '1 factura disponible hoy' : '1 fatura disponível hoje';
+  const usageText = quota ? availableText('invoice', quota.remaining, quota.limit, language) : '';
+  const notice = quota ? planLimitNotice('invoice', quota.limit, quota.planName, language) : { title: '', message: '' };
   const usageBadge = (className?: string) => quota ? (
-    <UsageBadge access={quota.access} language={language} available={usageText} reached={quota.reached} progress={quota.used / quota.limit} className={className} />
+    <UsageBadge quota={quota} language={language} available={usageText} progress={quota.allowed ? quota.used / quota.allowed : 1} className={className} />
   ) : null;
   const checkLimit = () => !limitReached;
 
@@ -2083,8 +2085,8 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
         open={limitNotice}
         language={language}
         onClose={() => setLimitNotice(false)}
-        title={language === 'en' ? 'Daily limit reached' : language === 'es' ? 'Límite diario alcanzado' : 'Limite diário atingido'}
-        message={language === 'en' ? 'The free plan includes 1 downloaded or shared invoice per day. You can keep editing and saving; downloads open again tomorrow, or right away with Premium.' : language === 'es' ? 'El plan gratis incluye 1 factura descargada o compartida por día. Puedes seguir editando y guardando; las descargas vuelven mañana, o al instante con Premium.' : 'O plano grátis inclui 1 fatura baixada ou compartilhada por dia. Você pode continuar editando e salvando; os downloads voltam amanhã, ou na hora com o Premium.'}
+        title={notice.title}
+        message={notice.message}
       />
       {showPaymentModal && (
         <PaymentModal onClose={() => setShowPaymentModal(false)} t={t} />

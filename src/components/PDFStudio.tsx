@@ -49,6 +49,7 @@ import {
 import { ToolIdentity } from "./ToolIdentity";
 import { UsageBadge, QuotaNotice } from "./UsageBadge";
 import type { DailyQuota } from "../lib/quota";
+import { availableText, limitNotice as planLimitNotice } from "../lib/plans";
 import { PDFObjectLayer } from "./PDFObjectLayer";
 
 // Compatibility for PDF.js in browsers without the Map upsert APIs.
@@ -379,9 +380,10 @@ export function PDFStudio({
   // Free accounts: one edited file per day, counted on its first download only.
   const countedVersion = useRef(-1);
   const [limitNotice, setLimitNotice] = useState(false);
+  const notice = quota ? planLimitNotice("pdf", quota.limit, quota.planName, language) : { title: "", message: "" };
   const usageBadge = (className?: string) => quota ? (
-    <UsageBadge access={quota.access} language={language} reached={quota.reached} progress={quota.used / quota.limit} className={className}
-      available={language === "en" ? "1 file available today" : language === "es" ? "1 archivo disponible hoy" : "1 arquivo disponível hoje"} />
+    <UsageBadge quota={quota} language={language} progress={quota.allowed ? quota.used / quota.allowed : 1} className={className}
+      available={availableText("pdf", quota.remaining, quota.limit, language)} />
   ) : null;
   const [file, setFile] = useState<File | null>(null),
     [geometry, setGeometry] = useState<Geometry[]>([]),
@@ -2040,8 +2042,8 @@ export function PDFStudio({
         open={limitNotice}
         language={language}
         onClose={() => setLimitNotice(false)}
-        title={language === "en" ? "Daily limit reached" : language === "es" ? "Límite diario alcanzado" : "Limite diário atingido"}
-        message={language === "en" ? "The free plan includes 1 edited PDF per day, counted when you download it. You can use PDF Studio again tomorrow, or right away with Premium." : language === "es" ? "El plan gratis incluye 1 PDF editado por día, contado al descargarlo. Podrás usar PDF Studio de nuevo mañana, o al instante con Premium." : "O plano grátis inclui 1 PDF editado por dia, contado quando você baixa o arquivo. Você pode usar o PDF Studio de novo amanhã, ou na hora com o Premium."}
+        title={notice.title}
+        message={notice.message}
       />
       <input
         ref={input}

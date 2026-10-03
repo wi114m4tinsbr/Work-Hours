@@ -5,27 +5,31 @@ import { UsageBadge, QuotaNotice } from './UsageBadge';
 import { cn } from '../lib/utils';
 import { FORMULA_ADMIN_FRAME, FORMULA_PUBLIC_FRAME } from '../lib/formulaSession';
 import { formatClock, formatWait, type TimeQuota } from '../lib/quota';
+import { WINDOW_MS, availableText } from '../lib/plans';
 
 const C = {
   pt: {
     back: 'Voltar', show: 'Mostrar na página inicial', on: 'Visível para todos', off: 'Oculta', fail: 'Não foi possível salvar.', wait: 'Preparando o acesso…',
-    left: 'restantes hoje', loginTitle: 'Entre para usar a Fórmula Fácil', loginBody: 'No plano grátis você tem 15 minutos por dia. No Premium o uso é ilimitado.', login: 'Entrar com Google',
-    warnTitle: 'Seu tempo está acabando', warnBody: (m: string) => `Restam ${m} de uso grátis da Fórmula Fácil hoje.`,
-    lockTitle: 'Limite diário atingido', lockBody: (w: string) => `Seus 15 minutos grátis de hoje acabaram. A Fórmula Fácil libera de novo em ${w}, ou na hora com o Premium.`,
+    left: 'restantes', loginTitle: 'Entre para usar a Fórmula Fácil', loginBody: 'Entre com a sua conta para começar a usar.', login: 'Entrar com Google',
+    warnTitle: 'Seu tempo está acabando', warnBody: (m: string) => `Restam ${m} de Fórmula Fácil no seu plano.`,
+    lockTitle: 'Limite atingido', lockBody: (w: string, plan: string) => `O tempo de Fórmula Fácil do plano ${plan} acabou. Libera de novo em ${w}, ou na hora com um plano maior.`,
+    offTitle: 'Não incluído no seu plano', offBody: (plan: string) => `A Fórmula Fácil não faz parte do plano ${plan}. Clique em Upgrade para ver os planos.`,
     unlocked: 'Seu tempo foi renovado.', reload: 'Abrir de novo',
   },
   en: {
     back: 'Back', show: 'Show on home page', on: 'Visible to everyone', off: 'Hidden', fail: 'Could not save.', wait: 'Preparing access…',
-    left: 'left today', loginTitle: 'Sign in to use Fórmula Fácil', loginBody: 'The free plan includes 15 minutes per day. Premium is unlimited.', login: 'Sign in with Google',
-    warnTitle: 'Your time is running out', warnBody: (m: string) => `${m} of free Fórmula Fácil time left today.`,
-    lockTitle: 'Daily limit reached', lockBody: (w: string) => `Your 15 free minutes for today are used up. Fórmula Fácil opens again in ${w}, or right away with Premium.`,
+    left: 'left', loginTitle: 'Sign in to use Fórmula Fácil', loginBody: 'Sign in with your account to start.', login: 'Sign in with Google',
+    warnTitle: 'Your time is running out', warnBody: (m: string) => `${m} of Fórmula Fácil left on your plan.`,
+    lockTitle: 'Limit reached', lockBody: (w: string, plan: string) => `Your ${plan} plan time for Fórmula Fácil is used up. It opens again in ${w}, or right away with a bigger plan.`,
+    offTitle: 'Not included in your plan', offBody: (plan: string) => `Fórmula Fácil is not part of the ${plan} plan. Click Upgrade to see the plans.`,
     unlocked: 'Your time has been renewed.', reload: 'Open again',
   },
   es: {
     back: 'Volver', show: 'Mostrar en la página de inicio', on: 'Visible para todos', off: 'Oculta', fail: 'No se pudo guardar.', wait: 'Preparando el acceso…',
-    left: 'restantes hoy', loginTitle: 'Inicia sesión para usar Fórmula Fácil', loginBody: 'El plan gratis incluye 15 minutos por día. Premium es ilimitado.', login: 'Entrar con Google',
-    warnTitle: 'Se te acaba el tiempo', warnBody: (m: string) => `Quedan ${m} de uso gratis de Fórmula Fácil hoy.`,
-    lockTitle: 'Límite diario alcanzado', lockBody: (w: string) => `Se acabaron tus 15 minutos gratis de hoy. Fórmula Fácil vuelve a abrir en ${w}, o al instante con Premium.`,
+    left: 'restantes', loginTitle: 'Inicia sesión para usar Fórmula Fácil', loginBody: 'Entra con tu cuenta para empezar.', login: 'Entrar con Google',
+    warnTitle: 'Se te acaba el tiempo', warnBody: (m: string) => `Quedan ${m} de Fórmula Fácil en tu plan.`,
+    lockTitle: 'Límite alcanzado', lockBody: (w: string, plan: string) => `Se acabó el tiempo de Fórmula Fácil del plan ${plan}. Vuelve a abrir en ${w}, o al instante con un plan mayor.`,
+    offTitle: 'No incluido en tu plan', offBody: (plan: string) => `Fórmula Fácil no forma parte del plan ${plan}. Haz clic en Upgrade para ver los planes.`,
     unlocked: 'Tu tiempo se renovó.', reload: 'Abrir de nuevo',
   },
 };
@@ -57,7 +61,9 @@ export function FormulaFacilView({ variant, language, onBack, inApp, ready = tru
   const [error, setError] = useState(false);
   const title = variant === 'admin' ? 'Fórmula Fácil Admin' : 'Fórmula Fácil';
 
-  const timed = !!quota && quota.access === 'free';
+  const timed = !!quota && Number.isFinite(quota.limitSeconds) && quota.limitSeconds > 0;
+  const notIncluded = !!quota?.blocked;
+  const windowMs = quota ? WINDOW_MS[quota.limit.period] : 86400000;
   const quotaRef = useRef(quota);
   quotaRef.current = quota;
   const usedRef = useRef(quota?.usedSeconds ?? 0);
@@ -75,14 +81,14 @@ export function FormulaFacilView({ variant, language, onBack, inApp, ready = tru
     }
   }, [quota?.usedSeconds]);
 
-  const lockedUntil = quota?.lockedUntil ?? (timed && used >= (quota?.limitSeconds ?? Infinity) ? now + 24 * 3600 * 1000 : null);
+  const lockedUntil = quota?.lockedUntil ?? (timed && used >= (quota?.limitSeconds ?? Infinity) ? now + windowMs : null);
   const locked = timed && (lockedUntil !== null && now < lockedUntil);
   const lockExpired = timed && quota?.lockedUntil != null && now >= quota.lockedUntil;
   const remaining = timed ? Math.max(0, quota!.limitSeconds - used) : Infinity;
 
   const persist = () => {
     const q = quotaRef.current;
-    if (!q || q.access !== 'free' || usedRef.current === savedRef.current) return;
+    if (!q || !Number.isFinite(q.limitSeconds) || usedRef.current === savedRef.current) return;
     savedRef.current = usedRef.current;
     q.save(usedRef.current).catch(() => { savedRef.current = -1; });
   };
@@ -132,7 +138,7 @@ export function FormulaFacilView({ variant, language, onBack, inApp, ready = tru
     }
   };
 
-  const showFrame = ready && !onLogin && !locked && !lockExpired;
+  const showFrame = ready && !onLogin && !locked && !lockExpired && !notIncluded;
 
   return (
     <div className={cn('flex flex-col w-full', inApp ? 'h-[calc(100dvh-4rem)]' : 'h-[100dvh]')} data-testid="formula-view">
@@ -141,10 +147,9 @@ export function FormulaFacilView({ variant, language, onBack, inApp, ready = tru
           <ToolIdentity title={title} language={language} backLabel={t.back} onBack={onBack} />
           {quota && (
             <UsageBadge
-              access={quota.access}
+              quota={{ ...quota, reached: locked || lockExpired }}
               language={language}
-              reached={locked || lockExpired}
-              available={`${formatClock(remaining)} ${t.left}`}
+              available={`${formatClock(remaining)} ${t.left} ${availableText('formula', 0, quota.limit, language)}`}
               progress={timed ? used / quota.limitSeconds : undefined}
               className="ml-auto h-8"
               testId="formula-usage"
@@ -194,7 +199,13 @@ export function FormulaFacilView({ variant, language, onBack, inApp, ready = tru
             <div className="max-w-sm text-center" data-testid="formula-locked">
               <span className="mx-auto mb-4 w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-300 flex items-center justify-center"><Lock size={22} /></span>
               <h2 className="text-xl font-black text-stone-900 dark:text-white">{t.lockTitle}</h2>
-              <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">{t.lockBody(formatWait((lockedUntil ?? now) - now, language))}</p>
+              <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">{t.lockBody(formatWait((lockedUntil ?? now) - now, language), quota?.planName ?? '')}</p>
+            </div>
+          ) : notIncluded ? (
+            <div className="max-w-sm text-center" data-testid="formula-not-included">
+              <span className="mx-auto mb-4 w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-300 flex items-center justify-center"><Lock size={22} /></span>
+              <h2 className="text-xl font-black text-stone-900 dark:text-white">{t.offTitle}</h2>
+              <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">{t.offBody(quota?.planName ?? '')}</p>
             </div>
           ) : lockExpired ? (
             <div className="max-w-sm text-center">
@@ -212,7 +223,7 @@ export function FormulaFacilView({ variant, language, onBack, inApp, ready = tru
         tone={notice === 'lock' ? 'limit' : 'warn'}
         onClose={() => setNotice(null)}
         title={notice === 'lock' ? t.lockTitle : t.warnTitle}
-        message={notice === 'lock' ? t.lockBody(formatWait((lockedUntil ?? now + 86400000) - now, language)) : t.warnBody(formatClock(remaining))}
+        message={notice === 'lock' ? t.lockBody(formatWait((lockedUntil ?? now + windowMs) - now, language), quota?.planName ?? '') : t.warnBody(formatClock(remaining))}
       />
     </div>
   );

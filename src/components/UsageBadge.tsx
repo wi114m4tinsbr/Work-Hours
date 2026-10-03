@@ -2,33 +2,39 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2, Clock3, Crown, Infinity as InfinityIcon, Lock, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { Access } from '../lib/quota';
+import { reachedLabel, type ToolLimit } from '../lib/plans';
 
 type Lang = 'pt' | 'en' | 'es';
 
 const C = {
-  pt: { admin: 'Admin · ilimitado', premium: 'Premium · ilimitado', free: 'Grátis', reached: 'Limite diário atingido', plan: 'plano grátis', ok: 'Entendi' },
-  en: { admin: 'Admin · unlimited', premium: 'Premium · unlimited', free: 'Free', reached: 'Daily limit reached', plan: 'free plan', ok: 'Got it' },
-  es: { admin: 'Admin · ilimitado', premium: 'Premium · ilimitado', free: 'Gratis', reached: 'Límite diario alcanzado', plan: 'plan gratis', ok: 'Entendido' },
+  pt: { admin: 'Admin · ilimitado', unlimited: 'ilimitado', plan: 'plano', off: 'Não incluído', ok: 'Entendi' },
+  en: { admin: 'Admin · unlimited', unlimited: 'unlimited', plan: 'plan', off: 'Not included', ok: 'Got it' },
+  es: { admin: 'Admin · ilimitado', unlimited: 'ilimitado', plan: 'plan', off: 'No incluido', ok: 'Entendido' },
 };
 
 /**
- * One allowance pill for every tool: unlimited for the owner and Premium, green with what is
- * left for free accounts, red once the daily allowance is used up.
+ * One allowance pill for every tool: unlimited for the owner and unlimited plans, green with what
+ * is left on limited plans, red once the allowance for the period is used up or not included.
  */
-export function UsageBadge({ access, language, available, reached, progress, className, testId = 'usage-badge' }: {
-  access: Access;
+export function UsageBadge({ quota, language, available, progress, className, testId = 'usage-badge' }: {
+  quota: { access: Access; planName: string; limit: ToolLimit; reached: boolean; blocked: boolean };
   language: Lang;
-  /** What a free account still has, e.g. "1 fatura disponível hoje" or "12:30 restantes hoje". */
+  /** What is still available, e.g. "1 fatura disponível hoje" or "12:30 restantes hoje". */
   available: string;
-  reached: boolean;
-  /** Share of the allowance already used, 0 to 1 (free accounts only). */
+  /** Share of the allowance already used, 0 to 1 (limited plans only). */
   progress?: number;
   className?: string;
   testId?: string;
 }) {
   const t = C[language] || C.pt;
-  const unlimited = access !== 'free';
-  const tone = unlimited ? 'unlimited' : reached ? 'limit' : 'ok';
+  const { access, planName, limit, reached, blocked } = quota;
+  const unlimited = access === 'admin' || limit.mode === 'unlimited';
+  const tone = unlimited ? 'unlimited' : reached || blocked ? 'limit' : 'ok';
+  const label = access === 'admin' ? t.admin
+    : unlimited ? `${planName} · ${t.unlimited}`
+    : blocked ? `${t.off} · ${t.plan} ${planName}`
+    : reached ? `${reachedLabel[language][limit.period]} · ${t.plan} ${planName}`
+    : `${planName} · ${available}`;
   return (
     <div
       data-testid={testId}
@@ -43,9 +49,7 @@ export function UsageBadge({ access, language, available, reached, progress, cla
       )}
     >
       {tone === 'unlimited' ? (access === 'admin' ? <InfinityIcon size={14} /> : <Crown size={14} />) : tone === 'ok' ? <CheckCircle2 size={14} /> : <Lock size={14} />}
-      <span>
-        {tone === 'unlimited' ? (access === 'admin' ? t.admin : t.premium) : tone === 'ok' ? `${t.free} · ${available}` : `${t.reached} · ${t.plan}`}
-      </span>
+      <span>{label}</span>
       {tone !== 'unlimited' && progress !== undefined && (
         <span aria-hidden="true" className="absolute left-0 bottom-0 h-[3px] bg-current opacity-40 transition-all" style={{ width: `${Math.min(1, Math.max(0, progress)) * 100}%` }} />
       )}

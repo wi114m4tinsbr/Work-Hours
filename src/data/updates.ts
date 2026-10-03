@@ -15,6 +15,12 @@ export interface UpdateEntry {
 
 export const UPDATES: UpdateEntry[] = [
   {
+    date: '2026-10-03', kind: 'improved',
+    pt: { title: 'Comparação de planos sempre atualizada', body: 'A janela de Upgrade mostra o que cada plano inclui em cada ferramenta, sempre com os limites atuais.' },
+    en: { title: 'Plan comparison always up to date', body: 'The Upgrade window shows what each plan includes for every tool, always with the current limits.' },
+    es: { title: 'Comparación de planes siempre al día', body: 'La ventana de Upgrade muestra lo que incluye cada plan en cada herramienta, siempre con los límites actuales.' },
+  },
+  {
     date: '2026-10-03', kind: 'new',
     pt: { title: 'Página de atualizações', body: 'Agora você acompanha aqui as novidades, melhorias e correções do Shift Hours.' },
     en: { title: 'Updates page', body: 'Follow Shift Hours news, improvements and fixes right here.' },

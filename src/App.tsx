@@ -16,9 +16,11 @@ import { syncFormulaSession, syncUserSession, clearFormulaSession, fetchFormulaP
 import { FormulaFacilView } from './components/FormulaFacilView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { UpdatesView } from './components/UpdatesView';
+import { PlansModal } from './components/PlansModal';
+import { effectivePlanId, normalizePlans, sortedPlans, type PlansConfig, type ToolId } from './lib/plans';
 
 const UPDATES_PATH = '/atualizacoes';
-import { isPremium, accountStatus, type AccountStatus } from './lib/subscription';
+import { accountStatus, type AccountStatus } from './lib/subscription';
 import { increment } from 'firebase/firestore';
 import { serverTimestamp } from 'firebase/firestore';
 import { dailyQuota, formulaQuota, SERVER_TIME, type Access, type QuotaDoc } from './lib/quota';
@@ -61,7 +63,9 @@ export default function App() {
   const [lang, setLang] = useState<Language>('pt');
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
+  const [userSubscription, setUserSubscription] = useState<Record<string, unknown> | undefined>(undefined);
+  const [plansConfig, setPlansConfig] = useState<PlansConfig>(() => normalizePlans(null));
+  const [, setPlanClock] = useState(0);
   const [userStatus, setUserStatus] = useState<AccountStatus>('active');
   const [userStatusReason, setUserStatusReason] = useState('');
   const [quotaDoc, setQuotaDoc] = useState<QuotaDoc>(undefined);
@@ -210,7 +214,7 @@ export default function App() {
         setLang(userData.language || 'pt');
         setIsDarkMode(!!userData.isDarkMode);
         localStorage.setItem('shift-hours-dark-mode', String(!!userData.isDarkMode));
-        setSubscriptionType(isPremium(userData.subscription) ? 'monthly' : 'free');
+        setUserSubscription(userData.subscription);
         setUserStatus(accountStatus(userData));
         setUserStatusReason(typeof userData.statusReason === 'string' ? userData.statusReason : '');
         const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
@@ -225,6 +229,17 @@ export default function App() {
 
     return () => unsubscribeUser();
   }, [user, settings.primaryColor]);
+
+  // Plans and limits edited in the admin panel reach every open page right away.
+  useEffect(() => onSnapshot(doc(db, 'settings', 'plans'),
+    (snap) => setPlansConfig(normalizePlans(snap.exists() ? snap.data() : null)),
+    () => setPlansConfig(normalizePlans(null))), []);
+
+  // A paid plan that expires while the page is open falls back to Grátis without a reload.
+  useEffect(() => {
+    const timer = window.setInterval(() => setPlanClock((n) => n + 1), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Free-plan allowances live in quota/{email}; the rules stamp every use with the server clock.
   useEffect(() => {
@@ -350,7 +365,12 @@ export default function App() {
   }
 
   const canSeeFormulaAdmin = isOwner || formulaPublic;
-  const access: Access = isOwner ? 'admin' : subscriptionType === 'monthly' ? 'premium' : 'free';
+  const planId = effectivePlanId(userSubscription as Parameters<typeof effectivePlanId>[0], plansConfig);
+  const plan = plansConfig.plans[planId];
+  const subscriptionType: 'free' | 'monthly' = planId === 'free' ? 'free' : 'monthly';
+  const access: Access = isOwner ? 'admin' : planId === 'free' ? 'free' : 'premium';
+  const allowance = (tool: ToolId) => ({ planName: plan.name[lang], limit: plan.limits[tool] });
+  const hasBiggerPlan = sortedPlans(plansConfig).some(([id, p]) => p.visible && id !== planId && p.order > plan.order);
   const writeUsage = user?.email ? (fields: Record<string, unknown>) => setDoc(
     doc(db, 'quota', user.email!.toLowerCase()),
     Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value === SERVER_TIME ? serverTimestamp() : value])),
@@ -575,10 +595,10 @@ export default function App() {
                   title={lang === 'en' ? 'Current plan' : lang === 'es' ? 'Plan actual' : 'Plano atual'}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
-                  {subscriptionType === 'monthly' ? 'Premium' : t.free}
+                  {plan.name[lang]}
                   <span className="hidden lg:inline text-[9px] uppercase tracking-wider opacity-60">{lang === 'en' ? 'Current' : lang === 'es' ? 'Actual' : 'Atual'}</span>
                 </button>
-                {subscriptionType === 'free' && (
+                {hasBiggerPlan && (
                   <button
                     type="button"
                     onClick={() => setIsUpgradeModalOpen(true)}
@@ -641,7 +661,7 @@ export default function App() {
             language={lang}
             inApp
             onBack={goHome}
-            quota={activeTab === 'formula' ? formulaQuota(access, quotaDoc, writeUsage) : undefined}
+            quota={activeTab === 'formula' ? formulaQuota(access, quotaDoc, writeUsage, allowance('formula')) : undefined}
             ready={activeTab === 'formula' ? userSessionReady : formulaSessionReady || (!isOwner && formulaPublic)}
             publicSwitch={activeTab === 'formula-admin' && isOwner && user ? {
               enabled: formulaPublic,
@@ -655,11 +675,11 @@ export default function App() {
         </main>
       ) : activeTab === 'pdf' ? (
         <main className="flex-1 w-full overflow-visible custom-scrollbar">
-          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} quota={dailyQuota('pdf', access, quotaDoc, writeUsage)} />
+          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} quota={dailyQuota('pdf', access, quotaDoc, writeUsage, allowance('pdf'))} />
         </main>
       ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
-          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, quotaDoc, writeUsage)} />
+          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, quotaDoc, writeUsage, allowance('invoice'))} />
         </main>
       ) : (
       <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">
@@ -701,56 +721,7 @@ export default function App() {
         t={t}
       />
 
-      <AnimatePresence>
-        {isUpgradeModalOpen && (
-          <motion.div
-            className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsUpgradeModalOpen(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl overflow-hidden"
-            >
-              <div className="p-5 sm:p-6 border-b border-black/5 dark:border-white/10 flex items-start justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider mb-2"><Crown size={15} /> Shift Hours Premium</div>
-                  <h2 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white">Faça mais com o Shift Hours</h2>
-                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">Compare seu plano gratuito com os recursos Premium.</p>
-                </div>
-                <button type="button" onClick={() => setIsUpgradeModalOpen(false)} className="p-2 rounded-xl text-stone-500 dark:text-stone-300 hover:bg-primary hover:text-white"><X size={19} /></button>
-              </div>
-              <div className="p-5 sm:p-6 grid sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-stone-200 dark:border-white/10 p-4">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-300">{t.free}</span>
-                  <div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">€0</div>
-                  <div className="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
-                    <div className="flex gap-2"><Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />1 trabalho/empresa</div>
-                    <div className="flex gap-2"><Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />1 fatura por dia</div>
-                  </div>
-                </div>
-                <div className="rounded-2xl border-2 border-primary p-4 shadow-lg shadow-primary/10 relative">
-                  <span className="text-xs font-black uppercase tracking-wider text-primary">Premium</span>
-                  <div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">Em breve</div>
-                  <div className="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
-                    <div className="flex gap-2"><Check size={16} className="text-primary shrink-0 mt-0.5" />Múltiplos trabalhos/empresas</div>
-                    <div className="flex gap-2"><Check size={16} className="text-primary shrink-0 mt-0.5" />Mais faturas e recursos Premium</div>
-                  </div>
-                </div>
-              </div>
-              <div className="px-5 sm:px-6 pb-6">
-                <button type="button" disabled className="w-full rounded-xl bg-primary text-white px-4 py-3 font-black disabled:opacity-60 disabled:cursor-not-allowed">Upgrade Premium · Em breve</button>
-                <p className="text-center mt-3 text-xs text-stone-400 dark:text-stone-500">Nenhuma cobrança será feita nesta etapa.</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PlansModal open={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} config={plansConfig} currentPlanId={planId} language={lang} />
 
       <AnimatePresence>
         {isProfileModalOpen && (

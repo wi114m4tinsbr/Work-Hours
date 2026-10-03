@@ -12,10 +12,12 @@ import { cn } from '../lib/utils';
 import { ToolIdentity } from './ToolIdentity';
 import { AppSettingsForm } from './AdminSettings';
 import { ProjectReport } from './ProjectReport';
+import { PlansEditor } from './PlansEditor';
+import { normalizePlans, sortedPlans, type PlansConfig } from '../lib/plans';
 import { accountStatus, isPremium, OWNER_EMAIL, type AccountStatus, type Subscription } from '../lib/subscription';
 
 type Lang = 'pt' | 'en' | 'es';
-type Section = 'overview' | 'users' | 'activity' | 'report' | 'settings';
+type Section = 'overview' | 'users' | 'plans' | 'activity' | 'report' | 'settings';
 type Range = 'day' | 'week' | 'month' | 'year';
 type PlanFilter = 'all' | 'free' | 'premium' | 'expired';
 type StatusFilter = 'all' | AccountStatus;
@@ -50,7 +52,7 @@ const DAY = 86_400_000;
 const C = {
   pt: {
     title: 'Painel Admin', back: 'Voltar',
-    sections: { overview: 'Visão geral', users: 'Usuários', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
+    sections: { overview: 'Visão geral', users: 'Usuários', plans: 'Planos e ferramentas', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
     total: 'Total de contas', today: 'Novas hoje', week: 'Últimos 7 dias', month: 'Últimos 30 dias', year: 'Últimos 12 meses',
     active: 'Ativos (7 dias)', premium: 'Premium', restricted: 'Bloqueados / banidos', logins: 'Acessos totais',
     vsPrev: 'vs período anterior', ofTotal: 'do total',
@@ -67,7 +69,7 @@ const C = {
     until: 'até', noExpiry: 'sem validade', never: 'nunca',
     details: 'Detalhes', uid: 'ID', language: 'Idioma', copy: 'Copiar',
     formulaTitle: 'Fórmula Fácil Admin na página inicial', formulaHint: 'Quando ligado, todos os visitantes veem o botão na página inicial e usam a versão admin sem login e sem limite.', formulaOn: 'Ligado', formulaOff: 'Desligado', resetQuota: 'Zerar limites de hoje', resetHint: 'Libera de novo a fatura, o PDF e os 15 minutos da Fórmula Fácil desta conta.',
-    planSection: 'Plano', grant: 'Dar Premium', extend: 'Renovar Premium', revoke: 'Voltar para grátis', duration: 'Duração',
+    planSection: 'Plano', grant: 'Dar plano', extend: 'Renovar plano', revoke: 'Voltar para grátis', duration: 'Duração',
     durations: { 7: '7 dias', 30: '30 dias', 90: '90 dias', 365: '1 ano', 0: 'Sem validade' } as Record<number, string>,
     access: 'Acesso', reason: 'Motivo (opcional, o usuário vê)', block: 'Bloquear', unblock: 'Desbloquear', ban: 'Banir', unban: 'Remover banimento',
     blockHint: 'Bloqueado: o usuário entra, mas não consegue usar nada. Banido: o mesmo, marcado como definitivo.',
@@ -76,13 +78,13 @@ const C = {
     typeEmail: 'Digite o e-mail para confirmar', confirm: 'Confirmar', cancel: 'Cancelar', owner: 'Esta é a conta do administrador.',
     saved: 'Salvo.', failed: 'Não foi possível salvar. Confira se as regras novas do Firebase foram publicadas.',
     logEmpty: 'Nenhuma ação registrada ainda.', when: 'Quando', action: 'Ação', target: 'Usuário',
-    actions: { grant: 'Deu Premium', revoke: 'Voltou para grátis', block: 'Bloqueou', unblock: 'Desbloqueou', ban: 'Baniu', unban: 'Removeu banimento', remove: 'Excluiu dados', resetQuota: 'Zerou limites', formulaOn: 'Ligou Fórmula Fácil Admin na página inicial', formulaOff: 'Desligou Fórmula Fácil Admin na página inicial' } as Record<string, string>,
+    actions: { grant: 'Deu Premium', revoke: 'Voltou para grátis', block: 'Bloqueou', unblock: 'Desbloqueou', ban: 'Baniu', unban: 'Removeu banimento', remove: 'Excluiu dados', plansSaved: 'Alterou planos e limites', resetQuota: 'Zerou limites', formulaOn: 'Ligou Fórmula Fácil Admin na página inicial', formulaOff: 'Desligou Fórmula Fácil Admin na página inicial' } as Record<string, string>,
     loadError: 'Não foi possível ler os usuários. Publique as regras novas do Firebase (passo a passo na conversa).',
     loading: 'Carregando dados…',
   },
   en: {
     title: 'Admin panel', back: 'Back',
-    sections: { overview: 'Overview', users: 'Users', activity: 'Activity', report: 'Report', settings: 'Settings' },
+    sections: { overview: 'Overview', users: 'Users', plans: 'Plans and tools', activity: 'Activity', report: 'Report', settings: 'Settings' },
     total: 'Total accounts', today: 'New today', week: 'Last 7 days', month: 'Last 30 days', year: 'Last 12 months',
     active: 'Active (7 days)', premium: 'Premium', restricted: 'Blocked / banned', logins: 'Total sign-ins',
     vsPrev: 'vs previous period', ofTotal: 'of total',
@@ -99,7 +101,7 @@ const C = {
     until: 'until', noExpiry: 'no expiry', never: 'never',
     details: 'Details', uid: 'ID', language: 'Language', copy: 'Copy',
     formulaTitle: 'Fórmula Fácil Admin on the home page', formulaHint: 'When on, every visitor sees the button on the home page and uses the admin version without login and without limits.', formulaOn: 'On', formulaOff: 'Off', resetQuota: 'Reset today\'s limits', resetHint: 'Gives this account its invoice, PDF and 15 Fórmula Fácil minutes again.',
-    planSection: 'Plan', grant: 'Give Premium', extend: 'Renew Premium', revoke: 'Back to free', duration: 'Duration',
+    planSection: 'Plan', grant: 'Give plan', extend: 'Renew plan', revoke: 'Back to free', duration: 'Duration',
     durations: { 7: '7 days', 30: '30 days', 90: '90 days', 365: '1 year', 0: 'No expiry' } as Record<number, string>,
     access: 'Access', reason: 'Reason (optional, shown to the user)', block: 'Block', unblock: 'Unblock', ban: 'Ban', unban: 'Lift ban',
     blockHint: 'Blocked: the user can sign in but cannot use anything. Banned: the same, marked as permanent.',
@@ -108,13 +110,13 @@ const C = {
     typeEmail: 'Type the email to confirm', confirm: 'Confirm', cancel: 'Cancel', owner: 'This is the administrator account.',
     saved: 'Saved.', failed: 'Could not save. Check that the new Firebase rules were published.',
     logEmpty: 'No actions recorded yet.', when: 'When', action: 'Action', target: 'User',
-    actions: { grant: 'Gave Premium', revoke: 'Back to free', block: 'Blocked', unblock: 'Unblocked', ban: 'Banned', unban: 'Lifted ban', remove: 'Deleted data', resetQuota: 'Reset limits', formulaOn: 'Turned on Fórmula Fácil Admin on the home page', formulaOff: 'Turned off Fórmula Fácil Admin on the home page' } as Record<string, string>,
+    actions: { grant: 'Gave Premium', revoke: 'Back to free', block: 'Blocked', unblock: 'Unblocked', ban: 'Banned', unban: 'Lifted ban', remove: 'Deleted data', plansSaved: 'Changed plans and limits', resetQuota: 'Reset limits', formulaOn: 'Turned on Fórmula Fácil Admin on the home page', formulaOff: 'Turned off Fórmula Fácil Admin on the home page' } as Record<string, string>,
     loadError: 'Could not read users. Publish the new Firebase rules (steps in the conversation).',
     loading: 'Loading data…',
   },
   es: {
     title: 'Panel de administración', back: 'Volver',
-    sections: { overview: 'Resumen', users: 'Usuarios', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
+    sections: { overview: 'Resumen', users: 'Usuarios', plans: 'Planes y herramientas', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
     total: 'Total de cuentas', today: 'Nuevas hoy', week: 'Últimos 7 días', month: 'Últimos 30 días', year: 'Últimos 12 meses',
     active: 'Activos (7 días)', premium: 'Premium', restricted: 'Bloqueados / baneados', logins: 'Accesos totales',
     vsPrev: 'vs período anterior', ofTotal: 'del total',
@@ -131,7 +133,7 @@ const C = {
     until: 'hasta', noExpiry: 'sin vencimiento', never: 'nunca',
     details: 'Detalles', uid: 'ID', language: 'Idioma', copy: 'Copiar',
     formulaTitle: 'Fórmula Fácil Admin en la página de inicio', formulaHint: 'Cuando está activado, todos los visitantes ven el botón en la página de inicio y usan la versión admin sin login y sin límite.', formulaOn: 'Activado', formulaOff: 'Desactivado', resetQuota: 'Reiniciar límites de hoy', resetHint: 'Vuelve a liberar la factura, el PDF y los 15 minutos de Fórmula Fácil de esta cuenta.',
-    planSection: 'Plan', grant: 'Dar Premium', extend: 'Renovar Premium', revoke: 'Volver a gratis', duration: 'Duración',
+    planSection: 'Plan', grant: 'Dar plan', extend: 'Renovar plan', revoke: 'Volver a gratis', duration: 'Duración',
     durations: { 7: '7 días', 30: '30 días', 90: '90 días', 365: '1 año', 0: 'Sin vencimiento' } as Record<number, string>,
     access: 'Acceso', reason: 'Motivo (opcional, lo ve el usuario)', block: 'Bloquear', unblock: 'Desbloquear', ban: 'Banear', unban: 'Quitar baneo',
     blockHint: 'Bloqueado: el usuario entra pero no puede usar nada. Baneado: lo mismo, marcado como definitivo.',
@@ -140,7 +142,7 @@ const C = {
     typeEmail: 'Escribe el correo para confirmar', confirm: 'Confirmar', cancel: 'Cancelar', owner: 'Esta es la cuenta del administrador.',
     saved: 'Guardado.', failed: 'No se pudo guardar. Revisa que las reglas nuevas de Firebase estén publicadas.',
     logEmpty: 'Aún no hay acciones registradas.', when: 'Cuándo', action: 'Acción', target: 'Usuario',
-    actions: { grant: 'Dio Premium', revoke: 'Volvió a gratis', block: 'Bloqueó', unblock: 'Desbloqueó', ban: 'Baneó', unban: 'Quitó baneo', remove: 'Eliminó datos', resetQuota: 'Reinició límites', formulaOn: 'Activó Fórmula Fácil Admin en el inicio', formulaOff: 'Desactivó Fórmula Fácil Admin en el inicio' } as Record<string, string>,
+    actions: { grant: 'Dio Premium', revoke: 'Volvió a gratis', block: 'Bloqueó', unblock: 'Desbloqueó', ban: 'Baneó', unban: 'Quitó baneo', remove: 'Eliminó datos', plansSaved: 'Cambió planes y límites', resetQuota: 'Reinició límites', formulaOn: 'Activó Fórmula Fácil Admin en el inicio', formulaOff: 'Desactivó Fórmula Fácil Admin en el inicio' } as Record<string, string>,
     loadError: 'No se pudieron leer los usuarios. Publica las reglas nuevas de Firebase (pasos en la conversación).',
     loading: 'Cargando datos…',
   },
@@ -300,12 +302,17 @@ function MiniChart({ buckets, field, kind, title, t }: { buckets: Bucket[]; fiel
   );
 }
 
-function PlanBadge({ row, t, locale }: { row: UserRow; t: Dict; locale: string }) {
+const paidPlanName = (row: UserRow, plans: PlansConfig, lang: Lang) => {
+  const id = (row.subscription as { plan?: string } | undefined)?.plan || 'premium';
+  return plans.plans[id]?.name[lang] ?? plans.plans.premium.name[lang];
+};
+
+function PlanBadge({ row, t, locale, plans, lang }: { row: UserRow; t: Dict; locale: string; plans: PlansConfig; lang: Lang }) {
   const expiry = millis(row.subscription?.expiryDate);
   if (row.premium) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-primary-light dark:bg-white/10 text-primary dark:text-white px-2 py-0.5 text-[11px] font-black whitespace-nowrap">
-        <Crown size={11} /> Premium{expiry ? ` · ${t.until} ${new Date(expiry).toLocaleDateString(locale)}` : ''}
+        <Crown size={11} /> {paidPlanName(row, plans, lang)}{expiry ? ` · ${t.until} ${new Date(expiry).toLocaleDateString(locale)}` : ''}
       </span>
     );
   }
@@ -360,6 +367,8 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
   const t = C[language] || C.pt;
   const locale = language === 'en' ? 'en-GB' : language === 'es' ? 'es-ES' : 'pt-BR';
   const [section, setSection] = useState<Section>('overview');
+  const [plans, setPlans] = useState<PlansConfig>(() => normalizePlans(null));
+  useEffect(() => onSnapshot(doc(db, 'settings', 'plans'), (snap) => setPlans(normalizePlans(snap.exists() ? snap.data() : null)), () => {}), []);
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [totalLogins, setTotalLogins] = useState(0);
@@ -447,6 +456,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
   const tabs: { id: Section; icon: ReactNode }[] = [
     { id: 'overview', icon: <BarChart3 size={15} /> },
     { id: 'users', icon: <Users size={15} /> },
+    { id: 'plans', icon: <Crown size={15} /> },
     { id: 'activity', icon: <Activity size={15} /> },
     { id: 'report', icon: <ScrollText size={15} /> },
     { id: 'settings', icon: <Settings size={15} /> },
@@ -471,7 +481,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
 
       <div className="max-w-7xl mx-auto p-4 pb-16 space-y-5">
         {loadError && <div className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 text-amber-800 dark:text-amber-200 p-4 text-sm font-semibold">{t.loadError}</div>}
-        {!users && !loadError && section !== 'settings' && section !== 'report' && <div className="text-sm text-stone-400 font-semibold">{t.loading}</div>}
+        {!users && !loadError && section !== 'settings' && section !== 'report' && section !== 'plans' && <div className="text-sm text-stone-400 font-semibold">{t.loading}</div>}
 
         {section === 'overview' && users && (
           <>
@@ -581,7 +591,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5"><PlanBadge row={u} t={t} locale={locale} /></td>
+                      <td className="px-3 py-2.5"><PlanBadge row={u} t={t} locale={locale} plans={plans} lang={language} /></td>
                       <td className="px-3 py-2.5"><StatusBadge status={u.status} t={t} /></td>
                       <td className="px-3 py-2.5 hidden md:table-cell text-stone-600 dark:text-stone-300 tabular-nums">{fmtDate(u.createdAt)}</td>
                       <td className="px-3 py-2.5 hidden md:table-cell text-stone-600 dark:text-stone-300 tabular-nums">{fmtDateTime(u.lastLoginAt)}</td>
@@ -624,6 +634,8 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
 
         {section === 'report' && <ProjectReport language={language} locale={locale} />}
 
+        {section === 'plans' && <PlansEditor language={language} />}
+
         {section === 'settings' && (
           <div className="max-w-xl space-y-4">
             {formulaPublic && <FormulaSwitch t={t} value={formulaPublic} />}
@@ -634,7 +646,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
         )}
       </div>
 
-      {selectedRow && <UserDrawer row={selectedRow} t={t} locale={locale} onClose={() => setSelected(null)} fmtDate={fmtDate} fmtDateTime={fmtDateTime} />}
+      {selectedRow && <UserDrawer row={selectedRow} t={t} locale={locale} plans={plans} lang={language} onClose={() => setSelected(null)} fmtDate={fmtDate} fmtDateTime={fmtDateTime} />}
     </div>
   );
 }
@@ -695,11 +707,14 @@ async function logAction(action: string, row: UserRow, details: string) {
   });
 }
 
-function UserDrawer({ row, t, locale, onClose, fmtDate, fmtDateTime }: {
-  row: UserRow; t: Dict; locale: string; onClose: () => void;
+function UserDrawer({ row, t, locale, plans, lang, onClose, fmtDate, fmtDateTime }: {
+  row: UserRow; t: Dict; locale: string; plans: PlansConfig; lang: Lang; onClose: () => void;
   fmtDate: (v: number | null) => string; fmtDateTime: (v: number | null) => string;
 }) {
   const [days, setDays] = useState(30);
+  const paidPlans = sortedPlans(plans).filter(([id]) => id !== 'free');
+  const currentPaid = (row.subscription as { plan?: string } | undefined)?.plan || 'premium';
+  const [planChoice, setPlanChoice] = useState(plans.plans[currentPaid] ? currentPaid : paidPlans[0]?.[0] ?? 'premium');
   const [reason, setReason] = useState(row.statusReason);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -728,10 +743,12 @@ function UserDrawer({ row, t, locale, onClose, fmtDate, fmtDateTime }: {
 
   const grant = () => run(async () => {
     // Renewing adds to the time left instead of restarting from today.
-    const from = row.premium && expiry ? expiry : Date.now();
+    const samePlan = row.premium && planChoice === currentPaid;
+    const from = samePlan && expiry ? expiry : Date.now();
     const expiryDate = days ? Timestamp.fromMillis(from + days * DAY) : null;
-    await updateDoc(ref, { subscription: { type: 'monthly', expiryDate, grantedBy: 'admin', grantedAt: Timestamp.now() } });
-    await logAction('grant', row, days ? `${t.durations[days]} · ${t.until} ${new Date(expiryDate!.toMillis()).toLocaleDateString(locale)}` : t.durations[0]);
+    await updateDoc(ref, { subscription: { type: 'monthly', plan: planChoice, expiryDate, grantedBy: 'admin', grantedAt: Timestamp.now() } });
+    const name = plans.plans[planChoice]?.name[lang] ?? planChoice;
+    await logAction('grant', row, `${name} · ${days ? `${t.durations[days]} · ${t.until} ${new Date(expiryDate!.toMillis()).toLocaleDateString(locale)}` : t.durations[0]}`);
   });
   const revoke = () => run(async () => {
     await updateDoc(ref, { subscription: { type: 'free', expiryDate: null } });
@@ -775,7 +792,7 @@ function UserDrawer({ row, t, locale, onClose, fmtDate, fmtDateTime }: {
           <div className="min-w-0 flex-1">
             <div className="font-black text-stone-900 dark:text-white truncate">{row.name || '—'}</div>
             <div className="text-sm text-stone-500 dark:text-stone-400 truncate">{row.email}</div>
-            <div className="mt-1.5 flex flex-wrap gap-1.5"><PlanBadge row={row} t={t} locale={locale} /><StatusBadge status={row.status} t={t} /></div>
+            <div className="mt-1.5 flex flex-wrap gap-1.5"><PlanBadge row={row} t={t} locale={locale} plans={plans} lang={lang} /><StatusBadge status={row.status} t={t} /></div>
           </div>
           <button type="button" onClick={onClose} className="p-2 rounded-xl text-stone-500 hover:bg-primary hover:text-white" aria-label={t.cancel}><X size={18} /></button>
         </div>
@@ -806,13 +823,16 @@ function UserDrawer({ row, t, locale, onClose, fmtDate, fmtDateTime }: {
             {block(t.planSection, (
               <>
                 <div className="text-sm text-stone-600 dark:text-stone-300">
-                  {row.premium ? `Premium · ${expiry ? `${t.until} ${new Date(expiry).toLocaleDateString(locale)}` : t.noExpiry}` : row.expired ? t.expired : t.free}
+                  {row.premium ? `${paidPlanName(row, plans, lang)} · ${expiry ? `${t.until} ${new Date(expiry).toLocaleDateString(locale)}` : t.noExpiry}` : row.expired ? t.expired : t.free}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <select value={planChoice} onChange={(e) => setPlanChoice(e.target.value)} aria-label={t.planSection} data-testid="grant-plan" className="h-9 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-2 text-sm text-stone-800 dark:text-stone-100">
+                    {paidPlans.map(([id, p]) => <option key={id} value={id}>{p.name[lang]}</option>)}
+                  </select>
                   <select value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label={t.duration} className="h-9 rounded-xl border border-stone-200 dark:border-white/10 bg-stone-50 dark:bg-stone-800 px-2 text-sm text-stone-800 dark:text-stone-100">
                     {[7, 30, 90, 365, 0].map((d) => <option key={d} value={d}>{t.durations[d]}</option>)}
                   </select>
-                  <ConfirmButton label={row.premium ? t.extend : t.grant} icon={<Crown size={14} />} onConfirm={grant} t={t} />
+                  <ConfirmButton label={row.premium && planChoice === currentPaid ? t.extend : t.grant} icon={<Crown size={14} />} onConfirm={grant} t={t} />
                   {(row.premium || row.expired) && <ConfirmButton label={t.revoke} icon={<X size={14} />} onConfirm={revoke} t={t} tone="warn" />}
                 </div>
               </>
