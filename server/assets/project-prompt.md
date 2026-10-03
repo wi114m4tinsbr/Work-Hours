@@ -63,3 +63,7 @@ Os envios mais recentes aparecem logo abaixo, gerados automaticamente a partir d
 ## Próxima solicitação: notificações externas de suporte
 - O dono pediu alertas de ocorrências e mensagens por e-mail, SMS ou WhatsApp, configuráveis numa aba do admin; também atendimento pelo WhatsApp enquanto o chamado estiver aceito e aberto.
 - Ainda não implementado. Telegram aprovado como primeira etapa gratuita de mensageria, mantendo o chat do usuário no site. Aguardando criação do bot pelo dono e configuração segura; integração ainda não implementada. Detalhes em `docs/support-notifications.md`.
+
+
+## Telegram — 03/10/2026
+Integração inicial implementada em api/support-telegram.ts e server/support-*.ts, tela SupportNotifications. Bot @ShiftHoursAvisoBot criado; dono informou ter salvo TELEGRAM_BOT_TOKEN e enviado /start. Ativação NÃO confirmada. Precisa FIREBASE_SERVICE_ACCOUNT Secret na Vercel (JSON do projeto correto, Cloud Datastore User), redeploy, vínculo pelo link de Admin → Notificações e teste real. Não pedir segredos na conversa. Apenas produção opera bot; preview não pode substituir webhook. Chat permanece no site. Respostas apenas texto e via Responder no aviso, somente ocorrência aceita pelo dono ainda aberta, opção ligada. /stop desliga. docs/support-notifications.md registra limites: disparos partem do navegador após gravação, sem fila durável/gatilho Firestore; pode perder aviso se fechar aba ou rede cair. Não prometer entrega garantida. Produção anterior Aurora publicada no merge b2bb5fd.

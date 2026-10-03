@@ -13,6 +13,7 @@ import { cn } from '../lib/utils';
 import { ToolIdentity } from './ToolIdentity';
 import { AppSettingsForm } from './AdminSettings';
 import { ProjectReport } from './ProjectReport';
+import { SupportNotifications } from './SupportNotifications';
 import { SupportAdmin } from './SupportAdmin';
 import { StaffAdmin } from './StaffAdmin';
 import type { Powers } from '../lib/staff';
@@ -21,7 +22,7 @@ import { normalizePlans, sortedPlans, type PlansConfig } from '../lib/plans';
 import { accountStatus, isPremium, OWNER_EMAIL, type AccountStatus, type Subscription } from '../lib/subscription';
 
 type Lang = 'pt' | 'en' | 'es';
-type Section = 'overview' | 'users' | 'support' | 'plans' | 'activity' | 'staff' | 'report' | 'settings';
+type Section = 'notifications' | 'overview' | 'users' | 'support' | 'plans' | 'activity' | 'staff' | 'report' | 'settings';
 type Range = 'day' | 'week' | 'month' | 'year';
 type PlanFilter = 'all' | 'free' | 'premium' | 'expired';
 type StatusFilter = 'all' | AccountStatus;
@@ -57,7 +58,7 @@ const DAY = 86_400_000;
 const C = {
   pt: {
     title: 'Painel Admin', back: 'Voltar',
-    sections: { overview: 'Visão geral', users: 'Usuários', support: 'Suporte', staff: 'Staff', plans: 'Planos e ferramentas', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
+    sections: { notifications: 'Notificações', overview: 'Visão geral', users: 'Usuários', support: 'Suporte', staff: 'Staff', plans: 'Planos e ferramentas', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
     total: 'Total de contas', today: 'Novas hoje', week: 'Últimos 7 dias', month: 'Últimos 30 dias', year: 'Últimos 12 meses',
     active: 'Ativos (7 dias)', premium: 'Premium', restricted: 'Bloqueados / banidos', logins: 'Acessos totais',
     vsPrev: 'vs período anterior', ofTotal: 'do total',
@@ -89,7 +90,7 @@ const C = {
   },
   en: {
     title: 'Admin panel', back: 'Back',
-    sections: { overview: 'Overview', users: 'Users', support: 'Support', staff: 'Staff', plans: 'Plans and tools', activity: 'Activity', report: 'Report', settings: 'Settings' },
+    sections: { notifications: 'Notifications', overview: 'Overview', users: 'Users', support: 'Support', staff: 'Staff', plans: 'Plans and tools', activity: 'Activity', report: 'Report', settings: 'Settings' },
     total: 'Total accounts', today: 'New today', week: 'Last 7 days', month: 'Last 30 days', year: 'Last 12 months',
     active: 'Active (7 days)', premium: 'Premium', restricted: 'Blocked / banned', logins: 'Total sign-ins',
     vsPrev: 'vs previous period', ofTotal: 'of total',
@@ -121,7 +122,7 @@ const C = {
   },
   es: {
     title: 'Panel de administración', back: 'Volver',
-    sections: { overview: 'Resumen', users: 'Usuarios', support: 'Soporte', staff: 'Staff', plans: 'Planes y herramientas', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
+    sections: { notifications: 'Notificaciones', overview: 'Resumen', users: 'Usuarios', support: 'Soporte', staff: 'Staff', plans: 'Planes y herramientas', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
     total: 'Total de cuentas', today: 'Nuevas hoy', week: 'Últimos 7 días', month: 'Últimos 30 días', year: 'Últimos 12 meses',
     active: 'Activos (7 días)', premium: 'Premium', restricted: 'Bloqueados / baneados', logins: 'Accesos totales',
     vsPrev: 'vs período anterior', ofTotal: 'del total',
@@ -381,7 +382,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
   const locale = language === 'en' ? 'en-GB' : language === 'es' ? 'es-ES' : 'pt-BR';
   const allowed: Record<Section, boolean> = {
     overview: !!powers.users_view, users: !!powers.users_view, support: !!powers.tickets, plans: !!powers.plans,
-    activity: !!powers.activity, staff: isOwner, report: isOwner, settings: isOwner,
+    notifications: isOwner, activity: !!powers.activity, staff: isOwner, report: isOwner, settings: isOwner,
   };
   const [sectionChoice, setSection] = useState<Section>('overview');
   useEffect(() => {
@@ -482,6 +483,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
   const tabs: { id: Section; icon: ReactNode }[] = [
     { id: 'overview', icon: <BarChart3 size={15} /> },
     { id: 'users', icon: <Users size={15} /> },
+    { id: 'notifications', icon: <Activity size={15} /> },
     { id: 'support', icon: <LifeBuoy size={15} /> },
     { id: 'plans', icon: <Crown size={15} /> },
     { id: 'activity', icon: <Activity size={15} /> },
@@ -664,6 +666,8 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
         )}
 
         {section === 'support' && <SupportAdmin language={language} locale={locale} isOwner={isOwner} />}
+
+        {section === 'notifications' && <SupportNotifications language={language} />}
 
         {section === 'staff' && <StaffAdmin language={language} locale={locale} />}
 

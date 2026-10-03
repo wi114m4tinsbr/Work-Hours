@@ -1,32 +1,36 @@
-# Notificações de suporte — pedido pendente (03/10/2026)
+# Notificações de suporte — Telegram
 
-Solicitado pelo proprietário durante a publicação da home Aurora. Ainda não implementado ou ativado.
+Implementação inicial de 03/10/2026. Ativação depende da configuração e do vínculo confirmado pelo dono. Não anunciar como ativo antes de enviar e receber um teste real.
 
-## Comportamento desejado
+## Comportamento
 
-- Aba Notificações, exclusiva do dono, com liga/desliga geral e por canal: e-mail, SMS e WhatsApp.
-- Eventos: ocorrência criada e mensagem recebida em ocorrência não encerrada. Definir se respostas da própria equipe também geram alertas; evitar notificar o autor da mensagem sobre a própria ação.
-- Destinos editáveis e verificados. Nenhuma credencial no navegador, Firestore público, repositório ou logs.
-- Eventos disparados no servidor, mesmo com o site fechado. Gatilhos de criação de tickets/mensagens no banco nomeado, fila com identificador por evento/canal, deduplicação, tentativas limitadas e registro de entrega sem conteúdo sensível.
-- Preferências rechecadas antes do envio; desligar cancela envios pendentes. Não enviar retroativamente todo o histórico ao ativar.
-- WhatsApp opcional: número oficial intermediário, vinculação verificada ao usuário/chamado e consentimento. Encaminhar somente após aceitação, para o chamado correto e enquanto estiver ativo. Webhooks autenticados e deduplicados. Não publicar números pessoais.
-- Ao encerrar, impedir novos encaminhamentos/respostas pelo sistema e preservar o histórico. Não é possível impedir alguém de enviar ao número no aplicativo WhatsApp nem revogar mensagens já entregues.
-- Templates aprovados são necessários para notificações WhatsApp fora da janela de atendimento. Mostrar custos e configuração do provedor antes de ativar.
+- Aba Admin → Notificações, somente para a conta Google martinswilliam2004@gmail.com. Autorização também no servidor.
+- Bot @ShiftHoursAvisoBot. Preferências por abertura, aceite e mensagem; controle separado para respostas.
+- Avisos de mensagens e respostas apenas em ocorrências aceitas pelo dono. Aceites da staff geram aviso, mas não habilitam respostas à ocorrência atribuída a outra pessoa.
+- Chat do usuário permanece no site. Respostas Telegram são texto, até 4.000 caracteres, usando Responder no aviso específico. Arquivos, áudio e mensagens avulsas não são encaminhados.
+- Encerramento, desativação e deduplicação verificados numa transação no banco antes da resposta. /stop desliga alertas e respostas.
+- Vínculo pessoal, de uso único, expira em 10 minutos. Não basta enviar /start ao bot: é necessário abrir o link gerado após login do dono no painel. Recriar vínculo invalida os avisos antigos para resposta.
+- Somente Production pode configurar webhook e enviar. Preview não mexe no bot; ambos usam o mesmo Firebase.
+- E-mail, SMS e WhatsApp não implementados, sem contratação.
 
-## Informações solicitadas ao proprietário
+## Configuração segura
 
-1. Já possui provedor de envio (ex.: WhatsApp Business Platform/Cloud API ou Twilio)? Não pedir segredos no chat.
-2. Deseja WhatsApp por número oficial integrado ou apenas alertas com conversa no site?
+1. Vercel, projeto work-hours, variável Secret TELEGRAM_BOT_TOKEN. O dono informou que salvou e iniciou o bot. Não verificar o valor por logs.
+2. Variável Secret FIREBASE_SERVICE_ACCOUNT contendo JSON de conta de serviço do projeto gen-lang-client-0275590292 com permissão Cloud Datastore User (roles/datastore.user). Não é a configuração web do Firebase. Não colocar em VITE_*, código, repositório ou conversa. Preferir conta dedicada de menor privilégio.
+3. Novo deploy de Production após salvar variáveis. Banco nomeado ai-studio-df43dc48-1bac-453f-8185-49b595d5483a.
+4. Dono entra em shifthours.com → Admin → Notificações → Conectar meu Telegram, abre o link pessoal e toca Iniciar. Atualizar, habilitar avisos e Salvar; Enviar teste.
+5. Confirmar com ocorrência real de teste, aceite pelo dono, mensagem do usuário e resposta; fechar ocorrência e conferir recusa de nova resposta.
 
-## Antes da implementação
+## Limitações e entrega
 
-Confirmar o provedor, acesso de configuração, número remetente, domínio remetente de e-mail e canais iniciais. Não contratar serviços nem enviar mensagens de teste a destinos não confirmados. Implementar PT/EN/ES e autorização no servidor/regras, não apenas ocultação de abas.
+Esta primeira versão dispara o endpoint autenticado após a gravação da ação no site, com até três tentativas no navegador. O dono pode estar offline. Não há gatilho Firestore nem fila durável independente do navegador: fechamento da aba/rede interrompida nesse intervalo pode perder o aviso. Escritas externas ao app não disparam alertas. O histórico do suporte não é revertido quando o aviso falha.
 
-Referências técnicas consultadas:
-- https://firebase.google.com/docs/firestore/extend-with-functions
-- https://www.twilio.com/docs/whatsapp/api
-- https://www.twilio.com/docs/whatsapp/tutorial/send-whatsapp-notification-messages-templates
+Eventos anteriores à ativação ou com mais de dez minutos não são reenviados. Entregas possuem chave por evento. Telegram não oferece chave de idempotência para sendMessage: timeout ambíguo é marcado como entrega não confirmada e não reenviado automaticamente, para evitar duplicação. A aba mostra o alerta. Chamadas já enviadas ao Telegram não podem ser canceladas por um desligamento simultâneo.
 
-## Decisão posterior do dono
+Próxima evolução para entrega garantida: outbox transacional ou gatilhos Firestore com fila, retentativas e retenção. Exige avaliar infraestrutura e custos antes de ativar. Coleções internas supportPrivate, supportDeliveries, supportLimits, supportTelegramMessages e supportTelegramUpdates não têm regras de acesso cliente (negação padrão). Credenciais usadas apenas no servidor.
 
-Telegram aprovado como primeira opção, mantendo o chat do usuário no site. Alertar sobre nova ocorrência, aceite por staff/admin e mensagens recebidas; permitir respostas pelo Telegram somente em chamados aceitos pelo dono, com liga/desliga e interrupção ao encerrar. Dono não possui provedor configurado e foi orientado a criar bot no @BotFather, sem compartilhar token no chat. Integração ainda pendente.
+## Verificação
+
+Testes de autorização, segredo de webhook, vínculo expirado/grupo, destino, atualização repetida, encerramento, atribuição, desativação e /stop. Interface PT/EN/ES, temas e celular com testes de navegador. Validação real de entrega permanece pendente até configurar e vincular.
+
+Referências: https://core.telegram.org/bots/api e https://firebase.google.com/docs/admin/setup

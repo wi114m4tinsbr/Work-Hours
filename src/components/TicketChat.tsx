@@ -1,3 +1,4 @@
+import { notifySupport } from '../lib/supportNotifications';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc,
@@ -149,11 +150,12 @@ export function TicketChat({ ticket, side, language, canWrite, onClose, extraAct
     setFailed(false);
     try {
       const name = (me.displayName || me.email || '').slice(0, 100);
-      await addDoc(collection(db, 'tickets', ticket.id, 'messages'), { by: side, uid: me.uid, name, text: body, at: serverTimestamp() });
+      const messageRef = await addDoc(collection(db, 'tickets', ticket.id, 'messages'), { by: side, uid: me.uid, name, text: body, at: serverTimestamp() });
       await updateDoc(doc(db, 'tickets', ticket.id), {
         lastMessageAt: serverTimestamp(), lastMessageBy: side, updatedAt: serverTimestamp(),
         ...(side === 'user' ? { staffUnread: true } : { userUnread: true }),
       });
+      if (side === 'user') void notifySupport('messages', ticket.id, messageRef.id);
       setText('');
     } catch (error) {
       console.error(error);

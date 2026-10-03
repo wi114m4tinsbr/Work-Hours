@@ -1,0 +1,48 @@
+import { useEffect, useState } from 'react';
+import { Bell, ExternalLink, RefreshCw, Send, Unplug } from 'lucide-react';
+import { notificationRequest } from '../lib/supportNotifications';
+const C = {
+  pt: { title: 'Notificações no telefone', intro: 'Receba avisos no Telegram. O usuário continua conversando pelo chat do site.', refresh: 'Atualizar', connect: 'Conectar meu Telegram', open: 'Abrir Telegram e confirmar', pairHint: 'Toque em Iniciar no Telegram e depois em Atualizar aqui. O link vale por 10 minutos e é pessoal.', test: 'Enviar teste', disconnect: 'Desconectar', save: 'Salvar preferências', saved: 'Preferências salvas.', tested: 'Teste enviado. Confira o Telegram.', failed: 'Não foi possível concluir. Confira a configuração do servidor e tente novamente.', preview: 'Configure as notificações no site oficial. O preview não envia avisos nem altera o bot.', token: 'Falta configurar TELEGRAM_BOT_TOKEN na Vercel e publicar novamente.', database: 'Falta configurar FIREBASE_SERVICE_ACCOUNT na Vercel, com acesso ao banco de ocorrências, e publicar novamente.', connected: 'Telegram conectado', disconnected: 'Telegram ainda não conectado', enabled: 'Receber avisos', opened: 'Nova ocorrência', accepted: 'Ocorrência aceita por staff ou administrador', messages: 'Mensagens nas ocorrências que eu aceitei', replies: 'Permitir que eu responda pelo Telegram', replyHint: 'Use Responder no aviso da ocorrência. Apenas texto é enviado ao chat do site. Ao encerrar a ocorrência ou desligar esta opção, novas respostas são bloqueadas.', scope: 'Os avisos acompanham as ações feitas no site. Se a conexão for interrompida antes de disparar o aviso, ele pode não chegar. O histórico permanece no suporte.', problem: 'Um aviso teve entrega não confirmada. Confira o suporte no site.', channels: 'E-mail, SMS e WhatsApp ainda não estão configurados.', loading: 'Carregando…' },
+  en: { title: 'Phone notifications', intro: 'Receive Telegram alerts. Users keep chatting on the website.', refresh: 'Refresh', connect: 'Connect my Telegram', open: 'Open Telegram and confirm', pairHint: 'Tap Start in Telegram, then Refresh here. This personal link expires in 10 minutes.', test: 'Send test', disconnect: 'Disconnect', save: 'Save preferences', saved: 'Preferences saved.', tested: 'Test sent. Check Telegram.', failed: 'Could not complete. Check the server configuration and try again.', preview: 'Configure notifications on the official website. Preview does not send alerts or change the bot.', token: 'Configure TELEGRAM_BOT_TOKEN in Vercel and redeploy.', database: 'Configure FIREBASE_SERVICE_ACCOUNT in Vercel with access to the ticket database and redeploy.', connected: 'Telegram connected', disconnected: 'Telegram not connected yet', enabled: 'Receive alerts', opened: 'New ticket', accepted: 'Ticket accepted by staff or administrator', messages: 'Messages in tickets I accepted', replies: 'Allow me to reply through Telegram', replyHint: 'Use Reply on the ticket alert. Only text is sent to the website chat. Closing the ticket or disabling this option blocks new replies.', scope: 'Alerts follow actions on the website. If the connection ends before an alert is triggered, it may not arrive. The support history is preserved.', problem: 'One alert has unconfirmed delivery. Check support on the website.', channels: 'Email, SMS and WhatsApp are not configured yet.', loading: 'Loading…' },
+  es: { title: 'Notificaciones en el teléfono', intro: 'Recibe avisos en Telegram. El usuario sigue conversando en el chat del sitio.', refresh: 'Actualizar', connect: 'Conectar mi Telegram', open: 'Abrir Telegram y confirmar', pairHint: 'Pulsa Iniciar en Telegram y luego Actualizar aquí. Este enlace personal caduca en 10 minutos.', test: 'Enviar prueba', disconnect: 'Desconectar', save: 'Guardar preferencias', saved: 'Preferencias guardadas.', tested: 'Prueba enviada. Revisa Telegram.', failed: 'No se pudo completar. Revisa la configuración del servidor e inténtalo de nuevo.', preview: 'Configura las notificaciones en el sitio oficial. El preview no envía avisos ni cambia el bot.', token: 'Configura TELEGRAM_BOT_TOKEN en Vercel y vuelve a desplegar.', database: 'Configura FIREBASE_SERVICE_ACCOUNT en Vercel con acceso a la base de incidencias y vuelve a desplegar.', connected: 'Telegram conectado', disconnected: 'Telegram todavía no conectado', enabled: 'Recibir avisos', opened: 'Nueva incidencia', accepted: 'Incidencia aceptada por staff o administrador', messages: 'Mensajes en incidencias que acepté', replies: 'Permitir que responda por Telegram', replyHint: 'Usa Responder en el aviso de la incidencia. Solo se envía texto al chat del sitio. Al cerrar la incidencia o desactivar esta opción, se bloquean nuevas respuestas.', scope: 'Los avisos siguen las acciones del sitio. Si se corta la conexión antes de enviar el aviso, puede no llegar. Se conserva el historial del soporte.', problem: 'Un aviso tiene entrega sin confirmar. Revisa el soporte en el sitio.', channels: 'Correo, SMS y WhatsApp aún no están configurados.', loading: 'Cargando…' },
+};
+type Key = 'enabled' | 'opened' | 'accepted' | 'messages' | 'replies';
+type State = Record<Key, boolean> & { production: boolean; tokenReady: boolean; databaseReady: boolean; connected: boolean; deliveryProblem?: boolean };
+export function SupportNotifications({ language, request = notificationRequest }: { language: 'pt' | 'en' | 'es'; request?: typeof notificationRequest }) {
+  const t = C[language];
+  const [state, setState] = useState<State | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  const [pairUrl, setPairUrl] = useState('');
+  async function run(action: string) {
+    setBusy(true); setError(false); setFeedback('');
+    try {
+      const result = await request(action, action === 'status' ? undefined : action === 'save' ? { ...state, language } : {});
+      if (action === 'pair') { setPairUrl(result.url); setState(prev => prev ? { ...prev, connected: false, enabled: false, replies: false } : prev); }
+      else { setState(prev => ({ ...prev, ...result })); if (result.connected) setPairUrl(''); }
+      if (action === 'disconnect') setPairUrl('');
+      if (action === 'save') setFeedback(t.saved);
+      if (action === 'test') setFeedback(t.tested);
+    } catch { setError(true); }
+    finally { setBusy(false); }
+  }
+  useEffect(() => { void run('status'); }, []);
+  const ready = !!state?.production && state.tokenReady && state.databaseReady;
+  const button = 'inline-flex items-center justify-center gap-2 min-h-10 px-4 py-2 rounded-xl border border-stone-200 dark:border-white/15 text-sm font-bold disabled:opacity-40';
+  return <section className="max-w-3xl rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark p-4 sm:p-6 space-y-5 text-stone-900 dark:text-white" data-testid="support-notifications">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-black text-xl flex items-center gap-2"><Bell size={20}/>{t.title}</h2><p className="text-sm text-stone-500 dark:text-stone-400 mt-2">{t.intro}</p></div><button className={button} disabled={busy} onClick={() => run('status')}><RefreshCw size={16}/>{t.refresh}</button></div>
+    {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{t.failed}</p>}
+    {feedback && <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">{feedback}</p>}
+    {!state && !error && <p>{t.loading}</p>}
+    {state && <>
+      {!state.production ? <p className="text-sm">{t.preview} <a className="underline" href="https://shifthours.com/">shifthours.com</a></p> : <>{!state.tokenReady && <p className="text-sm break-words">{t.token}</p>}{!state.databaseReady && <p className="text-sm break-words">{t.database}</p>}</>}
+      <p className="text-sm font-bold">{state.connected ? t.connected : t.disconnected}</p>
+      <div className="flex flex-wrap gap-2"><button className={button} disabled={busy || !ready} onClick={() => run('pair')}><Send size={16}/>{t.connect}</button>{state.connected && <button className={button} disabled={busy || !ready} onClick={() => run('disconnect')}><Unplug size={16}/>{t.disconnect}</button>}</div>
+      {pairUrl && <div className="rounded-xl bg-primary-light dark:bg-white/5 p-4 text-sm"><a className="inline-flex items-center gap-2 font-bold underline" href={pairUrl} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{t.open}</a><p className="mt-2">{t.pairHint}</p></div>}
+      <fieldset disabled={busy || !ready || !state.connected} className="space-y-4 disabled:opacity-50">{(['enabled', 'opened', 'accepted', 'messages', 'replies'] as Key[]).map(key => <label key={key} className="flex items-start gap-3 cursor-pointer"><input type="checkbox" className="mt-1 w-4 h-4 accent-current shrink-0" checked={state[key]} onChange={e => setState({ ...state, [key]: e.target.checked })}/><span className="text-sm font-semibold">{t[key]}</span></label>)}<p className="text-sm text-stone-500 dark:text-stone-400">{t.replyHint}</p><div className="flex flex-wrap gap-2"><button className={`${button} bg-primary text-white dark:bg-white dark:text-stone-900`} onClick={() => run('save')}>{t.save}</button><button className={button} disabled={!state.enabled} onClick={() => run('test')}>{t.test}</button></div></fieldset>
+      {state.deliveryProblem && <p role="status" className="text-sm text-amber-700 dark:text-amber-300">{t.problem}</p>}
+    </>}
+    <div className="text-xs text-stone-500 dark:text-stone-400 border-t border-stone-100 dark:border-white/10 pt-4 space-y-2"><p>{t.scope}</p><p>{t.channels}</p></div>
+  </section>;
+}

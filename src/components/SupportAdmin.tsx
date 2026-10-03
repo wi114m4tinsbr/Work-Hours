@@ -1,3 +1,4 @@
+import { notifySupport } from '../lib/supportNotifications';
 import { useEffect, useMemo, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, onSnapshot, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore';
 import { ArrowLeft, Hand, Inbox, Trash2 } from 'lucide-react';
@@ -65,6 +66,7 @@ export function SupportAdmin({ language, locale, isOwner }: { language: Lang; lo
       status: 'accepted', assignedTo: me, assignedName: (user.displayName || me).slice(0, 100), assignedUid: user.uid,
       acceptedAt: serverTimestamp(), updatedAt: serverTimestamp(),
     });
+    void notifySupport('accepted', x.id);
     setFilter('mine');
     await logAdmin('ticketAccept', { uid: x.uid, email: x.email }, x.subject).catch(() => {});
   });
