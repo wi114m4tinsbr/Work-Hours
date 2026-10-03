@@ -17,6 +17,10 @@ import { FormulaFacilView } from './components/FormulaFacilView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { UpdatesView } from './components/UpdatesView';
 import { SupportView } from './components/SupportView';
+import { HomeView, type HomeBadge } from './components/HomeView';
+import { ToolIdentity } from './components/ToolIdentity';
+import { CATALOG } from './lib/toolCatalog';
+import { availableText } from './lib/plans';
 import { ALL_POWERS, hasAnyPower, type Powers } from './lib/staff';
 import { PlansModal } from './components/PlansModal';
 import { effectivePlanId, normalizePlans, sortedPlans, type PlansConfig, type ToolId } from './lib/plans';
@@ -46,18 +50,18 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin' | 'updates' | 'support';
+  type Tab = 'home' | 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin' | 'updates' | 'support';
   const tabFromPath = (): Tab =>
     window.location.pathname === ADMIN_PANEL_PATH ? 'admin'
       : window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
       : window.location.pathname === FORMULA_ADMIN_PATH ? 'formula-admin'
       : window.location.pathname === UPDATES_PATH ? 'updates'
       : window.location.pathname === SUPPORT_PATH ? 'support'
-      : 'hours';
+      : (CATALOG.find((tool) => tool.path === window.location.pathname)?.id as Tab | undefined) ?? 'home';
   const [activeTab, setActiveTabState] = useState<Tab>(tabFromPath);
   // Fórmula Fácil has its own address so it can be opened or shared directly.
   const setActiveTab = (tab: Tab) => {
-    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : tab === 'updates' ? UPDATES_PATH : tab === 'support' ? SUPPORT_PATH : '/';
+    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : tab === 'updates' ? UPDATES_PATH : CATALOG.find((tool) => tool.id === tab)?.path ?? '/';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
     setActiveTabState(tab);
   };
@@ -87,7 +91,7 @@ export default function App() {
   });
 
   const goHome = () => {
-    setActiveTab('hours');
+    setActiveTab('home');
     setCurrentJobId(null);
     setIsToolsMenuOpen(false);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -416,6 +420,20 @@ export default function App() {
   const access: Access = isOwner ? 'admin' : planId === 'free' ? 'free' : 'premium';
   const allowance = (tool: ToolId) => ({ planName: plan.name[lang], limit: plan.limits[tool] });
   const hasBiggerPlan = sortedPlans(plansConfig).some(([id, p]) => p.visible && id !== planId && p.order > plan.order);
+  const homeBadges: Partial<Record<'invoices' | 'pdf' | 'formula', HomeBadge>> = (() => {
+    const invoice = dailyQuota('invoice', access, quotaDoc, undefined, allowance('invoice'));
+    const pdf = dailyQuota('pdf', access, quotaDoc, undefined, allowance('pdf'));
+    const formula = formulaQuota(access, quotaDoc, undefined, allowance('formula'));
+    const minutes = Math.floor(formula.remainingSeconds / 60);
+    return {
+      invoices: { quota: invoice, available: availableText('invoice', invoice.remaining, invoice.limit, lang) },
+      pdf: { quota: pdf, available: availableText('pdf', pdf.remaining, pdf.limit, lang) },
+      formula: {
+        quota: { ...formula, reached: formula.lockedUntil !== null || (!formula.blocked && formula.remainingSeconds <= 0) },
+        available: `${minutes} min ${availableText('formula', 0, formula.limit, lang)}`,
+      },
+    };
+  })();
   const writeUsage = user?.email ? (fields: Record<string, unknown>) => setDoc(
     doc(db, 'quota', user.email!.toLowerCase()),
     Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value === SERVER_TIME ? serverTimestamp() : value])),
@@ -430,7 +448,7 @@ export default function App() {
             variant={activeTab === 'formula' ? 'public' : 'admin'}
             language={lang}
             inApp={false}
-            onBack={() => setActiveTab('hours')}
+            onBack={() => setActiveTab('home')}
             onLogin={activeTab === 'formula' ? handleLogin : undefined}
             ready={activeTab === 'formula-admin'}
           />
@@ -520,7 +538,7 @@ export default function App() {
               title={lang === 'en' ? 'Apps and tools' : lang === 'es' ? 'Aplicaciones y herramientas' : 'Aplicativos e ferramentas'}
             >
               <Grid2X2 size={18} className="transition-transform duration-200 group-hover:scale-110" />
-              <span>{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
+              <span className="hidden lg:inline">{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
               <ChevronDown size={13} className={cn("transition-transform duration-200", isToolsMenuOpen && "rotate-180")} />
             </button>
             <AnimatePresence>
@@ -572,7 +590,7 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-0.5 sm:gap-2.5 lg:gap-3 shrink-0 lg:ml-auto">
+          <div className="flex items-center gap-0.5 md:gap-2.5 lg:gap-3 shrink-0 ml-auto">
             <button
               onClick={() => setActiveTab('invoices')}
               className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 sm:hidden"
@@ -635,12 +653,12 @@ export default function App() {
             </div>
 
             {!isOwner && (
-              <div className="hidden sm:flex items-center gap-1.5 ml-3 lg:ml-5 pl-3 lg:pl-5 border-l border-stone-200 dark:border-white/10">
+              <div className="hidden sm:flex items-center gap-1.5 ml-1.5 pl-2 md:ml-3 md:pl-3 lg:ml-5 lg:pl-5 border-l border-stone-200 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsUpgradeModalOpen(true)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black shadow-sm",
+                    "hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black shadow-sm",
                     subscriptionType === 'monthly'
                       ? "bg-primary-light text-primary border-primary/25"
                       : "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700"
@@ -670,7 +688,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-1 pl-2 sm:ml-3 sm:pl-3 lg:ml-5 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
+              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-1 pl-2 md:ml-3 md:pl-3 lg:ml-5 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
@@ -678,7 +696,7 @@ export default function App() {
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
-              <span className="hidden md:flex flex-col items-start leading-tight whitespace-nowrap">
+              <span className="hidden lg:flex flex-col items-start leading-tight whitespace-nowrap">
                 <span className="text-sm font-semibold text-stone-700 dark:text-stone-200 group-hover/profile:text-primary transition-colors duration-200">
                   {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
                 </span>
@@ -738,8 +756,27 @@ export default function App() {
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
           <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, quotaDoc, writeUsage, allowance('invoice'))} />
         </main>
+      ) : activeTab === 'home' ? (
+        <main className="flex-1 w-full">
+          <HomeView
+            userId={user.uid} firstName={profileFirstName || (user.displayName || '').split(' ')[0]} language={lang}
+            planName={access === 'admin' ? 'Admin' : plan.name[lang]}
+            badges={homeBadges} jobsAllowance={{ access, ...allowance('jobs') }}
+            onOpen={(tab) => setActiveTab(tab)}
+            onOpenJob={(jobId) => { setActiveTab('hours'); setCurrentJobId(jobId); }}
+            onUpgrade={hasBiggerPlan && !isOwner ? () => setIsUpgradeModalOpen(true) : undefined}
+            onOpenUpdates={() => setActiveTab('updates')}
+            onOpenFormulaAdmin={canSeeFormulaAdmin ? () => setActiveTab('formula-admin') : undefined}
+          />
+        </main>
       ) : (
-      <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">
+      <main className="flex-1 w-full">
+      <div className="bg-white/95 dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 shadow-sm">
+        <div className="h-12 w-full max-w-7xl mx-auto flex items-center gap-3 px-4">
+          <ToolIdentity title={lang === 'en' ? 'Hours worked' : lang === 'es' ? 'Horas trabajadas' : 'Horas trabalhadas'} language={lang} backLabel={t.back} onBack={goHome} />
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto p-4 pb-24 w-full">
         <AnimatePresence mode="wait">
           {!currentJobId ? (
             <motion.div
@@ -767,6 +804,7 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </main>
       )}
 

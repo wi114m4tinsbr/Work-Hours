@@ -40,6 +40,7 @@ React 19 + Vite 6 + Tailwind 4 (app de página única em `src/App.tsx`), Firebas
    - Publicação automática das regras do Firestore pelo GitHub Actions.
    - **Dúvidas e sugestões** (`/suporte`, no menu Ferramentas): o usuário abre uma ocorrência; a equipe aceita na aba **Suporte** do painel e conversa em tempo real (selo "Ao vivo" quando os dois estão online; senão a conversa fica guardada). Fechadas continuam para consulta; só eu (dono) apago. Dados em `tickets/{id}` e `tickets/{id}/messages`; presença online em `presence/{uid}`.
    - **Staff** (aba só do dono): adiciono pessoas pelo Gmail em `staff/{email}` com poderes `tickets`, `users_view`, `users_manage`, `plans`, `activity` (lista em `src/lib/staff.ts`). O painel mostra só as abas permitidas e as regras conferem os mesmos poderes. Relatório, Configurações e Staff são só do dono.
+   - **Página inicial do app** (`/`, depois do login): hub com busca, cartões das ferramentas com o uso restante do plano, trabalhos recentes, dicas e novidades. Horas trabalhadas em `/horas`, faturas em `/faturas`, PDF Studio em `/pdf-studio`. **Catálogo único de ferramentas em `src/lib/toolCatalog.ts`** (nome, descrição, dicas, ícone, endereço): ferramenta nova entra ali e aparece sozinha na página inicial (e na home pública).
    - Aba pública **Atualizações** (`/atualizacoes`, só com login, conteúdo em `src/data/updates.ts`) e **Relatório** no painel admin (marcos em `server/assets/project-report.json` + envios ao GitHub ao vivo).
 
 ## Limitações conhecidas

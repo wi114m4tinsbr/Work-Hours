@@ -15,6 +15,12 @@ export interface UpdateEntry {
 
 export const UPDATES: UpdateEntry[] = [
   {
+    date: '2026-10-03', kind: 'improved',
+    pt: { title: 'Nova página inicial', body: 'Ao entrar, você vê todas as ferramentas de uma vez, quanto ainda pode usar hoje, seus trabalhos recentes e dicas rápidas. As horas trabalhadas agora ficam no cartão Horas trabalhadas.' },
+    en: { title: 'New home page', body: 'When you sign in you see every tool at once, what you can still use today, your recent jobs and quick tips. Hours worked now live in the Hours worked card.' },
+    es: { title: 'Nueva página de inicio', body: 'Al entrar ves todas las herramientas a la vez, cuánto puedes usar hoy, tus trabajos recientes y consejos rápidos. Las horas trabajadas ahora están en la tarjeta Horas trabajadas.' },
+  },
+  {
     date: '2026-10-03', kind: 'new',
     pt: { title: 'Dúvidas e sugestões', body: 'Mande sua dúvida ou ideia pelo menu Ferramentas. Quando a equipe responder, vocês conversam ali mesmo, ao vivo se estiverem online ao mesmo tempo.' },
     en: { title: 'Questions and suggestions', body: 'Send your question or idea from the Tools menu. When the team answers, you talk right there, live if you are both online.' },

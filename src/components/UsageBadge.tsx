@@ -16,11 +16,13 @@ const C = {
  * One allowance pill for every tool: unlimited for the owner and unlimited plans, green with what
  * is left on limited plans, red once the allowance for the period is used up or not included.
  */
-export function UsageBadge({ quota, language, available, progress, className, testId = 'usage-badge' }: {
+export function UsageBadge({ quota, language, available, reachedText, progress, className, testId = 'usage-badge' }: {
   quota: { access: Access; planName: string; limit: ToolLimit; reached: boolean; blocked: boolean };
   language: Lang;
   /** What is still available, e.g. "1 fatura disponível hoje" or "12:30 restantes hoje". */
   available: string;
+  /** Replaces the per-period "limit reached" text, for totals such as jobs. */
+  reachedText?: string;
   /** Share of the allowance already used, 0 to 1 (limited plans only). */
   progress?: number;
   className?: string;
@@ -33,7 +35,7 @@ export function UsageBadge({ quota, language, available, progress, className, te
   const label = access === 'admin' ? t.admin
     : unlimited ? `${planName} · ${t.unlimited}`
     : blocked ? `${t.off} · ${t.plan} ${planName}`
-    : reached ? `${reachedLabel[language][limit.period]} · ${t.plan} ${planName}`
+    : reached ? `${reachedText ?? reachedLabel[language][limit.period]} · ${t.plan} ${planName}`
     : `${planName} · ${available}`;
   return (
     <div
