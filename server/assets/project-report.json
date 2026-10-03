@@ -1,0 +1,29 @@
+{
+  "project": "Shift Hours (repositório wi114m4tinsbr/Work-Hours)",
+  "note": "Marcos do projeto em português, em ordem cronológica. Atualizado a cada envio ao GitHub. A lista completa de envios vem ao vivo do GitHub no painel.",
+  "milestones": [
+    { "at": "2026-03-17T05:01:20+00:00", "kind": "new", "title": "Início do projeto", "details": "Repositório criado." },
+    { "at": "2026-03-17T18:01:34+00:00", "kind": "new", "title": "Primeira versão do app de horas", "details": "Registro de horas por trabalho com login Google e banco Firebase (Firestore). Publicação na Vercel como site de página única." },
+    { "at": "2026-03-17T19:24:13+00:00", "kind": "new", "title": "Modo escuro e temas de cor", "details": "Tema claro/escuro e cor principal personalizável." },
+    { "at": "2026-03-20T23:51:00+00:00", "kind": "improved", "title": "Nome Shift Hours", "details": "App renomeado de Work Hours para Shift Hours; rodapé configurável." },
+    { "at": "2026-03-21T00:03:33+00:00", "kind": "fixed", "title": "Login Google por redirecionamento", "details": "Se o popup de login é bloqueado, entra por redirecionamento." },
+    { "at": "2026-03-26T00:19:59+00:00", "kind": "new", "title": "Criador de faturas", "details": "Faturas com logo, estilos, download em PDF e link de compartilhamento." },
+    { "at": "2026-09-26T13:58:56+01:00", "kind": "new", "title": "Plano grátis com 1 trabalho", "details": "Início do branch feature/free-plan-job-limit. Conta grátis pode cadastrar 1 trabalho." },
+    { "at": "2026-09-26T14:24:54+01:00", "kind": "fixed", "title": "Contraste e modo escuro", "details": "Série de correções de contraste, botões seguindo a cor do tema e faturas herdando o tema." },
+    { "at": "2026-09-26T16:06:00+01:00", "kind": "improved", "title": "Editor de faturas redesenhado", "details": "Barra fixa compacta, editor de logo estável, painéis legíveis no modo escuro, selo do plano grátis." },
+    { "at": "2026-09-26T16:26:35+01:00", "kind": "new", "title": "Foto dos trabalhos com recorte e zoom", "details": "Imagens otimizadas antes de salvar, posição e zoom guardados, controles por toque." },
+    { "at": "2026-09-26T16:59:00+01:00", "kind": "improved", "title": "Cabeçalho e menu Ferramentas", "details": "Faturas movidas para o menu Ferramentas, nome do usuário no topo, zonas de conta separadas, botão Premium dourado." },
+    { "at": "2026-09-26T17:37:00+01:00", "kind": "improved", "title": "Identidade visual com relógio animado", "details": "Marca com relógio que gira, tela de carregamento no tema do usuário, seletor de temas sem barra de rolagem." },
+    { "at": "2026-09-26T18:06:00+01:00", "kind": "new", "title": "PDF Studio", "details": "Nova ferramenta de edição de PDF (PDF.js para ver, pdf-lib para salvar). Várias correções de renderização com PDF.js 5." },
+    { "at": "2026-09-28T14:51:00+01:00", "kind": "new", "title": "Edição real de PDF", "details": "Troca de textos existentes, formulários, objetos, digitação imediata com worker em segundo plano, testes automáticos no GitHub Actions." },
+    { "at": "2026-09-28T17:01:00+01:00", "kind": "improved", "title": "Barra do PDF Studio e botão Voltar padrão", "details": "Barra compacta com painel Mais, identidade de ferramenta igual em faturas e PDF, marca leva ao início." },
+    { "at": "2026-09-28T17:46:00+01:00", "kind": "improved", "title": "Fontes originais e campos em caixinhas", "details": "Reconhece as fontes do PDF e distribui caracteres em campos segmentados." },
+    { "at": "2026-10-03T06:18:04+00:00", "kind": "new", "title": "Fórmula Fácil (Excel + IA)", "details": "Versão comum no menu Ferramentas. Versão Admin privada em /admin/formula-facil, guardada no armazenamento privado da Vercel (Blob) e liberada só para o dono após checagem no servidor." },
+    { "at": "2026-10-03T07:24:36+00:00", "kind": "improved", "title": "Fórmula Fácil com barra Voltar e liga/desliga", "details": "Mesma barra das outras ferramentas. Botão do dono mostra a versão Admin na página inicial para todos, sem login e sem limite (desligado por padrão)." },
+    { "at": "2026-10-03T07:43:05+00:00", "kind": "new", "title": "Painel admin profissional", "details": "Indicadores de contas por dia/semana/mês/ano, gráficos de crescimento, lista de usuários com busca e exportação, dar/renovar/retirar Premium, bloquear, banir, excluir dados e registro de atividade. Regras do Firestore atualizadas." },
+    { "at": "2026-10-03T07:54:11+00:00", "kind": "new", "title": "Limites do plano grátis e selo de uso", "details": "1 fatura e 1 PDF por dia (conta ao baixar ou compartilhar) e 15 minutos de Fórmula Fácil a cada 24 h. Selo verde/vermelho em todas as ferramentas. Corrigido o bug das faturas que sempre mostravam limite atingido." },
+    { "at": "2026-10-03T08:17:35+00:00", "kind": "improved", "title": "Limites travados no servidor", "details": "Uso guardado em quota/{email} e checado pelas regras do Firestore com o relógio do servidor; download só depois do uso aceito; Fórmula Fácil comum servida por função que confere login e tempo restante. Liga/desliga da Fórmula Fácil Admin dentro do painel admin e botão Zerar limites de hoje." },
+    { "at": "2026-10-03T08:21:11+00:00", "kind": "fixed", "title": "Fórmula Fácil Admin aberta sem login", "details": "A pedido do dono: quando ligada no painel, fica sem login e sem limite para todos." },
+    { "at": "2026-10-03T08:45:00+00:00", "kind": "new", "title": "Aba Atualizações, Relatório e prompt de contexto", "details": "Aba pública de atualizações (só com login), relatório cronológico no painel admin com os envios ao GitHub ao vivo e prompt de contexto para copiar." }
+  ]
+}

@@ -28,6 +28,9 @@
   "functions": {
     "api/formula-public.ts": {
       "includeFiles": "server/assets/formula-facil.html"
+    },
+    "api/admin-report.ts": {
+      "includeFiles": "server/assets/project-*"
     }
   }
 }

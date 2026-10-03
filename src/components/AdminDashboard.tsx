@@ -5,16 +5,17 @@ import {
 } from 'firebase/firestore';
 import {
   Activity, BarChart3, Ban, Crown, Download, Lock, LogIn, Search, Settings, ShieldCheck, Trash2, Unlock, UserPlus, Users, X,
-  ArrowDownRight, ArrowUpRight, Copy,
+  ArrowDownRight, ArrowUpRight, Copy, ScrollText,
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { cn } from '../lib/utils';
 import { ToolIdentity } from './ToolIdentity';
 import { AppSettingsForm } from './AdminSettings';
+import { ProjectReport } from './ProjectReport';
 import { accountStatus, isPremium, OWNER_EMAIL, type AccountStatus, type Subscription } from '../lib/subscription';
 
 type Lang = 'pt' | 'en' | 'es';
-type Section = 'overview' | 'users' | 'activity' | 'settings';
+type Section = 'overview' | 'users' | 'activity' | 'report' | 'settings';
 type Range = 'day' | 'week' | 'month' | 'year';
 type PlanFilter = 'all' | 'free' | 'premium' | 'expired';
 type StatusFilter = 'all' | AccountStatus;
@@ -49,7 +50,7 @@ const DAY = 86_400_000;
 const C = {
   pt: {
     title: 'Painel Admin', back: 'Voltar',
-    sections: { overview: 'Visão geral', users: 'Usuários', activity: 'Atividade', settings: 'Configurações' },
+    sections: { overview: 'Visão geral', users: 'Usuários', activity: 'Atividade', report: 'Relatório', settings: 'Configurações' },
     total: 'Total de contas', today: 'Novas hoje', week: 'Últimos 7 dias', month: 'Últimos 30 dias', year: 'Últimos 12 meses',
     active: 'Ativos (7 dias)', premium: 'Premium', restricted: 'Bloqueados / banidos', logins: 'Acessos totais',
     vsPrev: 'vs período anterior', ofTotal: 'do total',
@@ -81,7 +82,7 @@ const C = {
   },
   en: {
     title: 'Admin panel', back: 'Back',
-    sections: { overview: 'Overview', users: 'Users', activity: 'Activity', settings: 'Settings' },
+    sections: { overview: 'Overview', users: 'Users', activity: 'Activity', report: 'Report', settings: 'Settings' },
     total: 'Total accounts', today: 'New today', week: 'Last 7 days', month: 'Last 30 days', year: 'Last 12 months',
     active: 'Active (7 days)', premium: 'Premium', restricted: 'Blocked / banned', logins: 'Total sign-ins',
     vsPrev: 'vs previous period', ofTotal: 'of total',
@@ -113,7 +114,7 @@ const C = {
   },
   es: {
     title: 'Panel de administración', back: 'Volver',
-    sections: { overview: 'Resumen', users: 'Usuarios', activity: 'Actividad', settings: 'Configuración' },
+    sections: { overview: 'Resumen', users: 'Usuarios', activity: 'Actividad', report: 'Informe', settings: 'Configuración' },
     total: 'Total de cuentas', today: 'Nuevas hoy', week: 'Últimos 7 días', month: 'Últimos 30 días', year: 'Últimos 12 meses',
     active: 'Activos (7 días)', premium: 'Premium', restricted: 'Bloqueados / baneados', logins: 'Accesos totales',
     vsPrev: 'vs período anterior', ofTotal: 'del total',
@@ -447,6 +448,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
     { id: 'overview', icon: <BarChart3 size={15} /> },
     { id: 'users', icon: <Users size={15} /> },
     { id: 'activity', icon: <Activity size={15} /> },
+    { id: 'report', icon: <ScrollText size={15} /> },
     { id: 'settings', icon: <Settings size={15} /> },
   ];
 
@@ -469,7 +471,7 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
 
       <div className="max-w-7xl mx-auto p-4 pb-16 space-y-5">
         {loadError && <div className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700 text-amber-800 dark:text-amber-200 p-4 text-sm font-semibold">{t.loadError}</div>}
-        {!users && !loadError && section !== 'settings' && <div className="text-sm text-stone-400 font-semibold">{t.loading}</div>}
+        {!users && !loadError && section !== 'settings' && section !== 'report' && <div className="text-sm text-stone-400 font-semibold">{t.loading}</div>}
 
         {section === 'overview' && users && (
           <>
@@ -619,6 +621,8 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
             </table>
           </section>
         )}
+
+        {section === 'report' && <ProjectReport language={language} locale={locale} />}
 
         {section === 'settings' && (
           <div className="max-w-xl space-y-4">

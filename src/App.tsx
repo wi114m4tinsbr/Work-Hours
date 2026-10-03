@@ -8,13 +8,16 @@ import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PDFStudio } from './components/PDFStudio';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound, Sheet } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound, Sheet, Megaphone } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
 import { syncFormulaSession, syncUserSession, clearFormulaSession, fetchFormulaPublic, setFormulaPublic, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
 import { FormulaFacilView } from './components/FormulaFacilView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { UpdatesView } from './components/UpdatesView';
+
+const UPDATES_PATH = '/atualizacoes';
 import { isPremium, accountStatus, type AccountStatus } from './lib/subscription';
 import { increment } from 'firebase/firestore';
 import { serverTimestamp } from 'firebase/firestore';
@@ -38,16 +41,17 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin';
+  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin' | 'updates';
   const tabFromPath = (): Tab =>
     window.location.pathname === ADMIN_PANEL_PATH ? 'admin'
       : window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
       : window.location.pathname === FORMULA_ADMIN_PATH ? 'formula-admin'
+      : window.location.pathname === UPDATES_PATH ? 'updates'
       : 'hours';
   const [activeTab, setActiveTabState] = useState<Tab>(tabFromPath);
   // Fórmula Fácil has its own address so it can be opened or shared directly.
   const setActiveTab = (tab: Tab) => {
-    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : '/';
+    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : tab === 'updates' ? UPDATES_PATH : '/';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
     setActiveTabState(tab);
   };
@@ -487,6 +491,10 @@ export default function App() {
                         <span className="text-[9px] font-black uppercase tracking-wide text-primary">Admin</span>
                       </a>
                     )}
+                    <a href={UPDATES_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('updates'); setIsToolsMenuOpen(false); }} data-testid="tools-updates" className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><Megaphone size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{lang === 'en' ? 'Updates' : lang === 'es' ? 'Novedades' : 'Atualizações'}</span>
+                    </a>
                   </div>
                 </motion.div>
               )}
@@ -640,6 +648,10 @@ export default function App() {
               onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user, enabled)),
             } : undefined}
           />
+        </main>
+      ) : activeTab === 'updates' ? (
+        <main className="flex-1 w-full">
+          <UpdatesView language={lang} onBack={goHome} />
         </main>
       ) : activeTab === 'pdf' ? (
         <main className="flex-1 w-full overflow-visible custom-scrollbar">

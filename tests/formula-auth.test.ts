@@ -229,3 +229,33 @@ test('common Fórmula Fácil is served only to signed-in accounts with time left
   const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
   assert.equal(vercel.rewrites.find((rule: { source: string }) => rule.source === '/formula-facil.html').destination, '/api/not-found');
 });
+
+test('project report and prompt are for the owner only and end with the latest pushes', async () => {
+  const { handleAdminReport, buildPrompt } = await import('../server/admin-report.ts');
+  const commits = [{ sha: 'abc1234', at: '2026-10-03T08:21:11Z', author: 'Claude', message: 'Latest change' }];
+  const reportDeps = {
+    verify: (value: string | undefined) => verifyOwnerToken(value, keys),
+    loadMilestones: async () => [{ at: '2026-03-17T05:01:20Z', kind: 'new', title: 'Início', details: '' }],
+    loadPrompt: async () => '# Contexto',
+    loadCommits: async () => commits,
+    branch: () => 'feature/free-plan-job-limit',
+  };
+  const ask = (bearer?: string) => handleAdminReport(new Request(`${ORIGIN}/api/admin-report`, { headers: bearer ? { authorization: `Bearer ${bearer}` } : {} }), reportDeps);
+  assert.equal((await ask()).status, 404);
+  assert.equal((await ask(await token({ email: 'someone@gmail.com' }))).status, 404);
+  const ok = await ask(await token());
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get('cache-control'), 'private, no-store');
+  const body = await ok.json();
+  assert.equal(body.milestones.length, 1);
+  assert.equal(body.commits[0].sha, 'abc1234');
+  assert.match(body.prompt, /^# Contexto[\s\S]*abc1234 · Latest change/);
+  assert.match(buildPrompt('# X', 'main', null), /Não foi possível/);
+
+  // The real files exist, parse, and carry no keys.
+  const report = JSON.parse(readFileSync('server/assets/project-report.json', 'utf8'));
+  assert.ok(report.milestones.length > 10);
+  for (const file of ['server/assets/project-report.json', 'server/assets/project-prompt.md', 'src/data/updates.ts']) {
+    assert.doesNotMatch(readFileSync(file, 'utf8'), /AIza[0-9A-Za-z_-]{30,}|CHAVE_FIXA\s*=|ghp_|sk-/, file);
+  }
+});
