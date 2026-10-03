@@ -12,7 +12,8 @@
     "test:pdf": "tsx --test tests/pdf-content.test.ts",
     "test:pdf:ui": "playwright test",
     "test:formula": "tsx --test tests/formula-auth.test.ts tests/quota.test.ts",
-    "test:telegram": "tsx --test tests/support-telegram.test.ts"
+    "test:telegram": "tsx --test tests/support-telegram.test.ts",
+    "test:server": "tsc api/support-telegram.ts --module NodeNext --moduleResolution NodeNext --target ES2022 --outDir .server-check --skipLibCheck && node tests/server-smoke.mjs"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",

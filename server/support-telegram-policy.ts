@@ -1,4 +1,4 @@
-import { FORMULA_OWNER_EMAIL, type UserSession } from './formula-auth';
+import { FORMULA_OWNER_EMAIL, type UserSession } from './formula-auth.js';
 export const BOT_NAME = 'ShiftHoursAvisoBot';
 export const SETTINGS_PATH = 'supportPrivate/telegram';
 export type Preferences = { enabled: boolean; opened: boolean; accepted: boolean; messages: boolean; replies: boolean; language: 'pt' | 'en' | 'es' };

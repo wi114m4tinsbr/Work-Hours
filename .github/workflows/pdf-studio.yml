@@ -21,6 +21,7 @@ jobs:
       - run: npm run test:pdf
       - run: npm run test:formula
       - run: npm run test:telegram
+      - run: npm run test:server
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:pdf:ui
