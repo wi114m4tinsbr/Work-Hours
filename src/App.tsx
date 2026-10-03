@@ -13,7 +13,8 @@ import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
-import { syncFormulaSession, clearFormulaSession, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
+import { syncFormulaSession, clearFormulaSession, fetchFormulaPublic, setFormulaPublic, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
+import { FormulaFacilView } from './components/FormulaFacilView';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -31,7 +32,20 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'hours' | 'invoices' | 'pdf'>('hours');
+  type Tab = 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin';
+  const tabFromPath = (): Tab =>
+    window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
+      : window.location.pathname === FORMULA_ADMIN_PATH ? 'formula-admin'
+      : 'hours';
+  const [activeTab, setActiveTabState] = useState<Tab>(tabFromPath);
+  // Fórmula Fácil has its own address so it can be opened or shared directly.
+  const setActiveTab = (tab: Tab) => {
+    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : '/';
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    setActiveTabState(tab);
+  };
+  const [formulaSessionReady, setFormulaSessionReady] = useState(false);
+  const [formulaPublic, setFormulaPublicState] = useState(false);
   const [lang, setLang] = useState<Language>('pt');
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -214,17 +228,16 @@ export default function App() {
   // Mirrors the Firebase login into the server cookie that guards the private Fórmula Fácil page.
   useEffect(() => {
     return onIdTokenChanged(auth, async (tokenUser) => {
-      const ready = await syncFormulaSession(tokenUser);
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('abrir') !== 'formula-admin' || !tokenUser) return;
-      if (ready) {
-        window.location.replace(FORMULA_ADMIN_PATH);
-      } else {
-        params.delete('abrir');
-        const query = params.toString();
-        window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));
-      }
+      setFormulaSessionReady(await syncFormulaSession(tokenUser));
     });
+  }, []);
+
+  // Off by default: the admin version only shows on the home page after the owner switches it on.
+  useEffect(() => {
+    fetchFormulaPublic().then(setFormulaPublicState);
+    const onPop = () => setActiveTabState(tabFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const handleLanguageChange = async (newLang: Language) => {
@@ -305,9 +318,24 @@ export default function App() {
     return <PublicInvoiceView invoiceId={viewId} />;
   }
 
+  const canSeeFormulaAdmin = isOwner || formulaPublic;
+
   if (!user) {
+    if (activeTab === 'formula' || (activeTab === 'formula-admin' && formulaPublic)) {
+      return (
+        <div className={cn("min-h-screen transition-colors duration-300", isDarkMode ? "bg-bg-dark text-stone-100" : "bg-stone-50 text-stone-900")}>
+          <FormulaFacilView
+            variant={activeTab === 'formula' ? 'public' : 'admin'}
+            language={lang}
+            inApp={false}
+            onBack={() => setActiveTab('hours')}
+          />
+        </div>
+      );
+    }
     return (
       <Intro 
+        onOpenFormulaAdmin={formulaPublic ? () => setActiveTab('formula-admin') : undefined}
         onLogin={handleLogin} 
         appName={settings.appName} 
         footerText={settings.footerText}
@@ -391,13 +419,13 @@ export default function App() {
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">PDF Studio</span>
                       <span className="text-[9px] font-black uppercase tracking-wide text-primary">{lang === 'en' ? 'New' : lang === 'es' ? 'Nuevo' : 'Novo'}</span>
                     </button>
-                    <a href={FORMULA_PUBLIC_PATH} onClick={() => setIsToolsMenuOpen(false)} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                    <a href={FORMULA_PUBLIC_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('formula'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
                       <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><Sheet size={18}/></span>
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
                       <span className="text-[9px] font-black uppercase tracking-wide text-primary">Excel + IA</span>
                     </a>
                     {isOwner && (
-                      <a href={FORMULA_ADMIN_PATH} onClick={() => setIsToolsMenuOpen(false)} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <a href={FORMULA_ADMIN_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('formula-admin'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
                         <span className="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center"><ShieldCheck size={18}/></span>
                         <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
                         <span className="text-[9px] font-black uppercase tracking-wide text-primary">Admin</span>
@@ -535,7 +563,21 @@ export default function App() {
         </div>
       </header>
 
-      {activeTab === 'pdf' ? (
+      {activeTab === 'formula' || (activeTab === 'formula-admin' && canSeeFormulaAdmin) ? (
+        <main className="flex-1 w-full">
+          <FormulaFacilView
+            variant={activeTab === 'formula' ? 'public' : 'admin'}
+            language={lang}
+            inApp
+            onBack={goHome}
+            ready={activeTab === 'formula' || formulaSessionReady || (!isOwner && formulaPublic)}
+            publicSwitch={activeTab === 'formula-admin' && isOwner && user ? {
+              enabled: formulaPublic,
+              onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user, enabled)),
+            } : undefined}
+          />
+        </main>
+      ) : activeTab === 'pdf' ? (
         <main className="flex-1 w-full overflow-visible custom-scrollbar">
           <PDFStudio language={lang} toolbarTop={64} onBack={goHome} />
         </main>
@@ -656,12 +698,12 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <footer className={cn(
+      {activeTab !== 'formula' && activeTab !== 'formula-admin' && <footer className={cn(
         "pt-48 pb-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>
         {settings.footerText.replace(/WORKHOURS/gi, 'SHIFTHOURS')}
-      </footer>
+      </footer>}
     </div>
   );
 }

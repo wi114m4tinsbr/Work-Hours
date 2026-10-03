@@ -6,6 +6,8 @@ import { cn } from '../lib/utils';
 
 interface IntroProps {
   onLogin: () => void;
+  /** Shown only after the owner opens the admin Fórmula Fácil to everyone. */
+  onOpenFormulaAdmin?: () => void;
   appName: string;
   footerText: string;
   t: any;
@@ -19,6 +21,7 @@ interface IntroProps {
 
 export function Intro({ 
   onLogin, 
+  onOpenFormulaAdmin,
   appName, 
   footerText, 
   t, 
@@ -167,16 +170,23 @@ export function Intro({
               {loginLoading ? "Entrando..." : t.loginGoogle}
             </button>
 
-            <a
-              href="/formula-facil"
-              className={cn(
-                "w-full sm:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-[1.5rem] border font-black text-sm transition-all hover:scale-[1.03]",
-                isDarkMode ? "border-white/15 text-white hover:bg-white/10" : "border-stone-200 text-stone-800 bg-white hover:bg-stone-50"
-              )}
-            >
-              <Sheet className="w-5 h-5 text-emerald-500" />
-              {lang === 'en' ? 'Fórmula Fácil: Excel with AI' : lang === 'es' ? 'Fórmula Fácil: Excel con IA' : 'Fórmula Fácil: Excel com IA'}
-            </a>
+            {onOpenFormulaAdmin && (
+              <a
+                href="/admin/formula-facil"
+                onClick={(event) => {
+                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault();
+                  onOpenFormulaAdmin();
+                }}
+                className={cn(
+                  "w-full sm:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-[1.5rem] border font-black text-sm transition-all hover:scale-[1.03]",
+                  isDarkMode ? "border-white/15 text-white hover:bg-white/10" : "border-stone-200 text-stone-800 bg-white hover:bg-stone-50"
+                )}
+              >
+                <Sheet className="w-5 h-5 text-emerald-500" />
+                {lang === 'en' ? 'Fórmula Fácil: Excel with AI' : lang === 'es' ? 'Fórmula Fácil: Excel con IA' : 'Fórmula Fácil: Excel com IA'}
+              </a>
+            )}
 
             {loginError && (
               <motion.p 

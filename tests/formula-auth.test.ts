@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { test } from 'node:test';
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair, type JWTPayload } from 'jose';
 import { FIREBASE_PROJECT_ID, FORMULA_COOKIE, FORMULA_OWNER_EMAIL, verifyOwnerToken } from '../server/formula-auth.ts';
-import { handleAdminPage, handleSession, type FormulaDeps } from '../server/formula-handler.ts';
+import { handleAdminPage, handleSession, handleVisibility, type FormulaDeps } from '../server/formula-handler.ts';
 
 const ORIGIN = 'https://work-hours.example';
 const ADMIN_HTML = new TextEncoder().encode('<!doctype html><title>admin</title><script>const CHAVE_FIXA = "";</script>');
@@ -32,9 +32,11 @@ async function token(overrides: JWTPayload = {}, options: { key?: CryptoKey; kid
     .sign(options.key ?? trusted.privateKey);
 }
 
-const deps = (html: Uint8Array | null = ADMIN_HTML): FormulaDeps => ({
+const deps = (html: Uint8Array | null = ADMIN_HTML, state = { public: false }): FormulaDeps => ({
   verify: (value) => verifyOwnerToken(value, keys),
   loadAdminHtml: async () => html,
+  isPublic: async () => state.public,
+  setPublic: async (enabled) => { state.public = enabled; },
 });
 
 const page = (cookie?: string, method = 'GET') =>
@@ -61,12 +63,40 @@ test('accepts only the owner signed in with Google on the right project', async 
   assert.equal(await verifyOwnerToken(unsigned, keys), null);
 });
 
-test('visitor without login never receives the admin HTML', async () => {
+test('visitor without login never receives the admin HTML while it is switched off', async () => {
   const response = await handleAdminPage(page(), deps());
-  assert.equal(response.status, 302);
-  assert.equal(response.headers.get('location'), '/?abrir=formula-admin');
+  assert.equal(response.status, 404);
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
-  assert.equal(await response.text(), '');
+  assert.doesNotMatch(await response.text(), /CHAVE_FIXA/);
+});
+
+test('only the owner switches the admin version on for everyone, and it starts off', async () => {
+  const state = { public: false };
+  const post = async (body: unknown, bearer?: string, origin = ORIGIN) =>
+    handleVisibility(new Request(`${ORIGIN}/api/formula-visibility`, {
+      method: 'POST',
+      headers: { origin, 'content-type': 'application/json', ...(bearer ? { authorization: `Bearer ${bearer}` } : {}) },
+      body: JSON.stringify(body),
+    }), deps(ADMIN_HTML, state));
+  const read = async () => (await handleVisibility(new Request(`${ORIGIN}/api/formula-visibility`), deps(ADMIN_HTML, state))).json();
+
+  assert.deepEqual(await read(), { public: false });
+  assert.equal((await post({ public: true })).status, 404, 'no login');
+  assert.equal((await post({ public: true }, await token({ email: 'someone@gmail.com' }))).status, 404, 'other account');
+  assert.equal((await post({ public: true }, await token({}, { key: stranger.privateKey }))).status, 404, 'forged');
+  assert.equal((await post({ public: true }, await token(), 'https://evil.example')).status, 404, 'cross site');
+  assert.equal((await post({ public: 'yes' }, await token())).status, 400);
+  assert.equal(state.public, false);
+
+  assert.equal((await post({ public: true }, await token())).status, 200);
+  assert.deepEqual(await read(), { public: true });
+  const anonymous = await handleAdminPage(page(), deps(ADMIN_HTML, state));
+  assert.equal(anonymous.status, 200);
+  assert.deepEqual(new Uint8Array(await anonymous.arrayBuffer()), ADMIN_HTML);
+  assert.equal(anonymous.headers.get('cache-control'), 'private, no-store');
+
+  assert.equal((await post({ public: false }, await token())).status, 200);
+  assert.equal((await handleAdminPage(page(), deps(ADMIN_HTML, state))).status, 404);
 });
 
 test('another account, fake or expired cookie gets 404 and the cookie is cleared', async () => {
@@ -135,7 +165,7 @@ test('session endpoint sets and clears an HttpOnly cookie for the owner only', a
   assert.equal(logout.status, 200);
   assert.match(logout.headers.get('set-cookie') ?? '', /Max-Age=0/);
   // After logout the browser drops the cookie, so the next visit is unauthenticated.
-  assert.equal((await handleAdminPage(page(), deps())).status, 302);
+  assert.equal((await handleAdminPage(page(), deps())).status, 404);
 });
 
 test('admin HTML is never shipped with the public site', () => {
@@ -149,6 +179,7 @@ test('admin HTML is never shipped with the public site', () => {
     if (/\.(html|js)$/.test(file)) assert.doesNotMatch(readFileSync(file, 'latin1'), /AIza[0-9A-Za-z_-]{30,}/, `${file} has a Google key`);
   }
   const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
-  const admin = vercel.rewrites.find((rule: { source: string }) => rule.source === '/admin/formula-facil');
-  assert.equal(admin.destination, '/api/formula-admin');
+  const direct = vercel.rewrites.find((rule: { source: string }) => rule.source === '/formula-facil-admin(.*)');
+  assert.equal(direct.destination, '/api/not-found');
+  assert.ok(existsSync('api/formula-admin.ts'));
 });
