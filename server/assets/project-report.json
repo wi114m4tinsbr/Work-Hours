@@ -199,6 +199,12 @@
       "kind": "new",
       "title": "Controles de notificações Telegram no administrador",
       "details": "Primeira integração @ShiftHoursAvisoBot: vínculo privado, avisos e respostas opcionais em ocorrências do dono; bloqueio ao encerrar e /stop. Configuração Firebase do servidor, vínculo e teste real ainda pendentes. Disparo pelo site com tentativas limitadas; sem fila durável independente do navegador."
+    },
+    {
+      "at": "2026-10-03T11:27:00Z",
+      "kind": "fixed",
+      "title": "Validação do vínculo Telegram",
+      "details": "Ajuste da transação que consome o código de vínculo para usar a operação update do Firestore ao remover campos. Testes do adaptador verificam essa restrição. Ativação real continua pendente da configuração do proprietário."
     }
   ]
 }

@@ -104,7 +104,7 @@ export async function receiveUpdate(db: Firestore, update: any) {
     const result = await db.runTransaction(async tx => {
       const old = await tx.get(updateRef); const settings = (await tx.get(settingsRef)).data();
       if (old.exists || !settings || settings.pairHash !== digest(match[1]) || settings.pairExpires < Date.now()) return false;
-      tx.set(settingsRef, { ...settings, chatId: m.chat.id, fromId: m.from.id, linkedAt: Date.now(), pairHash: FieldValue.delete(), pairExpires: FieldValue.delete(), enabled: false, replies: false });
+      tx.update(settingsRef, { ...settings, chatId: m.chat.id, fromId: m.from.id, linkedAt: Date.now(), pairHash: FieldValue.delete(), pairExpires: FieldValue.delete(), enabled: false, replies: false });
       tx.set(updateRef, { at: Date.now(), outcome: 'paired' });
       return preferences(settings).language;
     });
