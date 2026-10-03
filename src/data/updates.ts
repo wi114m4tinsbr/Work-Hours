@@ -15,6 +15,12 @@ export interface UpdateEntry {
 
 export const UPDATES: UpdateEntry[] = [
   {
+    date: '2026-10-03', kind: 'new',
+    pt: { title: 'Preferências de avisos do suporte', body: 'O administrador ganhou uma área para configurar avisos por Telegram e escolher se deseja responder por lá. O chat dos usuários continua no site.' },
+    en: { title: 'Support alert preferences', body: 'The administrator now has an area to configure Telegram alerts and choose whether to reply there. Users keep chatting on the website.' },
+    es: { title: 'Preferencias de avisos del soporte', body: 'El administrador tiene un área para configurar avisos por Telegram y decidir si responde allí. Los usuarios siguen conversando en el sitio.' },
+  },
+  {
     date: '2026-10-03', kind: 'improved',
     pt: { title: 'Mais cor para o seu dia', body: 'A página inicial ganhou cores vivas, cartões de ferramentas e uma aparência própria, independente do tema da sua conta.' },
     en: { title: 'More color for your day', body: 'The landing page now has vibrant colors, tool cards and its own appearance, independent of your account theme.' },

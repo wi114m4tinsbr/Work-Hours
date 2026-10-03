@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "test:pdf": "tsx --test tests/pdf-content.test.ts",
     "test:pdf:ui": "playwright test",
-    "test:formula": "tsx --test tests/formula-auth.test.ts tests/quota.test.ts"
+    "test:formula": "tsx --test tests/formula-auth.test.ts tests/quota.test.ts",
+    "test:telegram": "tsx --test tests/support-telegram.test.ts"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",
@@ -25,6 +26,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.10.0",
+    "firebase-admin": "^14.5.0",
     "jose": "^6.2.12",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
@@ -47,5 +49,8 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

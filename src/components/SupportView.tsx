@@ -1,3 +1,4 @@
+import { notifySupport } from '../lib/supportNotifications';
 import { useEffect, useState, type FormEvent } from 'react';
 import { addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { ArrowLeft, Plus } from 'lucide-react';
@@ -72,6 +73,7 @@ export function SupportView({ user, language, onBack }: { user: User; language: 
         lastMessageBy: 'user', userUnread: false, staffUnread: true,
       });
       await addDoc(collection(db, 'tickets', ref.id, 'messages'), { by: 'user', uid: user.uid, name, text: m, at: serverTimestamp() });
+      void notifySupport('opened', ref.id);
       setSubject('');
       setMessage('');
       setCreating(false);

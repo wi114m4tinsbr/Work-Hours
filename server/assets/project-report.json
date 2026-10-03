@@ -193,6 +193,12 @@
       "kind": "fixed",
       "title": "Validação da home no build de produção",
       "details": "Testes da home usam o build publicado para evitar recargas de otimização do servidor de desenvolvimento durante a troca de idioma."
+    },
+    {
+      "at": "2026-10-03T11:25:00Z",
+      "kind": "new",
+      "title": "Controles de notificações Telegram no administrador",
+      "details": "Primeira integração @ShiftHoursAvisoBot: vínculo privado, avisos e respostas opcionais em ocorrências do dono; bloqueio ao encerrar e /stop. Configuração Firebase do servidor, vínculo e teste real ainda pendentes. Disparo pelo site com tentativas limitadas; sem fila durável independente do navegador."
     }
   ]
 }
