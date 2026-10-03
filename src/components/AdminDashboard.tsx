@@ -361,11 +361,16 @@ function ConfirmButton({ label, icon, onConfirm, t, tone = 'default', disabled }
   );
 }
 
-export function AdminDashboard({ language, onBack, settings, t: appT, formulaPublic, powers, isOwner }: {
+export function AdminDashboard({ language, onBack, settings, t: appT, formulaPublic, powers, isOwner, supportWaiting, focus, onFocused }: {
   language: Lang;
   /** What this person may see and do; the owner has every power. firestore.rules enforces the same. */
   powers: Powers;
   isOwner: boolean;
+  /** New tickets and unanswered replies on tickets this person accepted. */
+  supportWaiting?: { open: number; mine: number };
+  /** Opens a tab straight away, e.g. Suporte when the shield shows pending tickets. */
+  focus?: 'support' | null;
+  onFocused?: () => void;
   /** Owner switch: shows the admin Fórmula Fácil on the home page for every visitor. */
   formulaPublic?: { enabled: boolean; onChange: (enabled: boolean) => Promise<void> };
   onBack: () => void;
@@ -379,6 +384,9 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
     activity: !!powers.activity, staff: isOwner, report: isOwner, settings: isOwner,
   };
   const [sectionChoice, setSection] = useState<Section>('overview');
+  useEffect(() => {
+    if (focus && allowed[focus]) { setSection(focus); onFocused?.(); }
+  }, [focus]);
   const section = allowed[sectionChoice] ? sectionChoice : (Object.keys(allowed) as Section[]).find((id) => allowed[id]) ?? 'support';
   const [plans, setPlans] = useState<PlansConfig>(() => normalizePlans(null));
   useEffect(() => onSnapshot(doc(db, 'settings', 'plans'), (snap) => setPlans(normalizePlans(snap.exists() ? snap.data() : null)), () => {}), []);
@@ -493,6 +501,9 @@ export function AdminDashboard({ language, onBack, settings, t: appT, formulaPub
                 className={cn('inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-bold whitespace-nowrap transition-colors',
                   section === tab.id ? 'bg-primary text-white dark:bg-white/15' : 'text-stone-600 dark:text-stone-300 hover:bg-primary-light dark:hover:bg-white/10')}>
                 {tab.icon}{t.sections[tab.id]}
+                {tab.id === 'support' && supportWaiting && supportWaiting.open + supportWaiting.mine > 0 && (
+                  <span data-testid="support-tab-badge" className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black leading-5 text-center">{supportWaiting.open + supportWaiting.mine}</span>
+                )}
               </button>
             ))}
           </nav>

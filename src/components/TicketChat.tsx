@@ -6,6 +6,7 @@ import { CheckCircle2, Lightbulb, Lock, MessageCircleQuestion, Send } from 'luci
 import { auth, db } from '../firebase';
 import { cn } from '../lib/utils';
 import { isOnline } from '../lib/staff';
+import { SoundToggle } from './SoundToggle';
 
 type Lang = 'pt' | 'en' | 'es';
 
@@ -182,6 +183,7 @@ export function TicketChat({ ticket, side, language, canWrite, onClose, extraAct
             <span className={cn('w-1.5 h-1.5 rounded-full', live ? 'bg-white animate-pulse' : 'bg-stone-400')} />{live ? t.live : t.offline}
           </span>
         )}
+        <SoundToggle language={language} />
         {extraActions}
         {onClose && ticket.status !== 'closed' && (
           <button type="button" onClick={onClose} className="h-8 rounded-lg px-2.5 text-xs font-bold border border-stone-200 dark:border-white/10 text-stone-600 dark:text-stone-300 hover:bg-primary-light dark:hover:bg-white/10">{t.close}</button>

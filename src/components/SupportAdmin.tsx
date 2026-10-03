@@ -4,6 +4,7 @@ import { ArrowLeft, Hand, Inbox, Trash2 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { cn } from '../lib/utils';
 import { logAdmin } from '../lib/adminLog';
+import { SoundToggle } from './SoundToggle';
 import { StatusPill, TicketChat, TypeIcon, toTicket, type Ticket } from './TicketChat';
 
 type Lang = 'pt' | 'en' | 'es';
@@ -86,6 +87,14 @@ export function SupportAdmin({ language, locale, isOwner }: { language: Lang; lo
   });
 
   const count = (f: Filter) => all.filter((x) => match(x, f)).length;
+  // Red counts show what needs attention: new tickets, and my tickets with a reply I have not read.
+  const urgent = (f: Filter) => f === 'open' ? count('open') : f === 'mine' ? all.filter((x) => match(x, 'mine') && x.staffUnread).length : 0;
+  const [picked, setPicked] = useState(false);
+  useEffect(() => {
+    if (picked || !tickets) return;
+    setPicked(true);
+    if (!urgent('open') && urgent('mine')) setFilter('mine');
+  }, [tickets]);
 
   return (
     <div className="space-y-4" data-testid="support-admin">
@@ -94,9 +103,13 @@ export function SupportAdmin({ language, locale, isOwner }: { language: Lang; lo
           <button key={f} type="button" onClick={() => { setFilter(f); setSelected(null); }} data-testid={`support-filter-${f}`}
             className={cn('h-8 px-3 rounded-lg text-sm font-bold inline-flex items-center gap-1.5',
               filter === f ? 'bg-primary text-white dark:bg-white/15' : 'border border-stone-200 dark:border-white/10 text-stone-600 dark:text-stone-300 hover:bg-primary-light dark:hover:bg-white/10')}>
-            {t.filters[f]}<span className="text-[11px] opacity-70 tabular-nums">{count(f)}</span>
+            {t.filters[f]}
+            {urgent(f) > 0
+              ? <span data-testid={`support-urgent-${f}`} className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black leading-5 text-center tabular-nums">{urgent(f)}</span>
+              : <span className="text-[11px] opacity-70 tabular-nums">{count(f)}</span>}
           </button>
         ))}
+        <SoundToggle language={language} className="ml-auto" />
       </div>
       {failed && <p className="text-sm font-semibold text-red-600 dark:text-red-400">{t.failed}</p>}
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">

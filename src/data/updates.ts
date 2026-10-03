@@ -16,6 +16,12 @@ export interface UpdateEntry {
 export const UPDATES: UpdateEntry[] = [
   {
     date: '2026-10-03', kind: 'improved',
+    pt: { title: 'Som de nova mensagem', body: 'Quando a equipe responde sua dúvida ou sugestão, toca um som curto. Dá para silenciar no botão Som ligado da conversa.' },
+    en: { title: 'New message sound', body: 'When the team answers your question or suggestion, a short sound plays. You can mute it with the Sound on button in the conversation.' },
+    es: { title: 'Sonido de mensaje nuevo', body: 'Cuando el equipo responde tu duda o sugerencia, suena un aviso corto. Puedes silenciarlo con el botón Sonido activado de la conversación.' },
+  },
+  {
+    date: '2026-10-03', kind: 'improved',
     pt: { title: 'Site com cara nova', body: 'A página de entrada agora apresenta todas as ferramentas do Shift Hours e os planos, e carrega mais rápido.' },
     en: { title: 'Fresh new website', body: 'The landing page now presents every Shift Hours tool and the plans, and loads faster.' },
     es: { title: 'Sitio renovado', body: 'La página de entrada ahora presenta todas las herramientas de Shift Hours y los planes, y carga más rápido.' },

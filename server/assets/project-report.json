@@ -175,6 +175,12 @@
       "kind": "new",
       "title": "Nova página oficial do site (home pública)",
       "details": "A home pública deixou de ser só sobre horas: mostra todas as ferramentas, o selo da ferramenta mais nova, como funciona, os planos ao vivo (settings/plans) e chamadas para entrar com Google. Ferramentas, selo Novo e planos vêm do catálogo e do painel, então se atualizam sozinhos. Sem fotos nem vídeos (só ícones e CSS), removidas as fotos externas de usuários fictícios; responsiva, 3 idiomas e modo escuro."
+    },
+    {
+      "at": "2026-10-03T10:50:00+00:00",
+      "kind": "improved",
+      "title": "Avisos e som no suporte",
+      "details": "Número vermelho na aba Suporte do painel e nos filtros Novas/Minhas mostrando o que precisa de atenção; o escudo abre direto o Suporte quando há pendências. Som curto de nova mensagem para usuário e staff (gerado no navegador, sem arquivo), com botão Som ligado/desligado em cada lado, guardado por aparelho."
     }
   ]
 }

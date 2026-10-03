@@ -22,6 +22,7 @@ import { ToolIdentity } from './components/ToolIdentity';
 import { CATALOG } from './lib/toolCatalog';
 import { availableText } from './lib/plans';
 import { ALL_POWERS, hasAnyPower, type Powers } from './lib/staff';
+import { playChime } from './lib/notifySound';
 import { PlansModal } from './components/PlansModal';
 import { effectivePlanId, normalizePlans, sortedPlans, type PlansConfig, type ToolId } from './lib/plans';
 
@@ -281,23 +282,55 @@ export default function App() {
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', beat); };
   }, [user]);
 
-  // Red dot on the menu when the team answered one of my tickets.
+  // Support: red dot on the menu for the user, a count on the panel shield and the Suporte tab for
+  // the team, and a chime when the other side writes (unless muted on this device).
   const [supportUnread, setSupportUnread] = useState(false);
   useEffect(() => {
     setSupportUnread(false);
     if (!user) return;
-    return onSnapshot(query(collection(db, 'tickets'), where('uid', '==', user.uid), where('userUnread', '==', true)),
-      (snap) => setSupportUnread(!snap.empty), () => setSupportUnread(false));
+    const seen = new Map<string, number>();
+    let first = true;
+    return onSnapshot(query(collection(db, 'tickets'), where('uid', '==', user.uid)), (snap) => {
+      setSupportUnread(snap.docs.some((d) => d.data().userUnread === true));
+      let ring = false;
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const at = data.lastMessageAt?.toMillis?.() ?? 0;
+        if (!first && data.lastMessageBy === 'staff' && at > (seen.get(d.id) ?? 0)) ring = true;
+        seen.set(d.id, at);
+      });
+      if (ring) playChime();
+      if (!snap.metadata.fromCache) first = false;
+    }, () => setSupportUnread(false));
   }, [user]);
 
-  // Red dot on the panel shield when tickets are waiting for the team.
-  const [staffPending, setStaffPending] = useState(0);
+  const [staffPending, setStaffPending] = useState({ open: 0, mine: 0 });
   useEffect(() => {
-    setStaffPending(0);
-    if (!user || !myPowers.tickets) return;
-    return onSnapshot(query(collection(db, 'tickets'), where('status', '==', 'open')),
-      (snap) => setStaffPending(snap.size), () => setStaffPending(0));
+    setStaffPending({ open: 0, mine: 0 });
+    const me = user?.email?.toLowerCase();
+    if (!user || !me || !myPowers.tickets) return;
+    const seen = new Map<string, number>();
+    let first = true;
+    return onSnapshot(collection(db, 'tickets'), (snap) => {
+      let open = 0, mine = 0, ring = false;
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const at = data.lastMessageAt?.toMillis?.() ?? 0;
+        if (data.status === 'open') open++;
+        if (data.status === 'accepted' && data.assignedTo === me && data.staffUnread === true) mine++;
+        const known = seen.has(d.id);
+        // A new ticket for everyone with the power; a reply only for whoever accepted it.
+        if (!first && data.lastMessageBy === 'user' && at > (seen.get(d.id) ?? 0) &&
+            ((!known && data.status === 'open') || (known && data.assignedTo === me))) ring = true;
+        seen.set(d.id, at);
+      });
+      setStaffPending({ open, mine });
+      if (ring) playChime();
+      if (!snap.metadata.fromCache) first = false;
+    }, () => setStaffPending({ open: 0, mine: 0 }));
   }, [user, !!myPowers.tickets]);
+  const supportWaiting = staffPending.open + staffPending.mine;
+  const [adminFocus, setAdminFocus] = useState<'support' | null>(null);
 
   useEffect(() => {
     if (!isToolsMenuOpen) return;
@@ -616,13 +649,13 @@ export default function App() {
 
             {isPanelUser && (
               <button 
-                onClick={() => setActiveTab('admin')}
+                onClick={() => { setAdminFocus(supportWaiting > 0 ? 'support' : null); setActiveTab('admin'); }}
                 data-testid="admin-shield"
                 className={cn("relative p-2 transition-colors", activeTab === 'admin' ? "text-primary" : "text-stone-400 hover:text-primary")}
                 title={lang === 'en' ? 'Admin panel' : lang === 'es' ? 'Panel de administración' : 'Painel Admin'}
               >
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
-                {staffPending > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black leading-4 text-center">{staffPending}</span>}
+                {supportWaiting > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black leading-4 text-center" title={lang === 'en' ? 'Support needs attention' : lang === 'es' ? 'Soporte necesita atención' : 'Suporte precisa de atenção'}>{supportWaiting}</span>}
               </button>
             )}
 
@@ -721,7 +754,7 @@ export default function App() {
       {activeTab === 'admin' && isPanelUser ? (
         <main className="flex-1 w-full">
           <AdminDashboard
-            language={lang} onBack={goHome} settings={settings} t={t} powers={myPowers} isOwner={isOwner}
+            language={lang} onBack={goHome} settings={settings} t={t} powers={myPowers} isOwner={isOwner} supportWaiting={staffPending} focus={adminFocus} onFocused={() => setAdminFocus(null)}
             formulaPublic={{ enabled: formulaPublic, onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user!, enabled)) }}
           />
         </main>
