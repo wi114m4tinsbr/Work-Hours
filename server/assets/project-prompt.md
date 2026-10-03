@@ -54,3 +54,12 @@ React 19 + Vite 6 + Tailwind 4 (app de página única em `src/App.tsx`), Firebas
 
 ## Onde paramos
 Os envios mais recentes aparecem logo abaixo, gerados automaticamente a partir do GitHub. Continue a partir deles e do que eu pedir em seguida.
+
+## Home pública Aurora
+- Design aprovado com cores vivas por ferramenta e degradê verde/azul/violeta. Estilos em `src/components/Intro.css`.
+- A home pública começa clara e usa paleta própria; o botão de tema público não lê nem grava a preferência visual da conta. O tema do usuário continua disponível após o login.
+- Catálogo de ferramentas e planos ao vivo preservados.
+
+## Próxima solicitação: notificações externas de suporte
+- O dono pediu alertas de ocorrências e mensagens por e-mail, SMS ou WhatsApp, configuráveis numa aba do admin; também atendimento pelo WhatsApp enquanto o chamado estiver aceito e aberto.
+- Ainda não implementado. Aguardando escolha/confirmação do provedor e se o WhatsApp será número oficial integrado ou apenas canal de alertas. Detalhes em `docs/support-notifications.md`.

@@ -1,0 +1,30 @@
+/* Public brand palette is deliberately independent of the signed-in user's theme. */
+.aurora-home{--color-primary:#2455f5;--color-primary-hover:#1743d4;--color-primary-light:#2455f512;--color-bg-dark:#11192b;--color-bg-card-dark:#19253b;--bg-dark:#11192b;--bg-card-dark:#19253b;--primary-color:#2455f5;--primary-color-hover:#1743d4;--primary-color-light:#2455f512;background:#fff;color:#172345}
+.dark .aurora-home{background:#11192b;color:#f0f4ff}
+.aurora-home .aurora-hero{background:radial-gradient(ellipse at 4% 28%,#05e8ae35,transparent 51%),radial-gradient(ellipse at 96% 32%,#a366ff38,transparent 51%),radial-gradient(ellipse at 50% 100%,#58bdff24,transparent 60%)}
+.aurora-home .aurora-gradient{background:linear-gradient(100deg,#008a6c 2%,#0077dd 40%,#553cf0 72%,#a522d5);background-clip:text;color:transparent}
+.dark .aurora-home .aurora-gradient{background-image:linear-gradient(100deg,#24eab5,#66bcff 40%,#b099ff 72%,#f08aff)}
+.aurora-home .aurora-mark,.aurora-home .aurora-login{background:linear-gradient(110deg,#087b68,#076cd7 58%,#384beb);color:white;box-shadow:0 8px 25px #176fde38}
+.aurora-home .aurora-signin{background:#2455f5;color:white}
+.aurora-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.aurora-tool{border:1px solid #e4e9f3;border-radius:22px;overflow:hidden;background:white;box-shadow:0 5px 18px #1d467b0b;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}
+.aurora-tool:hover{transform:translateY(-4px);box-shadow:0 12px 24px #345aea22}
+.dark .aurora-tool{background:#19253b;border-color:#30405c}
+.aurora-art{height:170px;display:grid;place-items:center;padding:23px;background:linear-gradient(135deg,#3bd5fa,#4279ff);color:#22304a}
+[data-tool=hours] .aurora-art{background:radial-gradient(circle at 15% 5%,#c1ffe0,transparent 60%),linear-gradient(135deg,#08d89b,#00b8a7)}
+[data-tool=invoices] .aurora-art{background:radial-gradient(circle at 15% 5%,#edb9ff,transparent 60%),linear-gradient(135deg,#a77aff,#7449ed)}
+[data-tool=pdf] .aurora-art{background:radial-gradient(circle at 15% 5%,#ffdfab,transparent 60%),linear-gradient(135deg,#ff9972,#fc647d)}
+[data-tool=formula] .aurora-art{background:radial-gradient(circle at 15% 5%,#b4faff,transparent 60%),linear-gradient(135deg,#3bd5fa,#4279ff)}
+.aurora-paper{width:100%;max-width:210px;padding:15px;border-radius:11px;background:#fff;box-shadow:0 10px 20px #14356625;transform:rotate(-4deg);font-size:11px;line-height:1.4}
+.aurora-tool:nth-child(even) .aurora-paper{transform:rotate(4deg)}
+.aurora-paper strong{display:block;font-size:28px;letter-spacing:-1px;margin-top:8px}.aurora-paper code{display:block;margin-top:10px;padding:7px 3px;border-left:3px solid #3d75f1;background:#eaf4ff;font-size:12px;white-space:nowrap}
+.aurora-line{height:5px;background:#e6ebf4;border-radius:5px;margin:7px 0;width:85%}.aurora-line.short{width:55%}
+.aurora-tool-body{padding:21px;display:flex;flex-direction:column;flex:1}.aurora-tool-body h3{font-size:17px;font-weight:800;line-height:1.2}.aurora-tool-body p{font-size:13px;line-height:1.6;color:#586580;margin-top:12px;flex:1}.dark .aurora-tool-body p{color:#b4bfd5}
+.aurora-tool-link{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#2455f5;font-size:13px;font-weight:800;margin-top:17px;min-height:44px;text-align:left}
+[data-tool=hours] .aurora-tool-link{color:#087b62}[data-tool=invoices] .aurora-tool-link{color:#7040c5}[data-tool=pdf] .aurora-tool-link{color:#bb4235}
+.dark .aurora-tool-link{color:#85baff}.dark [data-tool=hours] .aurora-tool-link{color:#70dec0}.dark [data-tool=invoices] .aurora-tool-link{color:#c4a4ff}.dark [data-tool=pdf] .aurora-tool-link{color:#ffa994}
+.aurora-new{font-size:10px;font-weight:800;color:#985209;background:#fff3d4;padding:3px 7px;border-radius:20px}
+.aurora-home .aurora-cta{background:linear-gradient(110deg,#087b68,#076cd7 58%,#593ae5)}
+@media(max-width:900px){.aurora-tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:400px){.aurora-tools{gap:10px}.aurora-tool-body{padding:13px}.aurora-art{height:140px;padding:13px}.aurora-paper{padding:10px}.aurora-tool-body h3{font-size:15px}.aurora-paper code{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.aurora-tool{transition:none}.aurora-tool:hover{transform:none}}

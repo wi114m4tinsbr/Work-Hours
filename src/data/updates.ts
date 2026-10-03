@@ -16,6 +16,12 @@ export interface UpdateEntry {
 export const UPDATES: UpdateEntry[] = [
   {
     date: '2026-10-03', kind: 'improved',
+    pt: { title: 'Mais cor para o seu dia', body: 'A página inicial ganhou cores vivas, cartões de ferramentas e uma aparência própria, independente do tema da sua conta.' },
+    en: { title: 'More color for your day', body: 'The landing page now has vibrant colors, tool cards and its own appearance, independent of your account theme.' },
+    es: { title: 'Más color para tu día', body: 'La página de inicio tiene colores vivos, tarjetas de herramientas y una apariencia independiente del tema de tu cuenta.' },
+  },
+  {
+    date: '2026-10-03', kind: 'improved',
     pt: { title: 'Som de nova mensagem', body: 'Quando a equipe responde sua dúvida ou sugestão, toca um som curto. Dá para silenciar no botão Som ligado da conversa.' },
     en: { title: 'New message sound', body: 'When the team answers your question or suggestion, a short sound plays. You can mute it with the Sound on button in the conversation.' },
     es: { title: 'Sonido de mensaje nuevo', body: 'Cuando el equipo responde tu duda o sugerencia, suena un aviso corto. Puedes silenciarlo con el botón Sonido activado de la conversación.' },

@@ -83,6 +83,7 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileFirstName, setProfileFirstName] = useState('');
   const [profileLastName, setProfileLastName] = useState('');
+  const [publicDarkMode, setPublicDarkMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('shift-hours-dark-mode') === 'true');
   const [bootThemeColor] = useState(() => localStorage.getItem('shift-hours-theme-color') || '#000000');
   const [settings, setSettings] = useState({
@@ -105,12 +106,12 @@ export default function App() {
 
   // Apply dark mode class to html element
   useEffect(() => {
-    if (isDarkMode) {
+    if (user ? isDarkMode : publicDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDarkMode]);
+  }, [isDarkMode, publicDarkMode, user]);
 
   const toggleDarkMode = async () => {
     const newMode = !isDarkMode;
@@ -422,7 +423,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className={cn("min-h-screen flex items-center justify-center transition-colors duration-300", isDarkMode ? "bg-bg-dark" : "bg-stone-50")}>
+      <div className="aurora-home min-h-screen flex items-center justify-center">
         <div className="brand-loader flex flex-col items-center gap-4" role="status" aria-label="Shift Hours">
           <div className="brand-loader-mark relative w-20 h-20 rounded-[1.75rem] bg-primary text-white flex items-center justify-center overflow-hidden">
             <span className="brand-loader-glow absolute inset-0" />
@@ -497,8 +498,8 @@ export default function App() {
         t={t} 
         lang={lang}
         onLanguageChange={setLang}
-        isDarkMode={isDarkMode}
-        onThemeToggle={toggleDarkMode}
+        isDarkMode={publicDarkMode}
+        onThemeToggle={() => setPublicDarkMode((value) => !value)}
         loginLoading={loginLoading}
         loginError={loginError}
       />

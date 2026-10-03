@@ -181,6 +181,12 @@
       "kind": "improved",
       "title": "Avisos e som no suporte",
       "details": "Número vermelho na aba Suporte do painel e nos filtros Novas/Minhas mostrando o que precisa de atenção; o escudo abre direto o Suporte quando há pendências. Som curto de nova mensagem para usuário e staff (gerado no navegador, sem arquivo), com botão Som ligado/desligado em cada lado, guardado por aparelho."
+    },
+    {
+      "at": "2026-10-03T10:45:00+00:00",
+      "kind": "improved",
+      "title": "Home pública Aurora",
+      "details": "Design Aurora aprovado: degradê luminoso, cartões coloridos por ferramenta e tema público independente da conta. Preservados catálogo, planos ao vivo e PT/EN/ES."
     }
   ]
 }
