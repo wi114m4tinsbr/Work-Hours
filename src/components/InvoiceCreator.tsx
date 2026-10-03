@@ -1,5 +1,7 @@
 import { ToolIdentity } from "./ToolIdentity";
 import { isPremium } from '../lib/subscription';
+import type { DailyQuota } from '../lib/quota';
+import { UsageBadge, QuotaNotice } from './UsageBadge';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -240,9 +242,11 @@ interface InvoiceCreatorProps {
   onBack: () => void;
   isAdmin: boolean;
   embedded?: boolean;
+  /** Daily allowance from the app; missing means unlimited (e.g. isolated tests). */
+  quota?: DailyQuota;
 }
 
-export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack, isAdmin, embedded = false }) => {
+export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack, isAdmin, embedded = false, quota }) => {
   const t = translations[language];
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-6)}`);
   const [invoiceAlias, setInvoiceAlias] = useState('');
@@ -349,17 +353,14 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
-  const checkLimit = () => {
-    const isUserAdmin = isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com';
-    if (isUserAdmin) return true;
-    if (subscription === 'monthly') return true;
-    
-    const today = new Date().toISOString().split('T')[0];
-    if (dailyUsage.lastDate === today && dailyUsage.count >= 1) {
-      return false;
-    }
-    return true;
-  };
+  // Free accounts get one downloaded or shared invoice per day; saving drafts is never counted.
+  const limitReached = !!quota?.reached;
+  const [limitNotice, setLimitNotice] = useState(false);
+  const usageText = language === 'en' ? '1 invoice available today' : language === 'es' ? '1 factura disponible hoy' : '1 fatura disponível hoje';
+  const usageBadge = (className?: string) => quota ? (
+    <UsageBadge access={quota.access} language={language} available={usageText} reached={quota.reached} progress={quota.used / quota.limit} className={className} />
+  ) : null;
+  const checkLimit = () => !limitReached;
 
   const generatePDF = async (action: 'download' | 'share' = 'download') => {
     const doc = new jsPDF();
@@ -704,7 +705,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     if (!auth.currentUser) return;
 
     if (!checkLimit()) {
-      setShowPaymentModal(true);
+      setLimitNotice(true);
       return;
     }
 
@@ -716,17 +717,8 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
       // BEFORE any async calls to preserve the user activation gesture.
       await generatePDF(action);
 
-      // Update Usage in background
-      const today = new Date().toISOString().split('T')[0];
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      const newCount = (dailyUsage.count || 0) + 1;
-      
-      updateDoc(userRef, {
-        usage: {
-          lastInvoiceDate: today,
-          dailyInvoiceCount: newCount
-        }
-      }).catch(err => console.error('Error updating usage:', err));
+      // Count the download or share in the background (free accounts only).
+      quota?.consume().catch(err => console.error('Error updating usage:', err));
     } catch (error) {
       console.error('Error in action:', error);
       if ((error as Error).name !== 'AbortError') {
@@ -999,17 +991,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                       className="w-full h-9 bg-gray-50 border border-gray-200 rounded-lg px-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     />
                   </div>
-                  <div className={cn(
-                    "hidden md:flex h-9 shrink-0 self-end items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold",
-                    (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                      ? "bg-primary-light text-primary border-primary/20"
-                      : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200"
-                  )}>
-                    <Settings size={14} />
-                    {(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                      ? "Admin · ilimitado"
-                      : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
-                  </div>
+                  {usageBadge('hidden md:inline-flex self-end')}
                   <button
                     type="button"
                     onClick={() => setIsStylePanelCollapsed(!isStylePanelCollapsed)}
@@ -1098,9 +1080,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   </div>
 
                   <div className="col-span-2 md:hidden">
-                    <div className={cn("h-10 flex items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold", (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') ? "bg-primary-light text-primary border-primary/20" : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200")}>
-                      <Settings size={14} />{(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') ? "Admin · ilimitado" : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
-                    </div>
+                    {usageBadge('w-full justify-center')}
                   </div>
                 </div>
                 )}
@@ -2087,56 +2067,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                         <h3>{t.adminSettings}</h3>
                       </div>
                       
-                      <div className={cn(
-                        "rounded-xl p-4 space-y-3 transition-colors",
-                        (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') 
-                          ? "bg-blue-50" 
-                          : dailyUsage.count >= 1 ? "bg-red-50" : "bg-blue-50"
-                      )}>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className={cn(
-                            "font-medium",
-                            (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                              ? "text-blue-700"
-                              : dailyUsage.count >= 1 ? "text-red-700" : "text-blue-700"
-                          )}>Uso Diário</span>
-                          <span className={cn(
-                            "font-bold",
-                            (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                              ? "text-blue-900"
-                              : dailyUsage.count >= 1 ? "text-red-900" : "text-blue-900"
-                          )}>
-                            {(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') 
-                              ? "∞" 
-                              : dailyUsage.count >= 1 ? "0 / 0" : "0 / 1"}
-                          </span>
-                        </div>
-                        <div className={cn(
-                          "w-full rounded-full h-2",
-                          (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                            ? "bg-blue-200"
-                            : dailyUsage.count >= 1 ? "bg-red-200" : "bg-blue-200"
-                        )}>
-                          <div 
-                            className={cn(
-                              "h-2 rounded-full transition-all duration-500",
-                              (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                                ? "bg-blue-600"
-                                : dailyUsage.count >= 1 ? "bg-red-600" : "bg-blue-600"
-                            )}
-                            style={{ 
-                              width: (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                                ? "100%"
-                                : dailyUsage.count >= 1 ? "100%" : "0%"
-                            }}
-                          />
-                        </div>
-                        {!(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') && subscription === 'free' && dailyUsage.count >= 1 && (
-                          <p className="text-[10px] text-red-600 font-medium leading-tight">
-                            Você atingiu o limite gratuito. Faça upgrade para continuar criando faturas ilimitadas.
-                          </p>
-                        )}
-                      </div>
+                      {usageBadge('w-full')}
                     </div>
                   </div>
                 </div>
@@ -2145,6 +2076,13 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
           )}
         </AnimatePresence>
       </main>
+      <QuotaNotice
+        open={limitNotice}
+        language={language}
+        onClose={() => setLimitNotice(false)}
+        title={language === 'en' ? 'Daily limit reached' : language === 'es' ? 'Límite diario alcanzado' : 'Limite diário atingido'}
+        message={language === 'en' ? 'The free plan includes 1 downloaded or shared invoice per day. You can keep editing and saving; downloads open again tomorrow, or right away with Premium.' : language === 'es' ? 'El plan gratis incluye 1 factura descargada o compartida por día. Puedes seguir editando y guardando; las descargas vuelven mañana, o al instante con Premium.' : 'O plano grátis inclui 1 fatura baixada ou compartilhada por dia. Você pode continuar editando e salvando; os downloads voltam amanhã, ou na hora com o Premium.'}
+      />
       {showPaymentModal && (
         <PaymentModal onClose={() => setShowPaymentModal(false)} t={t} />
       )}

@@ -11,7 +11,7 @@
     "lint": "tsc --noEmit",
     "test:pdf": "tsx --test tests/pdf-content.test.ts",
     "test:pdf:ui": "playwright test",
-    "test:formula": "tsx --test tests/formula-auth.test.ts"
+    "test:formula": "tsx --test tests/formula-auth.test.ts tests/quota.test.ts"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",

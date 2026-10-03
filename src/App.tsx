@@ -17,6 +17,7 @@ import { FormulaFacilView } from './components/FormulaFacilView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { isPremium, accountStatus, type AccountStatus } from './lib/subscription';
 import { increment } from 'firebase/firestore';
+import { dailyQuota, formulaQuota, type Access, type Usage } from './lib/quota';
 
 const ADMIN_PANEL_PATH = '/admin';
 
@@ -57,6 +58,7 @@ export default function App() {
   const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
   const [userStatus, setUserStatus] = useState<AccountStatus>('active');
   const [userStatusReason, setUserStatusReason] = useState('');
+  const [userUsage, setUserUsage] = useState<Usage>(undefined);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -204,6 +206,7 @@ export default function App() {
         localStorage.setItem('shift-hours-dark-mode', String(!!userData.isDarkMode));
         setSubscriptionType(isPremium(userData.subscription) ? 'monthly' : 'free');
         setUserStatus(accountStatus(userData));
+        setUserUsage(userData.usage);
         setUserStatusReason(typeof userData.statusReason === 'string' ? userData.statusReason : '');
         const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
         setProfileFirstName(userData.firstName || storedName[0] || '');
@@ -330,6 +333,8 @@ export default function App() {
   }
 
   const canSeeFormulaAdmin = isOwner || formulaPublic;
+  const access: Access = isOwner ? 'admin' : subscriptionType === 'monthly' ? 'premium' : 'free';
+  const writeUsage = user ? (fields: Record<string, unknown>) => updateDoc(doc(db, 'users', user.uid), fields) : undefined;
 
   if (!user) {
     if (activeTab === 'formula' || (activeTab === 'formula-admin' && formulaPublic)) {
@@ -340,6 +345,7 @@ export default function App() {
             language={lang}
             inApp={false}
             onBack={() => setActiveTab('hours')}
+            onLogin={activeTab === 'formula' ? handleLogin : undefined}
           />
         </div>
       );
@@ -606,6 +612,7 @@ export default function App() {
             language={lang}
             inApp
             onBack={goHome}
+            quota={activeTab === 'formula' ? formulaQuota(access, userUsage, writeUsage) : undefined}
             ready={activeTab === 'formula' || formulaSessionReady || (!isOwner && formulaPublic)}
             publicSwitch={activeTab === 'formula-admin' && isOwner && user ? {
               enabled: formulaPublic,
@@ -615,11 +622,11 @@ export default function App() {
         </main>
       ) : activeTab === 'pdf' ? (
         <main className="flex-1 w-full overflow-visible custom-scrollbar">
-          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} />
+          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} quota={dailyQuota('pdf', access, userUsage, writeUsage)} />
         </main>
       ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
-          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded />
+          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, userUsage, writeUsage)} />
         </main>
       ) : (
       <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">

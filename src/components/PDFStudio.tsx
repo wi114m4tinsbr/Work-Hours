@@ -47,6 +47,8 @@ import {
   clearDocumentFonts,
 } from "../lib/pdf/live-layout";
 import { ToolIdentity } from "./ToolIdentity";
+import { UsageBadge, QuotaNotice } from "./UsageBadge";
+import type { DailyQuota } from "../lib/quota";
 import { PDFObjectLayer } from "./PDFObjectLayer";
 
 // Compatibility for PDF.js in browsers without the Map upsert APIs.
@@ -365,12 +367,22 @@ export function PDFStudio({
   language,
   onBack,
   toolbarTop = 0,
+  quota,
 }: {
   language: Lang;
   onBack: () => void;
   toolbarTop?: number;
+  /** Daily allowance from the app; missing means unlimited (isolated tests). */
+  quota?: DailyQuota;
 }) {
   const t = C[language] || C.pt;
+  // Free accounts: one edited file per day, counted on its first download only.
+  const countedVersion = useRef(-1);
+  const [limitNotice, setLimitNotice] = useState(false);
+  const usageBadge = (className?: string) => quota ? (
+    <UsageBadge access={quota.access} language={language} reached={quota.reached} progress={quota.used / quota.limit} className={className}
+      available={language === "en" ? "1 file available today" : language === "es" ? "1 archivo disponible hoy" : "1 arquivo disponível hoje"} />
+  ) : null;
   const [file, setFile] = useState<File | null>(null),
     [geometry, setGeometry] = useState<Geometry[]>([]),
     [widgets, setWidgets] = useState<FormWidget[]>([]);
@@ -662,6 +674,10 @@ export function PDFStudio({
     }
   };
   const load = async (f: File) => {
+    if (quota?.reached) {
+      setLimitNotice(true);
+      return;
+    }
     const token = ++loadVersion.current;
     setFontLoading(false);
     version.current++;
@@ -1091,6 +1107,10 @@ export function PDFStudio({
   };
   const save = async () => {
     if (!editClient.current || saving || loading) return;
+    if (quota?.reached && countedVersion.current !== loadVersion.current) {
+      setLimitNotice(true);
+      return;
+    }
     const token = loadVersion.current,
       client = editClient.current;
     setSaving(true);
@@ -1107,6 +1127,10 @@ export function PDFStudio({
         (file?.name.replace(/\.pdf$/i, "") || "document") + "-editado.pdf";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      if (countedVersion.current !== token) {
+        countedVersion.current = token;
+        quota?.consume().catch(() => {});
+      }
     } catch (e) {
       if (token === loadVersion.current) setError(message(e));
     } finally {
@@ -1233,7 +1257,7 @@ export function PDFStudio({
             className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto whitespace-nowrap"
             data-testid="pdf-primary-tools"
           >
-            {button(t.open, Upload, () => input.current?.click(), loading)}
+            {button(t.open, Upload, () => (quota?.reached ? setLimitNotice(true) : input.current?.click()), loading)}
             {file && (
               <>
                 <span className="h-5 mx-1 border-l border-stone-200 dark:border-white/10" />
@@ -1317,6 +1341,7 @@ export function PDFStudio({
               >
                 <MoreHorizontal size={18} />
               </button>
+              {usageBadge("hidden lg:inline-flex h-8")}
               <button
                 aria-label={t.download}
                 title={saving ? t.saving : t.download}
@@ -1680,7 +1705,7 @@ export function PDFStudio({
       {!file ? (
         <button
           disabled={loading}
-          onClick={() => input.current?.click()}
+          onClick={() => (quota?.reached ? setLimitNotice(true) : input.current?.click())}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -1696,6 +1721,7 @@ export function PDFStudio({
             {loading ? t.loading : t.drop}
           </b>
           <span className="text-sm text-stone-400">{t.empty}</span>
+          {usageBadge()}
         </button>
       ) : (
         <div className="flex flex-1 min-w-0">
@@ -2004,6 +2030,13 @@ export function PDFStudio({
           </main>
         </div>
       )}
+      <QuotaNotice
+        open={limitNotice}
+        language={language}
+        onClose={() => setLimitNotice(false)}
+        title={language === "en" ? "Daily limit reached" : language === "es" ? "Límite diario alcanzado" : "Limite diário atingido"}
+        message={language === "en" ? "The free plan includes 1 edited PDF per day, counted when you download it. You can use PDF Studio again tomorrow, or right away with Premium." : language === "es" ? "El plan gratis incluye 1 PDF editado por día, contado al descargarlo. Podrás usar PDF Studio de nuevo mañana, o al instante con Premium." : "O plano grátis inclui 1 PDF editado por dia, contado quando você baixa o arquivo. Você pode usar o PDF Studio de novo amanhã, ou na hora com o Premium."}
+      />
       <input
         ref={input}
         hidden
