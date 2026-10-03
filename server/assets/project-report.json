@@ -211,6 +211,12 @@
       "kind": "fixed",
       "title": "Inicialização da API Telegram na Vercel",
       "details": "Smoke test no domínio oficial detectou erro ao iniciar a nova rota. Imports relativos do servidor ajustados para extensões .js exigidas pelo runtime ESM. Adicionado teste de compilação e importação real da API, sem o resolvedor de desenvolvimento."
+    },
+    {
+      "at": "2026-10-03T12:00:00Z",
+      "kind": "improved",
+      "title": "Avisos Telegram com identificação e mensagem separadas",
+      "details": "Usuário confirmou envio e respostas em produção. Avisos agora usam títulos em negrito, rótulos de usuário/ocorrência, mensagem destacada em citação, instrução de resposta e link nomeado. PT/EN/ES, escape de conteúdo e indicação de mensagens truncadas."
     }
   ]
 }

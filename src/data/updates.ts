@@ -15,6 +15,12 @@ export interface UpdateEntry {
 
 export const UPDATES: UpdateEntry[] = [
   {
+    date: '2026-10-03', kind: 'improved',
+    pt: { title: 'Avisos de suporte mais claros', body: 'Os avisos no Telegram agora separam usuário, ocorrência e mensagem, com instruções mais claras para responder.' },
+    en: { title: 'Clearer support alerts', body: 'Telegram alerts now separate the user, ticket and message, with clearer reply instructions.' },
+    es: { title: 'Avisos de soporte más claros', body: 'Los avisos en Telegram separan usuario, incidencia y mensaje, con instrucciones más claras para responder.' },
+  },
+  {
     date: '2026-10-03', kind: 'new',
     pt: { title: 'Preferências de avisos do suporte', body: 'O administrador ganhou uma área para configurar avisos por Telegram e escolher se deseja responder por lá. O chat dos usuários continua no site.' },
     en: { title: 'Support alert preferences', body: 'The administrator now has an area to configure Telegram alerts and choose whether to reply there. Users keep chatting on the website.' },

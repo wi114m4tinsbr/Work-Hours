@@ -21,10 +21,29 @@ export function eventAllowed(kind: string, settings: any, ticket: any, eventAt: 
     ticket?.status !== 'closed' && eventAt >= (settings.enabledAt || now) && eventAt <= now + 5000 && now - eventAt < 600_000 &&
     (kind !== 'messages' || (ticket.status === 'accepted' && ticket.assignedTo === FORMULA_OWNER_EMAIL && ticket.assignedUid === settings.ownerUid));
 }
+/** User-provided text stays literal inside Telegram's supported HTML formatting. */
 export function notice(kind: string, t: any, message: any, language: Preferences['language']) {
-  const labels = { pt: ['Nova ocorrência', 'Ocorrência aceita', 'Nova mensagem', 'Aceita por', 'Responda a esta mensagem para responder no site, se essa opção estiver ligada.'], en: ['New ticket', 'Ticket accepted', 'New message', 'Accepted by', 'Reply to this message to answer on the website, if this option is enabled.'], es: ['Nueva incidencia', 'Incidencia aceptada', 'Nuevo mensaje', 'Aceptada por', 'Responde a este mensaje para contestar en el sitio, si la opción está activada.'] }[language];
-  const clean = (s: unknown, n: number) => String(s || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '').slice(0, n);
-  return [labels[kind === 'opened' ? 0 : kind === 'accepted' ? 1 : 2], clean(t.subject, 120), clean(t.name || t.email, 100), kind === 'accepted' ? `${labels[3]}: ${clean(t.assignedName, 100)}` : '', kind === 'messages' ? clean(message?.text, 2600) : '', kind === 'messages' || (kind === 'accepted' && t.assignedTo === FORMULA_OWNER_EMAIL) ? labels[4] : '', 'https://shifthours.com/'].filter(Boolean).join('\n\n');
+  const labels = {
+    pt: { opened: 'Nova ocorrência no site', accepted: 'Ocorrência aceita', messages: 'Você recebeu uma mensagem no site', user: 'Usuário', sender: 'Enviada por', subject: 'Ocorrência', staff: 'Aceita por', message: 'Mensagem', note: 'Como responder', hint: 'No Telegram, mantenha este aviso pressionado e toque em Responder. Sua resposta será enviada ao chat do site se essa opção estiver ativada.', site: 'Abrir Shift Hours', more: 'Mensagem longa: leia o conteúdo completo no site.' },
+    en: { opened: 'New ticket on the website', accepted: 'Ticket accepted', messages: 'You received a message on the website', user: 'User', sender: 'Sent by', subject: 'Ticket', staff: 'Accepted by', message: 'Message', note: 'How to reply', hint: 'In Telegram, press and hold this alert and tap Reply. Your reply will be sent to the website chat if this option is enabled.', site: 'Open Shift Hours', more: 'Long message: read the full content on the website.' },
+    es: { opened: 'Nueva incidencia en el sitio', accepted: 'Incidencia aceptada', messages: 'Recibiste un mensaje en el sitio', user: 'Usuario', sender: 'Enviado por', subject: 'Incidencia', staff: 'Aceptada por', message: 'Mensaje', note: 'Cómo responder', hint: 'En Telegram, mantén pulsado este aviso y toca Responder. Tu respuesta se enviará al chat del sitio si la opción está activada.', site: 'Abrir Shift Hours', more: 'Mensaje largo: lee el contenido completo en el sitio.' },
+  }[language];
+  const clean = (value: unknown) => String(value || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '');
+  const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Bound UTF-16 length without splitting an emoji at the truncation boundary.
+  const shorten = (value: string, max: number) => { const cut = value.slice(0, max); return /[\uD800-\uDBFF]$/.test(cut) ? cut.slice(0, -1) : cut; };
+  const text = (value: unknown, max: number) => escape(shorten(clean(value), max));
+  const isMessage = kind === 'messages';
+  const body = clean(message?.text);
+  return [
+    `<b>${isMessage ? '💬 ' + labels.messages : kind === 'accepted' ? '✅ ' + labels.accepted : '📩 ' + labels.opened}</b>`,
+    `<b>${isMessage ? labels.sender : labels.user}:</b> ${text(t.name || t.email, 100)}\n<b>${labels.subject}:</b> ${text(t.subject, 120)}`,
+    kind === 'accepted' ? `<b>${labels.staff}:</b> ${text(t.assignedName, 100)}` : '',
+    isMessage ? `<b>${labels.message}</b>\n<blockquote>${text(body, 2600)}${body.length > 2600 ? '…' : ''}</blockquote>` : '',
+    isMessage && body.length > 2600 ? `<i>${labels.more}</i>` : '',
+    isMessage || (kind === 'accepted' && t.assignedTo === FORMULA_OWNER_EMAIL) ? `<b>${labels.note}</b>\n${labels.hint}` : '',
+    `<a href="https://shifthours.com/">${labels.site} ↗</a>`,
+  ].filter(Boolean).join('\n\n');
 }
 
 export function botReply(key: 'paired' | 'stopped' | 'help' | 'blocked' | 'sent' | 'test', language: string = 'pt') {
