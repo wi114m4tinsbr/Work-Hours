@@ -7,7 +7,8 @@ for (const width of [390, 1280]) {
       localStorage.setItem('shift-hours-dark-mode', 'true');
       localStorage.setItem('shift-hours-theme-color', '#000000');
     });
-    await page.goto('/');
+    // Test the shipped build; Vite dependency discovery can reload the development page.
+    await page.goto('http://127.0.0.1:3001/');
     const home = page.getByTestId('intro');
     await expect(home).toBeVisible();
     await page.getByTestId('intro-lang').selectOption('pt');

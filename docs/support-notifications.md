@@ -26,3 +26,7 @@ Referências técnicas consultadas:
 - https://firebase.google.com/docs/firestore/extend-with-functions
 - https://www.twilio.com/docs/whatsapp/api
 - https://www.twilio.com/docs/whatsapp/tutorial/send-whatsapp-notification-messages-templates
+
+## Decisão posterior do dono
+
+Telegram aprovado como primeira opção, mantendo o chat do usuário no site. Alertar sobre nova ocorrência, aceite por staff/admin e mensagens recebidas; permitir respostas pelo Telegram somente em chamados aceitos pelo dono, com liga/desliga e interrupção ao encerrar. Dono não possui provedor configurado e foi orientado a criar bot no @BotFather, sem compartilhar token no chat. Integração ainda pendente.

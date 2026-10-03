@@ -187,6 +187,12 @@
       "kind": "improved",
       "title": "Home pública Aurora",
       "details": "Design Aurora aprovado: degradê luminoso, cartões coloridos por ferramenta e tema público independente da conta. Preservados catálogo, planos ao vivo e PT/EN/ES."
+    },
+    {
+      "at": "2026-10-03T10:56:00+00:00",
+      "kind": "fixed",
+      "title": "Validação da home no build de produção",
+      "details": "Testes da home usam o build publicado para evitar recargas de otimização do servidor de desenvolvimento durante a troca de idioma."
     }
   ]
 }

@@ -62,4 +62,4 @@ Os envios mais recentes aparecem logo abaixo, gerados automaticamente a partir d
 
 ## Próxima solicitação: notificações externas de suporte
 - O dono pediu alertas de ocorrências e mensagens por e-mail, SMS ou WhatsApp, configuráveis numa aba do admin; também atendimento pelo WhatsApp enquanto o chamado estiver aceito e aberto.
-- Ainda não implementado. Aguardando escolha/confirmação do provedor e se o WhatsApp será número oficial integrado ou apenas canal de alertas. Detalhes em `docs/support-notifications.md`.
+- Ainda não implementado. Telegram aprovado como primeira etapa gratuita de mensageria, mantendo o chat do usuário no site. Aguardando criação do bot pelo dono e configuração segura; integração ainda não implementada. Detalhes em `docs/support-notifications.md`.
