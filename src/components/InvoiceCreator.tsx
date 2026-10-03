@@ -1,6 +1,6 @@
 import { ToolIdentity } from "./ToolIdentity";
 import { isPremium } from '../lib/subscription';
-import type { DailyQuota } from '../lib/quota';
+import { QuotaError, type DailyQuota } from '../lib/quota';
 import { UsageBadge, QuotaNotice } from './UsageBadge';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -507,6 +507,9 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     }
     
     const safeInvoiceNumber = invoiceNumber.replace(/[/\\?%*:|"<>]/g, '-');
+
+    // Free plan: the use is recorded (and checked by the server rules) before the file leaves.
+    if (quota) await quota.consume();
     
     if (action === 'download') {
       doc.save(`${safeInvoiceNumber}.pdf`);
@@ -713,13 +716,13 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     else setIsDownloading(true);
 
     try {
-      // IMPORTANT: Call generatePDF (which calls navigator.share) 
-      // BEFORE any async calls to preserve the user activation gesture.
+      // generatePDF records the use right before handing over the file (free accounts only).
       await generatePDF(action);
-
-      // Count the download or share in the background (free accounts only).
-      quota?.consume().catch(err => console.error('Error updating usage:', err));
     } catch (error) {
+      if (error instanceof QuotaError) {
+        setLimitNotice(true);
+        return;
+      }
       console.error('Error in action:', error);
       if ((error as Error).name !== 'AbortError') {
         setMessage({ type: 'error', text: 'Erro ao processar ação.' });

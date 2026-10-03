@@ -177,6 +177,68 @@ service cloud.firestore {
              request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1;
     }
 
+
+    // ===============================================================
+    // Free-plan allowances (collection quota, one document per Google email)
+    // ===============================================================
+    // Keyed by email so deleting and recreating the login does not reset it.
+    // Every use is stamped with the server clock (request.time), counts only go up,
+    // and only the admin can reset or delete a document.
+
+    function isQuotaOwner(email) {
+      return isAuthenticated() && request.auth.token.email_verified == true &&
+             request.auth.token.email.lower() == email;
+    }
+
+    // Calendar day (yyyymmdd) in the time zone fixed on the first use.
+    function dayOf(t, tz) {
+      let local = t + duration.value(tz, 'm');
+      return local.year() * 10000 + local.month() * 100 + local.day();
+    }
+
+    function sameField(b, a, field) {
+      return a.get(field, null) == b.get(field, null);
+    }
+
+    // One invoice / one PDF per day: the count restarts only on a new day and never passes 1.
+    function validDaily(b, a, at, count, tz) {
+      return (sameField(b, a, at) && sameField(b, a, count)) ||
+             (a.get(at, null) == request.time && a.get(count, null) is int &&
+              a.get(count, 0) == ((b.get(at, null) != null && dayOf(b.get(at, null), tz) == dayOf(request.time, tz))
+                                   ? b.get(count, 0) + 1 : 1) &&
+              a.get(count, 0) <= 1);
+    }
+
+    // Fórmula Fácil: 15 minutes (900 s) per window. The window ends 24 h after it starts,
+    // or, once the minutes run out, 24 h after that moment. Used seconds never go down.
+    function validFormulaWindow(b, a) {
+      let exhaustedNow = a.get('formulaUsed', 0) >= 900;
+      let stamped = a.get('formulaTick', null) == request.time &&
+                    a.get('formulaUsed', null) is int && a.get('formulaUsed', 0) >= 0 && a.get('formulaUsed', 0) <= 900 &&
+                    (exhaustedNow ? a.get('formulaExhaustedAt', null) == request.time : a.get('formulaExhaustedAt', null) == null);
+      let open = b.get('formulaStart', null) != null && b.get('formulaExhaustedAt', null) == null &&
+                 request.time < b.formulaStart + duration.value(24, 'h');
+      let canRestart = b.get('formulaStart', null) == null ||
+                       (b.get('formulaExhaustedAt', null) != null
+                         ? request.time >= b.formulaExhaustedAt + duration.value(24, 'h')
+                         : request.time >= b.formulaStart + duration.value(24, 'h'));
+      return (sameField(b, a, 'formulaStart') && sameField(b, a, 'formulaUsed') &&
+              sameField(b, a, 'formulaTick') && sameField(b, a, 'formulaExhaustedAt')) ||
+             (stamped && open && a.formulaStart == b.formulaStart && a.formulaUsed >= b.get('formulaUsed', 0)) ||
+             (stamped && canRestart && a.get('formulaStart', null) == request.time);
+    }
+
+    function validQuota(b, a) {
+      let tz = a.get('tz', null);
+      return a.keys().hasOnly(['tz', 'invoiceAt', 'invoiceCount', 'pdfAt', 'pdfCount',
+                               'formulaStart', 'formulaUsed', 'formulaTick', 'formulaExhaustedAt']) &&
+             tz is int && tz >= -720 && tz <= 840 &&
+             (b.get('tz', null) == null || tz == b.tz) &&
+             validDaily(b, a, 'invoiceAt', 'invoiceCount', tz) &&
+             validDaily(b, a, 'pdfAt', 'pdfCount', tz) &&
+             validFormulaWindow(b, a);
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -194,6 +256,13 @@ service cloud.firestore {
       allow update: if (isOwner(userId) && isValidUser(request.resource.data) &&
                         !touchesProtectedUserFields() && isActiveUser()) ||
                        isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /quota/{email} {
+      allow read: if isQuotaOwner(email) || isAdmin();
+      allow create: if isQuotaOwner(email) && isActiveUser() && validQuota({}, request.resource.data);
+      allow update: if (isQuotaOwner(email) && isActiveUser() && validQuota(resource.data, request.resource.data)) || isAdmin();
       allow delete: if isAdmin();
     }
 

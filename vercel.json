@@ -9,6 +9,14 @@
       "destination": "/api/not-found"
     },
     {
+      "source": "/formula-facil.html",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/server/(.*)",
+      "destination": "/api/not-found"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/not-found"
     },
@@ -17,27 +25,9 @@
       "destination": "/index.html"
     }
   ],
-  "headers": [
-    {
-      "source": "/formula-facil.html",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://generativelanguage.googleapis.com; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "microphone=(self), display-capture=(self), clipboard-write=(self)"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "no-referrer"
-        }
-      ]
+  "functions": {
+    "api/formula-public.ts": {
+      "includeFiles": "server/assets/formula-facil.html"
     }
-  ]
+  }
 }

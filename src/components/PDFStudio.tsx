@@ -1118,6 +1118,16 @@ export function PDFStudio({
     try {
       const bytes = await client.export(stateRef.current);
       if (token !== loadVersion.current) return;
+      // Free plan: the first download of each file is recorded (and checked by the server rules) first.
+      if (quota && countedVersion.current !== token) {
+        try {
+          await quota.consume();
+        } catch {
+          setLimitNotice(true);
+          return;
+        }
+        countedVersion.current = token;
+      }
       const url = URL.createObjectURL(
           new Blob([bytes as BlobPart], { type: "application/pdf" }),
         ),
@@ -1127,10 +1137,6 @@ export function PDFStudio({
         (file?.name.replace(/\.pdf$/i, "") || "document") + "-editado.pdf";
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      if (countedVersion.current !== token) {
-        countedVersion.current = token;
-        quota?.consume().catch(() => {});
-      }
     } catch (e) {
       if (token === loadVersion.current) setError(message(e));
     } finally {

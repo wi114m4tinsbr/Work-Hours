@@ -4,7 +4,8 @@ export const FORMULA_OWNER_EMAIL = 'martinswilliam2004@gmail.com';
 export const FORMULA_ADMIN_PATH = '/admin/formula-facil';
 export const FORMULA_PUBLIC_PATH = '/formula-facil';
 // The raw tool pages shown inside the Shift Hours frame.
-export const FORMULA_PUBLIC_FRAME = '/formula-facil.html';
+// The common version is served only to signed-in accounts that still have time today.
+export const FORMULA_PUBLIC_FRAME = '/api/formula-public';
 export const FORMULA_ADMIN_FRAME = '/api/formula-admin';
 
 export const isFormulaOwner = (user: User | null) =>
@@ -44,12 +45,37 @@ export async function syncFormulaSession(user: User | null): Promise<boolean> {
   }
 }
 
-/** Logout always clears the server cookie, even if the local marker was lost. */
+/**
+ * Any signed-in account: hands the ID token to the server so it can check the free-plan
+ * allowance before serving the common Fórmula Fácil. The server validates it again.
+ */
+export async function syncUserSession(user: User | null): Promise<boolean> {
+  try {
+    if (!user) {
+      await fetch('/api/user-session', { method: 'DELETE', credentials: 'same-origin' });
+      return false;
+    }
+    const token = await user.getIdToken();
+    const response = await fetch('/api/user-session', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Logout always clears the server cookies, even if the local marker was lost. */
 export async function clearFormulaSession(): Promise<void> {
   writeMark(false);
   try {
-    await fetch('/api/formula-session', { method: 'DELETE', credentials: 'same-origin' });
-  } catch { /* offline: the cookie still expires with the token */ }
+    await Promise.all([
+      fetch('/api/formula-session', { method: 'DELETE', credentials: 'same-origin' }),
+      fetch('/api/user-session', { method: 'DELETE', credentials: 'same-origin' }),
+    ]);
+  } catch { /* offline: the cookies still expire with the token */ }
 }
 
 /** Whether the owner opened the admin version to every visitor. Off when unknown. */

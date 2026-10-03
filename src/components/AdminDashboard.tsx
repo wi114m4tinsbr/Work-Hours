@@ -65,6 +65,7 @@ const C = {
     none: 'Nenhum usuário encontrado.', page: 'Página', of: 'de', prev: 'Anterior', next: 'Próxima', results: 'usuários',
     until: 'até', noExpiry: 'sem validade', never: 'nunca',
     details: 'Detalhes', uid: 'ID', language: 'Idioma', copy: 'Copiar',
+    formulaTitle: 'Fórmula Fácil Admin na página inicial', formulaHint: 'Quando ligado, todos os visitantes veem o botão na página inicial e usam a versão admin sem login e sem limite.', formulaOn: 'Ligado', formulaOff: 'Desligado', resetQuota: 'Zerar limites de hoje', resetHint: 'Libera de novo a fatura, o PDF e os 15 minutos da Fórmula Fácil desta conta.',
     planSection: 'Plano', grant: 'Dar Premium', extend: 'Renovar Premium', revoke: 'Voltar para grátis', duration: 'Duração',
     durations: { 7: '7 dias', 30: '30 dias', 90: '90 dias', 365: '1 ano', 0: 'Sem validade' } as Record<number, string>,
     access: 'Acesso', reason: 'Motivo (opcional, o usuário vê)', block: 'Bloquear', unblock: 'Desbloquear', ban: 'Banir', unban: 'Remover banimento',
@@ -74,7 +75,7 @@ const C = {
     typeEmail: 'Digite o e-mail para confirmar', confirm: 'Confirmar', cancel: 'Cancelar', owner: 'Esta é a conta do administrador.',
     saved: 'Salvo.', failed: 'Não foi possível salvar. Confira se as regras novas do Firebase foram publicadas.',
     logEmpty: 'Nenhuma ação registrada ainda.', when: 'Quando', action: 'Ação', target: 'Usuário',
-    actions: { grant: 'Deu Premium', revoke: 'Voltou para grátis', block: 'Bloqueou', unblock: 'Desbloqueou', ban: 'Baniu', unban: 'Removeu banimento', remove: 'Excluiu dados' } as Record<string, string>,
+    actions: { grant: 'Deu Premium', revoke: 'Voltou para grátis', block: 'Bloqueou', unblock: 'Desbloqueou', ban: 'Baniu', unban: 'Removeu banimento', remove: 'Excluiu dados', resetQuota: 'Zerou limites', formulaOn: 'Ligou Fórmula Fácil Admin na página inicial', formulaOff: 'Desligou Fórmula Fácil Admin na página inicial' } as Record<string, string>,
     loadError: 'Não foi possível ler os usuários. Publique as regras novas do Firebase (passo a passo na conversa).',
     loading: 'Carregando dados…',
   },
@@ -96,6 +97,7 @@ const C = {
     none: 'No users found.', page: 'Page', of: 'of', prev: 'Previous', next: 'Next', results: 'users',
     until: 'until', noExpiry: 'no expiry', never: 'never',
     details: 'Details', uid: 'ID', language: 'Language', copy: 'Copy',
+    formulaTitle: 'Fórmula Fácil Admin on the home page', formulaHint: 'When on, every visitor sees the button on the home page and uses the admin version without login and without limits.', formulaOn: 'On', formulaOff: 'Off', resetQuota: 'Reset today\'s limits', resetHint: 'Gives this account its invoice, PDF and 15 Fórmula Fácil minutes again.',
     planSection: 'Plan', grant: 'Give Premium', extend: 'Renew Premium', revoke: 'Back to free', duration: 'Duration',
     durations: { 7: '7 days', 30: '30 days', 90: '90 days', 365: '1 year', 0: 'No expiry' } as Record<number, string>,
     access: 'Access', reason: 'Reason (optional, shown to the user)', block: 'Block', unblock: 'Unblock', ban: 'Ban', unban: 'Lift ban',
@@ -105,7 +107,7 @@ const C = {
     typeEmail: 'Type the email to confirm', confirm: 'Confirm', cancel: 'Cancel', owner: 'This is the administrator account.',
     saved: 'Saved.', failed: 'Could not save. Check that the new Firebase rules were published.',
     logEmpty: 'No actions recorded yet.', when: 'When', action: 'Action', target: 'User',
-    actions: { grant: 'Gave Premium', revoke: 'Back to free', block: 'Blocked', unblock: 'Unblocked', ban: 'Banned', unban: 'Lifted ban', remove: 'Deleted data' } as Record<string, string>,
+    actions: { grant: 'Gave Premium', revoke: 'Back to free', block: 'Blocked', unblock: 'Unblocked', ban: 'Banned', unban: 'Lifted ban', remove: 'Deleted data', resetQuota: 'Reset limits', formulaOn: 'Turned on Fórmula Fácil Admin on the home page', formulaOff: 'Turned off Fórmula Fácil Admin on the home page' } as Record<string, string>,
     loadError: 'Could not read users. Publish the new Firebase rules (steps in the conversation).',
     loading: 'Loading data…',
   },
@@ -127,6 +129,7 @@ const C = {
     none: 'No se encontraron usuarios.', page: 'Página', of: 'de', prev: 'Anterior', next: 'Siguiente', results: 'usuarios',
     until: 'hasta', noExpiry: 'sin vencimiento', never: 'nunca',
     details: 'Detalles', uid: 'ID', language: 'Idioma', copy: 'Copiar',
+    formulaTitle: 'Fórmula Fácil Admin en la página de inicio', formulaHint: 'Cuando está activado, todos los visitantes ven el botón en la página de inicio y usan la versión admin sin login y sin límite.', formulaOn: 'Activado', formulaOff: 'Desactivado', resetQuota: 'Reiniciar límites de hoy', resetHint: 'Vuelve a liberar la factura, el PDF y los 15 minutos de Fórmula Fácil de esta cuenta.',
     planSection: 'Plan', grant: 'Dar Premium', extend: 'Renovar Premium', revoke: 'Volver a gratis', duration: 'Duración',
     durations: { 7: '7 días', 30: '30 días', 90: '90 días', 365: '1 año', 0: 'Sin vencimiento' } as Record<number, string>,
     access: 'Acceso', reason: 'Motivo (opcional, lo ve el usuario)', block: 'Bloquear', unblock: 'Desbloquear', ban: 'Banear', unban: 'Quitar baneo',
@@ -136,7 +139,7 @@ const C = {
     typeEmail: 'Escribe el correo para confirmar', confirm: 'Confirmar', cancel: 'Cancelar', owner: 'Esta es la cuenta del administrador.',
     saved: 'Guardado.', failed: 'No se pudo guardar. Revisa que las reglas nuevas de Firebase estén publicadas.',
     logEmpty: 'Aún no hay acciones registradas.', when: 'Cuándo', action: 'Acción', target: 'Usuario',
-    actions: { grant: 'Dio Premium', revoke: 'Volvió a gratis', block: 'Bloqueó', unblock: 'Desbloqueó', ban: 'Baneó', unban: 'Quitó baneo', remove: 'Eliminó datos' } as Record<string, string>,
+    actions: { grant: 'Dio Premium', revoke: 'Volvió a gratis', block: 'Bloqueó', unblock: 'Desbloqueó', ban: 'Baneó', unban: 'Quitó baneo', remove: 'Eliminó datos', resetQuota: 'Reinició límites', formulaOn: 'Activó Fórmula Fácil Admin en el inicio', formulaOff: 'Desactivó Fórmula Fácil Admin en el inicio' } as Record<string, string>,
     loadError: 'No se pudieron leer los usuarios. Publica las reglas nuevas de Firebase (pasos en la conversación).',
     loading: 'Cargando datos…',
   },
@@ -345,8 +348,10 @@ function ConfirmButton({ label, icon, onConfirm, t, tone = 'default', disabled }
   );
 }
 
-export function AdminDashboard({ language, onBack, settings, t: appT }: {
+export function AdminDashboard({ language, onBack, settings, t: appT, formulaPublic }: {
   language: Lang;
+  /** Owner switch: shows the admin Fórmula Fácil on the home page for every visitor. */
+  formulaPublic?: { enabled: boolean; onChange: (enabled: boolean) => Promise<void> };
   onBack: () => void;
   settings: { appName: string; primaryColor: string; footerText: string };
   t: any;
@@ -616,14 +621,66 @@ export function AdminDashboard({ language, onBack, settings, t: appT }: {
         )}
 
         {section === 'settings' && (
-          <section className="max-w-xl rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark p-5">
-            <AppSettingsForm currentSettings={settings} t={appT} />
-          </section>
+          <div className="max-w-xl space-y-4">
+            {formulaPublic && <FormulaSwitch t={t} value={formulaPublic} />}
+            <section className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark p-5">
+              <AppSettingsForm currentSettings={settings} t={appT} />
+            </section>
+          </div>
         )}
       </div>
 
       {selectedRow && <UserDrawer row={selectedRow} t={t} locale={locale} onClose={() => setSelected(null)} fmtDate={fmtDate} fmtDateTime={fmtDateTime} />}
     </div>
+  );
+}
+
+function FormulaSwitch({ t, value }: { t: Dict; value: { enabled: boolean; onChange: (enabled: boolean) => Promise<void> } }) {
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const toggle = async () => {
+    if (saving) return;
+    const next = !value.enabled;
+    setSaving(true);
+    setFailed(false);
+    try {
+      await value.onChange(next);
+      await addDoc(collection(db, 'adminLog'), {
+        action: next ? 'formulaOn' : 'formulaOff', targetUid: '', targetEmail: '', details: '',
+        by: auth.currentUser?.email || '', at: Timestamp.now(),
+      }).catch(() => {});
+    } catch {
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <section className="rounded-2xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark p-5 flex items-start gap-4" data-testid="admin-formula-switch">
+      <div className="min-w-0 flex-1">
+        <h3 className="text-base font-black text-stone-900 dark:text-white">{t.formulaTitle}</h3>
+        <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">{t.formulaHint}</p>
+        {failed && <p className="mt-2 text-sm font-semibold text-red-600 dark:text-red-400">{t.failed}</p>}
+      </div>
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value.enabled}
+          aria-label={t.formulaTitle}
+          disabled={saving}
+          onClick={toggle}
+          className={cn(
+            'relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+            value.enabled ? 'bg-primary dark:bg-emerald-500' : 'bg-stone-300 dark:bg-white/20',
+            saving && 'opacity-60',
+          )}
+        >
+          <span className={cn('inline-block h-6 w-6 rounded-full bg-white shadow transition-transform', value.enabled ? 'translate-x-5' : 'translate-x-0.5')} />
+        </button>
+        <span className="text-[11px] font-black uppercase tracking-wide text-stone-500 dark:text-stone-300">{value.enabled ? t.formulaOn : t.formulaOff}</span>
+      </div>
+    </section>
   );
 }
 
@@ -679,6 +736,10 @@ function UserDrawer({ row, t, locale, onClose, fmtDate, fmtDateTime }: {
   const setStatus = (status: AccountStatus, action: string) => run(async () => {
     await updateDoc(ref, { status, statusReason: status === 'active' ? '' : reason.trim().slice(0, 200), statusUpdatedAt: Timestamp.now() });
     await logAction(action, row, status === 'active' ? '' : reason.trim());
+  });
+  const resetQuota = () => run(async () => {
+    await deleteDoc(doc(db, 'quota', row.email.toLowerCase()));
+    await logAction('resetQuota', row, '');
   });
   const remove = () => run(async () => {
     for (const name of ['jobs', 'sessions', 'invoices']) {
@@ -768,6 +829,13 @@ function UserDrawer({ row, t, locale, onClose, fmtDate, fmtDateTime }: {
                   {row.status === 'banned' && <ConfirmButton label={t.unban} icon={<Unlock size={14} />} onConfirm={() => setStatus('active', 'unban')} t={t} />}
                 </div>
                 {row.status !== 'active' && row.statusReason && <p className="text-xs text-stone-500">{row.statusReason}</p>}
+              </>
+            ))}
+
+            {block(t.resetQuota, (
+              <>
+                <p className="text-xs text-stone-500 dark:text-stone-400">{t.resetHint}</p>
+                <ConfirmButton label={t.resetQuota} icon={<Unlock size={14} />} onConfirm={resetQuota} t={t} />
               </>
             ))}
 

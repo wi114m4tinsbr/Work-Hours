@@ -12,12 +12,13 @@ import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
-import { syncFormulaSession, clearFormulaSession, fetchFormulaPublic, setFormulaPublic, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
+import { syncFormulaSession, syncUserSession, clearFormulaSession, fetchFormulaPublic, setFormulaPublic, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
 import { FormulaFacilView } from './components/FormulaFacilView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { isPremium, accountStatus, type AccountStatus } from './lib/subscription';
 import { increment } from 'firebase/firestore';
-import { dailyQuota, formulaQuota, type Access, type Usage } from './lib/quota';
+import { serverTimestamp } from 'firebase/firestore';
+import { dailyQuota, formulaQuota, SERVER_TIME, type Access, type QuotaDoc } from './lib/quota';
 
 const ADMIN_PANEL_PATH = '/admin';
 
@@ -51,6 +52,7 @@ export default function App() {
     setActiveTabState(tab);
   };
   const [formulaSessionReady, setFormulaSessionReady] = useState(false);
+  const [userSessionReady, setUserSessionReady] = useState(false);
   const [formulaPublic, setFormulaPublicState] = useState(false);
   const [lang, setLang] = useState<Language>('pt');
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
@@ -58,7 +60,7 @@ export default function App() {
   const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
   const [userStatus, setUserStatus] = useState<AccountStatus>('active');
   const [userStatusReason, setUserStatusReason] = useState('');
-  const [userUsage, setUserUsage] = useState<Usage>(undefined);
+  const [quotaDoc, setQuotaDoc] = useState<QuotaDoc>(undefined);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -206,7 +208,6 @@ export default function App() {
         localStorage.setItem('shift-hours-dark-mode', String(!!userData.isDarkMode));
         setSubscriptionType(isPremium(userData.subscription) ? 'monthly' : 'free');
         setUserStatus(accountStatus(userData));
-        setUserUsage(userData.usage);
         setUserStatusReason(typeof userData.statusReason === 'string' ? userData.statusReason : '');
         const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
         setProfileFirstName(userData.firstName || storedName[0] || '');
@@ -220,6 +221,16 @@ export default function App() {
 
     return () => unsubscribeUser();
   }, [user, settings.primaryColor]);
+
+  // Free-plan allowances live in quota/{email}; the rules stamp every use with the server clock.
+  useEffect(() => {
+    const email = user?.email?.toLowerCase();
+    setQuotaDoc(undefined);
+    if (!email) return;
+    return onSnapshot(doc(db, 'quota', email), (snap) => {
+      setQuotaDoc(snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : undefined);
+    }, () => setQuotaDoc(undefined));
+  }, [user]);
 
   useEffect(() => {
     if (!isToolsMenuOpen) return;
@@ -242,7 +253,9 @@ export default function App() {
   // Mirrors the Firebase login into the server cookie that guards the private Fórmula Fácil page.
   useEffect(() => {
     return onIdTokenChanged(auth, async (tokenUser) => {
-      setFormulaSessionReady(await syncFormulaSession(tokenUser));
+      const [owner, signedIn] = await Promise.all([syncFormulaSession(tokenUser), syncUserSession(tokenUser)]);
+      setFormulaSessionReady(owner);
+      setUserSessionReady(signedIn);
     });
   }, []);
 
@@ -334,7 +347,11 @@ export default function App() {
 
   const canSeeFormulaAdmin = isOwner || formulaPublic;
   const access: Access = isOwner ? 'admin' : subscriptionType === 'monthly' ? 'premium' : 'free';
-  const writeUsage = user ? (fields: Record<string, unknown>) => updateDoc(doc(db, 'users', user.uid), fields) : undefined;
+  const writeUsage = user?.email ? (fields: Record<string, unknown>) => setDoc(
+    doc(db, 'quota', user.email!.toLowerCase()),
+    Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value === SERVER_TIME ? serverTimestamp() : value])),
+    { merge: true },
+  ) : undefined;
 
   if (!user) {
     if (activeTab === 'formula' || (activeTab === 'formula-admin' && formulaPublic)) {
@@ -345,7 +362,7 @@ export default function App() {
             language={lang}
             inApp={false}
             onBack={() => setActiveTab('hours')}
-            onLogin={activeTab === 'formula' ? handleLogin : undefined}
+            onLogin={handleLogin}
           />
         </div>
       );
@@ -462,7 +479,7 @@ export default function App() {
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
                       <span className="text-[9px] font-black uppercase tracking-wide text-primary">Excel + IA</span>
                     </a>
-                    {isOwner && (
+                    {canSeeFormulaAdmin && (
                       <a href={FORMULA_ADMIN_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('formula-admin'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
                         <span className="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center"><ShieldCheck size={18}/></span>
                         <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
@@ -603,7 +620,10 @@ export default function App() {
 
       {activeTab === 'admin' && isOwner ? (
         <main className="flex-1 w-full">
-          <AdminDashboard language={lang} onBack={goHome} settings={settings} t={t} />
+          <AdminDashboard
+            language={lang} onBack={goHome} settings={settings} t={t}
+            formulaPublic={{ enabled: formulaPublic, onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user!, enabled)) }}
+          />
         </main>
       ) : activeTab === 'formula' || (activeTab === 'formula-admin' && canSeeFormulaAdmin) ? (
         <main className="flex-1 w-full">
@@ -612,8 +632,8 @@ export default function App() {
             language={lang}
             inApp
             onBack={goHome}
-            quota={activeTab === 'formula' ? formulaQuota(access, userUsage, writeUsage) : undefined}
-            ready={activeTab === 'formula' || formulaSessionReady || (!isOwner && formulaPublic)}
+            quota={formulaQuota(access, quotaDoc, writeUsage)}
+            ready={isOwner && activeTab === 'formula-admin' ? formulaSessionReady : userSessionReady}
             publicSwitch={activeTab === 'formula-admin' && isOwner && user ? {
               enabled: formulaPublic,
               onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user, enabled)),
@@ -622,11 +642,11 @@ export default function App() {
         </main>
       ) : activeTab === 'pdf' ? (
         <main className="flex-1 w-full overflow-visible custom-scrollbar">
-          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} quota={dailyQuota('pdf', access, userUsage, writeUsage)} />
+          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} quota={dailyQuota('pdf', access, quotaDoc, writeUsage)} />
         </main>
       ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
-          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, userUsage, writeUsage)} />
+          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, quotaDoc, writeUsage)} />
         </main>
       ) : (
       <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">

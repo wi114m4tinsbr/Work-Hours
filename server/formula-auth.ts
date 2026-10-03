@@ -14,15 +14,22 @@ export interface OwnerSession {
   expiresAt: number;
 }
 
+export interface UserSession {
+  uid: string;
+  email: string;
+  expiresAt: number;
+  provider: string | null;
+}
+
 /**
- * Validates a Firebase ID token and accepts it only for the owner signed in with Google.
- * Returns null for anything else (bad signature, expired, other project, other account).
+ * Validates a Firebase ID token for any signed-in account with a verified email.
+ * Returns null for anything else (bad signature, expired, other project, no email).
  */
-export async function verifyOwnerToken(
+export async function verifyUserToken(
   token: string | undefined,
   keys: JWTVerifyGetKey = remoteKeys,
   projectId: string = FIREBASE_PROJECT_ID,
-): Promise<OwnerSession | null> {
+): Promise<UserSession | null> {
   if (!token || token.length > 8192) return null;
   try {
     const { payload } = await jwtVerify(token, keys, {
@@ -32,16 +39,28 @@ export async function verifyOwnerToken(
       requiredClaims: ['exp', 'iat', 'sub', 'auth_time'],
     });
     const now = Math.floor(Date.now() / 1000);
-    const firebase = payload.firebase as { sign_in_provider?: unknown } | undefined;
     if (typeof payload.sub !== 'string' || !payload.sub) return null;
     if (typeof payload.auth_time !== 'number' || payload.auth_time > now + 60) return null;
-    if (payload.email !== FORMULA_OWNER_EMAIL) return null;
-    if (payload.email_verified !== true) return null;
-    if (firebase?.sign_in_provider !== 'google.com') return null;
-    return { email: payload.email, expiresAt: payload.exp as number };
+    if (typeof payload.email !== 'string' || payload.email_verified !== true) return null;
+    const provider = (payload.firebase as { sign_in_provider?: unknown } | undefined)?.sign_in_provider;
+    return { uid: payload.sub, email: payload.email, expiresAt: payload.exp as number, provider: typeof provider === 'string' ? provider : null };
   } catch {
     return null;
   }
+}
+
+/**
+ * Validates a Firebase ID token and accepts it only for the owner signed in with Google.
+ * Returns null for anything else (bad signature, expired, other project, other account).
+ */
+export async function verifyOwnerToken(
+  token: string | undefined,
+  keys: JWTVerifyGetKey = remoteKeys,
+  projectId: string = FIREBASE_PROJECT_ID,
+): Promise<OwnerSession | null> {
+  const session = await verifyUserToken(token, keys, projectId);
+  if (!session || session.email !== FORMULA_OWNER_EMAIL || session.provider !== 'google.com') return null;
+  return { email: session.email, expiresAt: session.expiresAt };
 }
 
 export function readCookie(header: string | null, name: string): string | undefined {
@@ -54,10 +73,13 @@ export function readCookie(header: string | null, name: string): string | undefi
   return undefined;
 }
 
-export function sessionCookie(token: string, maxAgeSeconds: number): string {
-  return `${FORMULA_COOKIE}=${token}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}; HttpOnly; Secure; SameSite=Strict`;
+// Any signed-in account: lets the server check the free-plan allowance before serving a tool.
+export const USER_COOKIE = '__Host-shift-user';
+
+export function sessionCookie(token: string, maxAgeSeconds: number, name = FORMULA_COOKIE): string {
+  return `${name}=${token}; Path=/; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}; HttpOnly; Secure; SameSite=Strict`;
 }
 
-export function clearedSessionCookie(): string {
-  return `${FORMULA_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`;
+export function clearedSessionCookie(name = FORMULA_COOKIE): string {
+  return `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`;
 }
