@@ -26,7 +26,7 @@ async function telegram(method: string, data: object = {}) {
     return result.result;
   } catch { throw new Error('telegram_unavailable'); }
 }
-const send = (chatId: number, text: string) => telegram('sendMessage', { chat_id: chatId, text, link_preview_options: { is_disabled: true } });
+const send = (chatId: number, text: string, formatted = false) => telegram('sendMessage', { chat_id: chatId, text, ...(formatted ? { parse_mode: 'HTML' } : {}), link_preview_options: { is_disabled: true } });
 const privateRef = (db: Firestore) => db.doc(SETTINGS_PATH);
 async function limited(db: Firestore, key: string, delay: number) {
   const ref = db.doc(`supportLimits/${digest(key)}`);
@@ -78,7 +78,7 @@ export async function deliverEvent(db: Firestore, session: UserSession, body: an
   if (claimed === 'busy') return json({ error: 'retry' }, 503);
   if (!claimed) return json({ ok: true });
   try {
-    const sent = await send(claimed.chatId, notice(kind, ticket, message, preferences(claimed).language));
+    const sent = await send(claimed.chatId, notice(kind, ticket, message, preferences(claimed).language), true);
     const batch = db.batch();
     batch.set(delivery, { state: 'sent', at: Date.now() }, { merge: true });
     batch.set(db.doc(`supportTelegramMessages/${claimed.chatId}_${sent.message_id}`), { ticketId: body.ticketId, linkedAt: claimed.linkedAt });

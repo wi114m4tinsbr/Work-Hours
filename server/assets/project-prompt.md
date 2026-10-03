@@ -71,3 +71,5 @@ Integração inicial implementada em api/support-telegram.ts e server/support-*.
 Validação posterior: consumo do nonce de vínculo usa transaction.update (FieldValue.delete não funciona em set sem merge). Suíte Telegram cobre essa restrição. Não confundir publicação com ativação real.
 
 API Vercel: imports relativos no servidor devem terminar em .js. Um smoke test inicial da rota publicada retornou FUNCTION_INVOCATION_FAILED por imports sem extensão; corrigidos e adicionado test:server que compila NodeNext e importa o resultado com Node nativo. Validar 404 sem login no domínio após deploy.
+
+Telegram validado pelo dono em produção em 03/10: avisos e respostas funcionando após usar shifthours.com também na conta do usuário (preview não envia). Formatação refinada: HTML Telegram escapado, título e rótulos em negrito, texto em blockquote, instrução de Responder e link nomeado. Configuração existente permanece.

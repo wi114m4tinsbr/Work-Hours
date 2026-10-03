@@ -1,6 +1,6 @@
 # Notificações de suporte — Telegram
 
-Implementação inicial de 03/10/2026. Ativação depende da configuração e do vínculo confirmado pelo dono. Não anunciar como ativo antes de enviar e receber um teste real.
+Implementação de 03/10/2026. Dono confirmou avisos e respostas funcionando no site oficial. Preview compartilha conversas, mas não dispara avisos. Alertas formatados com HTML escapado, rótulos e citação do texto; mensagens longas indicam que o restante pode ser lido no site.
 
 ## Comportamento
 

@@ -127,3 +127,15 @@ test('notice length stays within Telegram limit and all site languages work',()=
     assert.equal(sends,1);assert.equal(data.get(SETTINGS_PATH).deliveryProblem,true);
   }finally{globalThis.fetch=fetchBefore;}
  });
+
+test('notice labels and escapes user text without interpreting tags, including long Unicode messages', () => {
+  const result = notice('messages', { ...ticket, name: 'Carla & <b>user</b>', subject: '<a href="bad">test</a>' }, { text: '<b>hello</b> & goodbye\nsecond line' }, 'pt');
+  assert.ok(result.includes('<b>Enviada por:</b> Carla &amp; &lt;b&gt;user&lt;/b&gt;'));
+  assert.ok(result.includes('<blockquote>&lt;b&gt;hello&lt;/b&gt; &amp; goodbye\nsecond line</blockquote>'));
+  assert.ok(!result.includes('<a href="bad">'));
+  const long = notice('messages', ticket, { text: '&'.repeat(2599) + '😀'.repeat(2000) }, 'pt');
+  const visible = long.replace(/<[^>]*>/g, '').replace(/&amp;/g,'&');
+  assert.ok(visible.length < 4096);
+  assert.ok(!/[\uD800-\uDBFF]…/.test(long));
+  assert.ok(long.includes('leia o conteúdo completo'));
+});
