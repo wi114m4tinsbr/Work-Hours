@@ -10,19 +10,22 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test:pdf": "tsx --test tests/pdf-content.test.ts",
-    "test:pdf:ui": "playwright test"
+    "test:pdf:ui": "playwright test",
+    "test:formula": "tsx --test tests/formula-auth.test.ts"
   },
   "dependencies": {
     "@embedpdf/pdfium": "2.15.1",
     "@google/genai": "^1.29.0",
     "@pdf-lib/fontkit": "^1.1.1",
     "@tailwindcss/vite": "^4.1.14",
+    "@vercel/blob": "^2.8.0",
     "@vitejs/plugin-react": "^5.0.4",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.10.0",
+    "jose": "^6.2.12",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.546.0",

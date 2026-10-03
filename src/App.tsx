@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
+import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, onIdTokenChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
 import { JobView } from './components/JobView';
@@ -9,10 +9,11 @@ import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
 import { PDFStudio } from './components/PDFStudio';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound, Sheet } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
+import { syncFormulaSession, clearFormulaSession, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -210,6 +211,22 @@ export default function App() {
     };
   }, [isToolsMenuOpen]);
 
+  // Mirrors the Firebase login into the server cookie that guards the private Fórmula Fácil page.
+  useEffect(() => {
+    return onIdTokenChanged(auth, async (tokenUser) => {
+      const ready = await syncFormulaSession(tokenUser);
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('abrir') !== 'formula-admin' || !tokenUser) return;
+      if (ready) {
+        window.location.replace(FORMULA_ADMIN_PATH);
+      } else {
+        params.delete('abrir');
+        const query = params.toString();
+        window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));
+      }
+    });
+  }, []);
+
   const handleLanguageChange = async (newLang: Language) => {
     if (!user) return;
     setLang(newLang);
@@ -253,6 +270,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      await clearFormulaSession();
       await signOut(auth);
     } catch (error) {
       console.error("Logout error:", error);
@@ -373,10 +391,18 @@ export default function App() {
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">PDF Studio</span>
                       <span className="text-[9px] font-black uppercase tracking-wide text-primary">{lang === 'en' ? 'New' : lang === 'es' ? 'Nuevo' : 'Novo'}</span>
                     </button>
-                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-45">
-                      <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><FilePenLine size={18}/></span>
-                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'More tools' : lang === 'es' ? 'Más herramientas' : 'Mais ferramentas'}</span>
-                    </div>
+                    <a href={FORMULA_PUBLIC_PATH} onClick={() => setIsToolsMenuOpen(false)} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><Sheet size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-primary">Excel + IA</span>
+                    </a>
+                    {isOwner && (
+                      <a href={FORMULA_ADMIN_PATH} onClick={() => setIsToolsMenuOpen(false)} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                        <span className="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center"><ShieldCheck size={18}/></span>
+                        <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
+                        <span className="text-[9px] font-black uppercase tracking-wide text-primary">Admin</span>
+                      </a>
+                    )}
                   </div>
                 </motion.div>
               )}

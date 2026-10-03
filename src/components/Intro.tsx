@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogIn, Clock, CheckCircle2, BarChart3, Shield, Zap, Moon, Sun, Languages, Loader2 } from 'lucide-react';
+import { LogIn, Clock, CheckCircle2, BarChart3, Shield, Zap, Moon, Sun, Languages, Loader2, Sheet } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Language } from '../lib/i18n';
 import { cn } from '../lib/utils';
@@ -143,7 +143,7 @@ export function Intro({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6"
+            className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center lg:justify-start gap-6"
           >
             <button
               type="button"
@@ -166,6 +166,17 @@ export function Intro({
               )}
               {loginLoading ? "Entrando..." : t.loginGoogle}
             </button>
+
+            <a
+              href="/formula-facil"
+              className={cn(
+                "w-full sm:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-[1.5rem] border font-black text-sm transition-all hover:scale-[1.03]",
+                isDarkMode ? "border-white/15 text-white hover:bg-white/10" : "border-stone-200 text-stone-800 bg-white hover:bg-stone-50"
+              )}
+            >
+              <Sheet className="w-5 h-5 text-emerald-500" />
+              {lang === 'en' ? 'Fórmula Fácil: Excel with AI' : lang === 'es' ? 'Fórmula Fácil: Excel con IA' : 'Fórmula Fácil: Excel com IA'}
+            </a>
 
             {loginError && (
               <motion.p 
