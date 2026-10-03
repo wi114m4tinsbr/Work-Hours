@@ -1,0 +1,33 @@
+name: PDF Studio checks
+on:
+  push:
+    branches: [feature/free-plan-job-limit]
+  pull_request:
+    paths: ['src/components/PDFStudio.tsx', 'src/components/PDFObjectLayer.tsx', 'src/App.tsx', 'src/lib/pdf/**', 'tests/**', 'package*.json', '.github/workflows/pdf-studio.yml']
+permissions:
+  contents: read
+jobs:
+  pdf-studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:pdf
+      - run: npm run test:formula
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:pdf:ui
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pdf-studio-browser-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

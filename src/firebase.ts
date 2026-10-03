@@ -1,12 +1,18 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, deleteDoc, updateDoc, Timestamp, getDocFromServer } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, onIdTokenChanged, User } from 'firebase/auth';
+import { connectFirestoreEmulator, getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where, onSnapshot, addDoc, deleteDoc, updateDoc, Timestamp, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const googleProvider = new GoogleAuthProvider();
+
+// Local testing only: `VITE_FIREBASE_EMULATOR=1 npm run dev` talks to the Firebase emulators.
+if (import.meta.env.VITE_FIREBASE_EMULATOR === '1') {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+}
 
 // Test connection
 async function testConnection() {
@@ -76,6 +82,7 @@ export {
   signInWithRedirect,
   signOut, 
   onAuthStateChanged, 
+  onIdTokenChanged,
   collection, 
   doc, 
   setDoc, 

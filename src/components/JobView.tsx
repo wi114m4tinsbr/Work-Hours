@@ -1,7 +1,8 @@
+import { BackButton } from "./BackButton";
 import React, { useState, useEffect } from 'react';
 import { db, collection, query, where, onSnapshot, doc, getDoc, deleteDoc, handleFirestoreError, OperationType } from '../firebase';
 import { Job, WorkSession } from '../types';
-import { ArrowLeft, Plus, Calendar, Clock, Trash2, Calculator, TrendingUp, Coffee, Share2, Edit2, FileDown, Eye, Briefcase } from 'lucide-react';
+import { Plus, Calendar, Clock, Trash2, Calculator, TrendingUp, Coffee, Share2, Edit2, FileDown, Eye, Briefcase } from 'lucide-react';
 import { formatCurrency, calculateDuration, generateWhatsAppReport, formatDuration } from '../lib/utils';
 import { SessionModal } from './SessionModal';
 import { JobModal, JOB_ICONS, JobIconName } from './JobModal';
@@ -175,12 +176,7 @@ export function JobView({ jobId, userId, onBack, t, lang }: JobViewProps) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 sm:gap-4">
-          <button 
-            onClick={onBack}
-            className="p-2 hover:bg-stone-200 dark:hover:bg-white/5 rounded-xl transition-colors shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+          <BackButton label={t.back} onClick={onBack} />
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-10 h-10 bg-primary-light dark:bg-primary/10 rounded-xl flex items-center justify-center text-primary overflow-hidden shrink-0">
               <JobIcon job={job} />

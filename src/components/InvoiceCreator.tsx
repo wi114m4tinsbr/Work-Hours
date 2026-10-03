@@ -1,3 +1,8 @@
+import { ToolIdentity } from "./ToolIdentity";
+import { isPremium } from '../lib/subscription';
+import { QuotaError, type DailyQuota } from '../lib/quota';
+import { availableText, limitNotice as planLimitNotice } from '../lib/plans';
+import { UsageBadge, QuotaNotice } from './UsageBadge';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -238,9 +243,11 @@ interface InvoiceCreatorProps {
   onBack: () => void;
   isAdmin: boolean;
   embedded?: boolean;
+  /** Daily allowance from the app; missing means unlimited (e.g. isolated tests). */
+  quota?: DailyQuota;
 }
 
-export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack, isAdmin, embedded = false }) => {
+export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack, isAdmin, embedded = false, quota }) => {
   const t = translations[language];
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-6)}`);
   const [invoiceAlias, setInvoiceAlias] = useState('');
@@ -310,7 +317,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
           count: data.usage?.dailyInvoiceCount || 0,
           lastDate: data.usage?.lastInvoiceDate || ''
         });
-        setSubscription(data.subscription?.type || 'free');
+        setSubscription(isPremium(data.subscription) ? 'monthly' : 'free');
       }
     });
 
@@ -347,17 +354,15 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
-  const checkLimit = () => {
-    const isUserAdmin = isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com';
-    if (isUserAdmin) return true;
-    if (subscription === 'monthly') return true;
-    
-    const today = new Date().toISOString().split('T')[0];
-    if (dailyUsage.lastDate === today && dailyUsage.count >= 1) {
-      return false;
-    }
-    return true;
-  };
+  // Free accounts get one downloaded or shared invoice per day; saving drafts is never counted.
+  const limitReached = !!quota?.reached;
+  const [limitNotice, setLimitNotice] = useState(false);
+  const usageText = quota ? availableText('invoice', quota.remaining, quota.limit, language) : '';
+  const notice = quota ? planLimitNotice('invoice', quota.limit, quota.planName, language) : { title: '', message: '' };
+  const usageBadge = (className?: string) => quota ? (
+    <UsageBadge quota={quota} language={language} available={usageText} progress={quota.allowed ? quota.used / quota.allowed : 1} className={className} />
+  ) : null;
+  const checkLimit = () => !limitReached;
 
   const generatePDF = async (action: 'download' | 'share' = 'download') => {
     const doc = new jsPDF();
@@ -504,6 +509,9 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     }
     
     const safeInvoiceNumber = invoiceNumber.replace(/[/\\?%*:|"<>]/g, '-');
+
+    // Free plan: the use is recorded (and checked by the server rules) before the file leaves.
+    if (quota) await quota.consume();
     
     if (action === 'download') {
       doc.save(`${safeInvoiceNumber}.pdf`);
@@ -702,7 +710,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     if (!auth.currentUser) return;
 
     if (!checkLimit()) {
-      setShowPaymentModal(true);
+      setLimitNotice(true);
       return;
     }
 
@@ -710,22 +718,13 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     else setIsDownloading(true);
 
     try {
-      // IMPORTANT: Call generatePDF (which calls navigator.share) 
-      // BEFORE any async calls to preserve the user activation gesture.
+      // generatePDF records the use right before handing over the file (free accounts only).
       await generatePDF(action);
-
-      // Update Usage in background
-      const today = new Date().toISOString().split('T')[0];
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      const newCount = (dailyUsage.count || 0) + 1;
-      
-      updateDoc(userRef, {
-        usage: {
-          lastInvoiceDate: today,
-          dailyInvoiceCount: newCount
-        }
-      }).catch(err => console.error('Error updating usage:', err));
     } catch (error) {
+      if (error instanceof QuotaError) {
+        setLimitNotice(true);
+        return;
+      }
       console.error('Error in action:', error);
       if ((error as Error).name !== 'AbortError') {
         setMessage({ type: 'error', text: 'Erro ao processar ação.' });
@@ -794,17 +793,9 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className={cn("bg-white dark:bg-bg-card-dark border-b border-gray-200 dark:border-white/10 px-4", embedded ? "relative z-20" : "sticky top-0 z-30")}>
-        <div className="max-w-5xl mx-auto py-3 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
-          <div className="flex items-center gap-3 min-w-0 lg:flex-1">
-            <button onClick={onBack} className="shrink-0 flex items-center gap-1.5 text-gray-500 dark:text-gray-300 hover:text-primary font-semibold">
-              <ChevronLeft size={18} />
-              <span>{t.back}</span>
-            </button>
-            <span className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-white/10" />
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.16em] font-black text-gray-400">{language === 'en' ? 'Tool' : language === 'es' ? 'Herramienta' : 'Ferramenta'}</p>
-              <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white truncate">{t.invoiceCreator}</h1>
-            </div>
+        <div className="max-w-7xl mx-auto py-3 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
+          <div className="min-w-0 lg:flex-1">
+            <ToolIdentity title={t.invoiceCreator} language={language} backLabel={t.back} onBack={onBack} />
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 custom-scrollbar">
@@ -1005,17 +996,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                       className="w-full h-9 bg-gray-50 border border-gray-200 rounded-lg px-3 text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     />
                   </div>
-                  <div className={cn(
-                    "hidden md:flex h-9 shrink-0 self-end items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold",
-                    (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                      ? "bg-primary-light text-primary border-primary/20"
-                      : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200"
-                  )}>
-                    <Settings size={14} />
-                    {(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                      ? "Admin · ilimitado"
-                      : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
-                  </div>
+                  {usageBadge('hidden md:inline-flex self-end')}
                   <button
                     type="button"
                     onClick={() => setIsStylePanelCollapsed(!isStylePanelCollapsed)}
@@ -1104,9 +1085,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                   </div>
 
                   <div className="col-span-2 md:hidden">
-                    <div className={cn("h-10 flex items-center justify-center gap-2 px-3 rounded-lg border text-xs font-bold", (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') ? "bg-primary-light text-primary border-primary/20" : dailyUsage.count >= 1 ? "bg-red-50 text-red-700 border-red-100" : "bg-gray-50 text-gray-600 border-gray-200")}>
-                      <Settings size={14} />{(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') ? "Admin · ilimitado" : subscription === 'monthly' ? "Plano mensal" : `Grátis · ${dailyUsage.count >= 1 ? 'limite atingido' : '1 fatura disponível'}`}
-                    </div>
+                    {usageBadge('w-full justify-center')}
                   </div>
                 </div>
                 )}
@@ -2093,56 +2072,7 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
                         <h3>{t.adminSettings}</h3>
                       </div>
                       
-                      <div className={cn(
-                        "rounded-xl p-4 space-y-3 transition-colors",
-                        (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') 
-                          ? "bg-blue-50" 
-                          : dailyUsage.count >= 1 ? "bg-red-50" : "bg-blue-50"
-                      )}>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className={cn(
-                            "font-medium",
-                            (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                              ? "text-blue-700"
-                              : dailyUsage.count >= 1 ? "text-red-700" : "text-blue-700"
-                          )}>Uso Diário</span>
-                          <span className={cn(
-                            "font-bold",
-                            (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                              ? "text-blue-900"
-                              : dailyUsage.count >= 1 ? "text-red-900" : "text-blue-900"
-                          )}>
-                            {(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') 
-                              ? "∞" 
-                              : dailyUsage.count >= 1 ? "0 / 0" : "0 / 1"}
-                          </span>
-                        </div>
-                        <div className={cn(
-                          "w-full rounded-full h-2",
-                          (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                            ? "bg-blue-200"
-                            : dailyUsage.count >= 1 ? "bg-red-200" : "bg-blue-200"
-                        )}>
-                          <div 
-                            className={cn(
-                              "h-2 rounded-full transition-all duration-500",
-                              (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                                ? "bg-blue-600"
-                                : dailyUsage.count >= 1 ? "bg-red-600" : "bg-blue-600"
-                            )}
-                            style={{ 
-                              width: (isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com')
-                                ? "100%"
-                                : dailyUsage.count >= 1 ? "100%" : "0%"
-                            }}
-                          />
-                        </div>
-                        {!(isAdmin || auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com') && subscription === 'free' && dailyUsage.count >= 1 && (
-                          <p className="text-[10px] text-red-600 font-medium leading-tight">
-                            Você atingiu o limite gratuito. Faça upgrade para continuar criando faturas ilimitadas.
-                          </p>
-                        )}
-                      </div>
+                      {usageBadge('w-full')}
                     </div>
                   </div>
                 </div>
@@ -2151,6 +2081,13 @@ export const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ language, onBack
           )}
         </AnimatePresence>
       </main>
+      <QuotaNotice
+        open={limitNotice}
+        language={language}
+        onClose={() => setLimitNotice(false)}
+        title={notice.title}
+        message={notice.message}
+      />
       {showPaymentModal && (
         <PaymentModal onClose={() => setShowPaymentModal(false)} t={t} />
       )}

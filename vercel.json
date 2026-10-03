@@ -1,8 +1,36 @@
 {
   "rewrites": [
     {
+      "source": "/admin/formula-facil/:path+",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/formula-facil-admin(.*)",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/formula-facil.html",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/server/(.*)",
+      "destination": "/api/not-found"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/not-found"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "functions": {
+    "api/formula-public.ts": {
+      "includeFiles": "server/assets/formula-facil.html"
+    },
+    "api/admin-report.ts": {
+      "includeFiles": "server/assets/project-*"
+    }
+  }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { describeLimit, effectivePlanId, normalizePlans } from '../lib/plans';
 import { db, auth, collection, addDoc, Timestamp, handleFirestoreError, OperationType, updateDoc, doc, getDoc, getDocs, query, where, setDoc } from '../firebase';
 import { X, Briefcase, Coffee, Car, Home, ShoppingBag, Utensils, Code, Camera, Music, Heart, Image as ImageIcon, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -165,17 +166,25 @@ export function JobModal({ isOpen, onClose, userId, t, jobToEdit }: JobModalProp
       if (jobToEdit) {
         await updateDoc(doc(db, 'jobs', jobToEdit.id), jobData);
       } else {
-        const userSnap = await getDoc(doc(db, 'users', userId));
-        const subscriptionType = userSnap.exists() ? userSnap.data().subscription?.type || 'free' : 'free';
         const isAdmin = auth.currentUser?.email?.toLowerCase().trim() === 'martinswilliam2004@gmail.com';
 
-        if (!isAdmin && subscriptionType !== 'monthly') {
-          const jobsQuery = query(collection(db, 'jobs'), where('userId', '==', userId));
-          const jobsSnap = await getDocs(jobsQuery);
-
-          if (jobsSnap.size >= 1) {
-            window.alert('O plano gratuito permite apenas 1 empresa/trabalho. Para adicionar outra empresa, será necessário fazer upgrade do plano.');
-            return;
+        if (!isAdmin) {
+          // Limit set per plan in the admin panel (Planos e ferramentas).
+          const [userSnap, plansSnap] = await Promise.all([getDoc(doc(db, 'users', userId)), getDoc(doc(db, 'settings', 'plans'))]);
+          const config = normalizePlans(plansSnap.exists() ? plansSnap.data() : null);
+          const plan = config.plans[effectivePlanId(userSnap.exists() ? userSnap.data().subscription : undefined, config)];
+          const limit = plan.limits.jobs;
+          if (limit.mode !== 'unlimited') {
+            const jobsSnap = await getDocs(query(collection(db, 'jobs'), where('userId', '==', userId)));
+            const allowed = limit.mode === 'off' ? 0 : limit.amount;
+            if (jobsSnap.size >= allowed) {
+              const lang = (['pt', 'en', 'es'].includes(t?.lang) ? t.lang : 'pt') as 'pt' | 'en' | 'es';
+              const planName = plan.name[lang];
+              window.alert(allowed === 0
+                ? `O plano ${planName} não inclui cadastro de trabalhos/empresas. Clique em Upgrade para ver os planos.`
+                : `O plano ${planName} permite ${describeLimit('jobs', limit, 'pt')}. Para adicionar mais, clique em Upgrade para ver os planos.`);
+              return;
+            }
           }
         }
 

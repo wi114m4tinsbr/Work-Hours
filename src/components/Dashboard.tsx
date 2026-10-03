@@ -6,7 +6,7 @@ import { formatCurrency } from '../lib/utils';
 import { JobModal, JOB_ICONS, JobIconName } from './JobModal';
 import { motion } from 'motion/react';
 
-const JobIcon = ({ job }: { job: Job }) => {
+export const JobIcon = ({ job }: { job: Job }) => {
   if (job.iconType === 'image' && job.iconValue) {
     return <img src={job.iconValue} alt={job.name} className="w-full h-full object-cover rounded-2xl" style={{ objectPosition: `${job.imagePosition?.x ?? 50}% ${job.imagePosition?.y ?? 50}%`, transform: `scale(${job.imageZoom ?? 1})` }} />;
   }

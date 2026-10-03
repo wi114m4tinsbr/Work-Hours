@@ -15,6 +15,11 @@ rules_version = '2';
 //   - isDarkMode: bool (optional)
 //   - primaryColor: string (optional)
 //   - createdAt: timestamp (required)
+//   - lastLoginAt: timestamp, loginCount: number (written by the user on login)
+//   - subscription: { type: 'free' | 'monthly', plan?: plan id in settings/plans, expiryDate: timestamp | null, grantedBy?, grantedAt? } (admin only after creation)
+//   - status: 'active' | 'blocked' | 'banned', statusReason, statusUpdatedAt (admin only)
+//
+// Collection: adminLog (admin only) - every action taken in the admin panel
 //
 // Collection: jobs
 // Document ID: {jobId}
@@ -70,6 +75,36 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
              (request.auth.token.email.lower() == "martinswilliam2004@gmail.com");
+    }
+
+    // ---- Staff: people the owner gave specific powers to, by Gmail (collection staff/{email}) ----
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function staffPath() {
+      return /databases/$(database)/documents/staff/$(myEmail());
+    }
+
+    function isStaff() {
+      return isAuthenticated() && request.auth.token.email_verified == true && exists(staffPath());
+    }
+
+    // Powers: tickets (answer questions), users_view, users_manage, plans, activity.
+    function can(power) {
+      return isAdmin() || (isStaff() && get(staffPath()).data.get('permissions', {}).get(power, false) == true);
+    }
+
+    // Blocked or banned users keep their data but cannot change anything.
+    function isActiveUser() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return isAdmin() || !exists(path) || get(path).data.get('status', 'active') == 'active';
+    }
+
+    // Fields only the admin may change on a user document.
+    function touchesProtectedUserFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['uid', 'createdAt', 'subscription', 'status', 'statusReason', 'statusUpdatedAt']);
     }
 
     function isValidEmail(email) {
@@ -154,9 +189,126 @@ service cloud.firestore {
              (!('totalLogins' in data) || data.totalLogins is number);
     }
 
+    // Users may only add one to the public counters; anything else is the admin's.
+    function stepsByOne(field) {
+      return request.resource.data.get(field, 0) == resource.data.get(field, 0) ||
+             request.resource.data.get(field, 0) == resource.data.get(field, 0) + 1;
+    }
+
+
+    // ===============================================================
+    // Free-plan allowances (collection quota, one document per Google email)
+    // ===============================================================
+    // Keyed by email so deleting and recreating the login does not reset it.
+    // Every use is stamped with the server clock (request.time), counts only go up,
+    // and only the admin can reset or delete a document.
+
+    function isQuotaOwner(email) {
+      return isAuthenticated() && request.auth.token.email_verified == true &&
+             request.auth.token.email.lower() == email;
+    }
+
+    // ---- Plans: limits come from settings/plans, edited in the admin panel ----
+
+    // A paid plan counts while it has no expiry or the expiry is ahead; otherwise Grátis.
+    function currentPlanId() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      let sub = exists(path) ? get(path).data.get('subscription', {}) : {};
+      let paid = sub.get('type', 'free') == 'monthly' &&
+                 (sub.get('expiryDate', null) == null || sub.expiryDate > request.time);
+      return paid ? sub.get('plan', 'premium') : 'free';
+    }
+
+    // Same defaults as src/lib/plans.ts when the owner has not saved plans yet.
+    function toolLimit(tool) {
+      let path = /databases/$(database)/documents/settings/plans;
+      let plans = exists(path) ? get(path).data.get('plans', {}) : {};
+      let id = currentPlanId();
+      let freeDefaults = {
+        'invoice': {'mode': 'limited', 'amount': 1, 'period': 'day'},
+        'pdf': {'mode': 'limited', 'amount': 1, 'period': 'day'},
+        'formula': {'mode': 'limited', 'amount': 15, 'period': 'day'}
+      };
+      let fallback = id == 'free' ? freeDefaults[tool] : {'mode': 'unlimited', 'amount': 0, 'period': 'day'};
+      let plan = plans.get(id, plans.get('free', {}));
+      return plan.get('limits', {}).get(tool, fallback);
+    }
+
+    // Calendar period in the time zone fixed on the first use (weeks start on Monday).
+    function periodOf(t, tz, period) {
+      let local = t + duration.value(tz, 'm');
+      return period == 'month' ? local.year() * 100 + local.month()
+           : period == 'week' ? math.floor((local.toMillis() + 259200000) / 604800000)
+           : local.year() * 10000 + local.month() * 100 + local.day();
+    }
+
+    function windowOf(period) {
+      return period == 'month' ? duration.value(30, 'd') : period == 'week' ? duration.value(7, 'd') : duration.value(1, 'd');
+    }
+
+    function sameField(b, a, field) {
+      return a.get(field, null) == b.get(field, null);
+    }
+
+    // Uses per period (invoices, PDFs): the count restarts only in a new period and never passes the plan.
+    function validDaily(b, a, at, count, tz, limit) {
+      let period = limit.get('period', 'day');
+      return (sameField(b, a, at) && sameField(b, a, count)) ||
+             (a.get(at, null) == request.time && a.get(count, null) is int &&
+              a.get(count, 0) == ((b.get(at, null) != null && periodOf(b.get(at, null), tz, period) == periodOf(request.time, tz, period))
+                                   ? b.get(count, 0) + 1 : 1) &&
+              limit.get('mode', 'limited') != 'off' &&
+              (limit.get('mode', 'limited') == 'unlimited' || a.get(count, 0) <= limit.get('amount', 0)));
+    }
+
+    // Fórmula Fácil: minutes per window (from the first use). Once the minutes run out the tool
+    // stays locked for one window from that moment. Used seconds never go down.
+    function validFormulaWindow(b, a, limit) {
+      let mode = limit.get('mode', 'limited');
+      let maxSeconds = mode == 'unlimited' ? 100000000 : limit.get('amount', 0) * 60;
+      let span = windowOf(limit.get('period', 'day'));
+      let exhaustedNow = mode != 'unlimited' && a.get('formulaUsed', 0) >= maxSeconds;
+      let stamped = mode != 'off' &&
+                    a.get('formulaTick', null) == request.time &&
+                    a.get('formulaUsed', null) is int && a.get('formulaUsed', 0) >= 0 && a.get('formulaUsed', 0) <= maxSeconds &&
+                    (exhaustedNow ? a.get('formulaExhaustedAt', null) == request.time : a.get('formulaExhaustedAt', null) == null);
+      let open = b.get('formulaStart', null) != null && b.get('formulaExhaustedAt', null) == null &&
+                 request.time < b.formulaStart + span;
+      let canRestart = b.get('formulaStart', null) == null ||
+                       (b.get('formulaExhaustedAt', null) != null
+                         ? request.time >= b.formulaExhaustedAt + span
+                         : request.time >= b.formulaStart + span);
+      return (sameField(b, a, 'formulaStart') && sameField(b, a, 'formulaUsed') &&
+              sameField(b, a, 'formulaTick') && sameField(b, a, 'formulaExhaustedAt')) ||
+             (stamped && open && a.formulaStart == b.formulaStart && a.formulaUsed >= b.get('formulaUsed', 0)) ||
+             (stamped && canRestart && a.get('formulaStart', null) == request.time);
+    }
+
+    function validQuota(b, a) {
+      let tz = a.get('tz', null);
+      return a.keys().hasOnly(['tz', 'invoiceAt', 'invoiceCount', 'pdfAt', 'pdfCount',
+                               'formulaStart', 'formulaUsed', 'formulaTick', 'formulaExhaustedAt']) &&
+             tz is int && tz >= -720 && tz <= 840 &&
+             (b.get('tz', null) == null || tz == b.tz) &&
+             validDaily(b, a, 'invoiceAt', 'invoiceCount', tz, toolLimit('invoice')) &&
+             validDaily(b, a, 'pdfAt', 'pdfCount', tz, toolLimit('pdf')) &&
+             validFormulaWindow(b, a, toolLimit('formula'));
+    }
+
+    function isValidPlans(data) {
+      return data.keys().hasOnly(['plans', 'updatedAt', 'updatedBy']) &&
+             data.plans is map && 'free' in data.plans && data.plans.size() <= 20;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    // Plans and tool limits: everyone reads them live, only the admin changes them.
+    match /settings/plans {
+      allow read: if true;
+      allow write: if can('plans') && isValidPlans(request.resource.data);
+    }
 
     match /settings/global {
       allow read: if true;
@@ -164,30 +316,127 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow read: if isOwner(userId) || can('users_view');
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) &&
+                    !('status' in request.resource.data) &&
+                    request.resource.data.get('subscription', {'type': 'free'}).type == 'free';
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) &&
+                        !touchesProtectedUserFields() && isActiveUser()) ||
+                       isAdmin() ||
+                       (can('users_manage') && resource.data.get('email', '').lower() != "martinswilliam2004@gmail.com" &&
+                        request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['subscription', 'status', 'statusReason', 'statusUpdatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    match /quota/{email} {
+      allow read: if isQuotaOwner(email) || can('users_view');
+      allow create: if isQuotaOwner(email) && isActiveUser() && validQuota({}, request.resource.data);
+      allow update: if (isQuotaOwner(email) && isActiveUser() && validQuota(resource.data, request.resource.data)) || isAdmin();
+      allow delete: if can('users_manage');
+    }
+
+    match /adminLog/{entryId} {
+      allow read: if can('activity');
+      allow create: if isAdmin() || (isStaff() && request.resource.data.by == myEmail());
+      allow update, delete: if isAdmin();
+    }
+
+    // Only the owner gives or removes staff powers. Staff can read their own powers.
+    match /staff/{email} {
+      allow read: if isAdmin() || (isAuthenticated() && myEmail() == email);
+      allow write: if isAdmin() && email != "martinswilliam2004@gmail.com";
+    }
+
+    // Online indicator for the support chat: just the last time the page was open.
+    match /presence/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
+    }
+
+    // ---- Support: questions and suggestions (tickets) with a chat per ticket ----
+    function isValidNewTicket(d) {
+      return d.keys().hasOnly(['uid', 'email', 'name', 'type', 'subject', 'status', 'createdAt', 'updatedAt',
+                               'lastMessageAt', 'lastMessageBy', 'userUnread', 'staffUnread']) &&
+             d.uid == request.auth.uid && d.email == myEmail() &&
+             d.name is string && d.name.size() <= 100 &&
+             d.type in ['question', 'suggestion'] &&
+             d.subject is string && d.subject.size() >= 1 && d.subject.size() <= 120 &&
+             d.status == 'open' && d.createdAt == request.time && d.updatedAt == request.time &&
+             d.lastMessageAt == request.time && d.lastMessageBy == 'user' &&
+             d.userUnread == false && d.staffUnread == true;
+    }
+
+    function ticketChange() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Ticket owner: send messages (timestamps and unread flags) and close it; never reopen or reassign.
+    function validUserTicketUpdate() {
+      return resource.data.uid == request.auth.uid && resource.data.status != 'closed' &&
+             ticketChange().hasOnly(['updatedAt', 'lastMessageAt', 'lastMessageBy', 'userUnread', 'staffUnread', 'status', 'closedAt', 'closedBy']) &&
+             request.resource.data.status in [resource.data.status, 'closed'];
+    }
+
+    // Staff with the tickets power: accept an open ticket for themselves; the one who accepted
+    // (or the owner) answers, closes or reopens it.
+    function validStaffTicketUpdate() {
+      let d = request.resource.data;
+      let accepting = resource.data.status == 'open' && d.status == 'accepted' && d.assignedTo == myEmail();
+      let assigned = resource.data.get('assignedTo', '') == myEmail() || isAdmin();
+      return can('tickets') &&
+             ticketChange().hasOnly(['status', 'assignedTo', 'assignedName', 'assignedUid', 'acceptedAt', 'updatedAt',
+                                     'lastMessageAt', 'lastMessageBy', 'userUnread', 'staffUnread', 'closedAt', 'closedBy']) &&
+             d.status in ['open', 'accepted', 'closed'] &&
+             (accepting || assigned);
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || can('tickets'));
+      allow create: if isAuthenticated() && request.auth.token.email_verified == true && isActiveUser() &&
+                    isValidNewTicket(request.resource.data);
+      allow update: if isAuthenticated() && (validUserTicketUpdate() || validStaffTicketUpdate());
+      // Only the master admin deletes, and closed conversations stay readable until then.
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        function ticket() {
+          return get(/databases/$(database)/documents/tickets/$(ticketId)).data;
+        }
+        allow read: if isAuthenticated() && (ticket().uid == request.auth.uid || can('tickets'));
+        allow create: if isAuthenticated() &&
+                      request.resource.data.keys().hasOnly(['by', 'uid', 'name', 'text', 'at']) &&
+                      request.resource.data.uid == request.auth.uid &&
+                      request.resource.data.name is string && request.resource.data.name.size() <= 100 &&
+                      request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 4000 &&
+                      request.resource.data.at == request.time &&
+                      ticket().status != 'closed' &&
+                      ((request.resource.data.by == 'user' && ticket().uid == request.auth.uid && isActiveUser()) ||
+                       (request.resource.data.by == 'staff' && can('tickets') &&
+                        (ticket().get('assignedTo', '') == myEmail() || isAdmin())));
+        allow delete: if isAdmin();
+      }
     }
 
     match /jobs/{jobId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidJob(request.resource.data);
-      allow update: if isAuthenticated() && isDocOwner() && isValidJob(request.resource.data);
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isActiveUser() && isValidJob(request.resource.data);
+      allow update: if isAuthenticated() && isActiveUser() && isDocOwner() && isValidJob(request.resource.data);
+      allow delete: if (isAuthenticated() && isActiveUser() && isDocOwner()) || isAdmin();
     }
 
     match /sessions/{sessionId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidSession(request.resource.data);
-      allow update: if isAuthenticated() && isDocOwner() && isValidSession(request.resource.data);
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isActiveUser() && isValidSession(request.resource.data);
+      allow update: if isAuthenticated() && isActiveUser() && isDocOwner() && isValidSession(request.resource.data);
+      allow delete: if (isAuthenticated() && isActiveUser() && isDocOwner()) || isAdmin();
     }
 
     match /invoices/{invoiceId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && isValidInvoice(request.resource.data);
-      allow update: if isAuthenticated() && isDocOwner() && isValidInvoice(request.resource.data);
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && isActiveUser() && isValidInvoice(request.resource.data);
+      allow update: if isAuthenticated() && isActiveUser() && isDocOwner() && isValidInvoice(request.resource.data);
+      allow delete: if (isAuthenticated() && isActiveUser() && isDocOwner()) || isAdmin();
     }
 
     match /shared_invoices/{invoiceId} {
@@ -197,7 +446,12 @@ service cloud.firestore {
 
     match /stats/global {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isValidStats(request.resource.data);
+      allow create: if isAuthenticated() && isValidStats(request.resource.data) &&
+                    request.resource.data.get('totalUsers', 0) <= 1 &&
+                    request.resource.data.get('totalLogins', 0) <= 1;
+      allow update: if isAdmin() || (isAuthenticated() && isValidStats(request.resource.data) &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['totalUsers', 'totalLogins']) &&
+                    stepsByOne('totalUsers') && stepsByOne('totalLogins'));
     }
     
     match /test/connection {

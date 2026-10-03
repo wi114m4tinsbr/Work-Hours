@@ -1,17 +1,39 @@
 import { useState, useEffect, useRef } from 'react';
-import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
+import { auth, googleProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged, onIdTokenChanged, db, doc, setDoc, getDoc, Timestamp, updateDoc, onSnapshot } from './firebase';
 import { User } from 'firebase/auth';
 import { Dashboard } from './components/Dashboard';
 import { JobView } from './components/JobView';
-import { AdminSettings } from './components/AdminSettings';
 import { ThemeModal } from './components/ThemeModal';
 import { Intro } from './components/Intro';
 import { InvoiceCreator } from './components/InvoiceCreator';
+import { PDFStudio } from './components/PDFStudio';
 import { PublicInvoiceView } from './components/PublicInvoiceView';
-import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound } from 'lucide-react';
+import { LogIn, Clock, LogOut, User as UserIcon, Languages, ShieldCheck, Palette, Sun, Moon, FileText, Crown, X, Check, ChevronDown, BriefcaseBusiness, Grid2X2, ScanText, FilePenLine, UserRound, Sheet, Megaphone, MessageCircleQuestion } from 'lucide-react';
 import { cn, hexToRgb } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from './lib/i18n';
+import { syncFormulaSession, syncUserSession, clearFormulaSession, fetchFormulaPublic, setFormulaPublic, FORMULA_ADMIN_PATH, FORMULA_PUBLIC_PATH } from './lib/formulaSession';
+import { FormulaFacilView } from './components/FormulaFacilView';
+import { AdminDashboard } from './components/AdminDashboard';
+import { UpdatesView } from './components/UpdatesView';
+import { SupportView } from './components/SupportView';
+import { HomeView, type HomeBadge } from './components/HomeView';
+import { ToolIdentity } from './components/ToolIdentity';
+import { CATALOG } from './lib/toolCatalog';
+import { availableText } from './lib/plans';
+import { ALL_POWERS, hasAnyPower, type Powers } from './lib/staff';
+import { playChime } from './lib/notifySound';
+import { PlansModal } from './components/PlansModal';
+import { effectivePlanId, normalizePlans, sortedPlans, type PlansConfig, type ToolId } from './lib/plans';
+
+const UPDATES_PATH = '/atualizacoes';
+const SUPPORT_PATH = '/suporte';
+import { accountStatus, type AccountStatus } from './lib/subscription';
+import { increment, collection, query, where } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
+import { dailyQuota, formulaQuota, SERVER_TIME, type Access, type QuotaDoc } from './lib/quota';
+
+const ADMIN_PANEL_PATH = '/admin';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -29,17 +51,39 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'hours' | 'invoices'>('hours');
+  type Tab = 'home' | 'hours' | 'invoices' | 'pdf' | 'formula' | 'formula-admin' | 'admin' | 'updates' | 'support';
+  const tabFromPath = (): Tab =>
+    window.location.pathname === ADMIN_PANEL_PATH ? 'admin'
+      : window.location.pathname === FORMULA_PUBLIC_PATH ? 'formula'
+      : window.location.pathname === FORMULA_ADMIN_PATH ? 'formula-admin'
+      : window.location.pathname === UPDATES_PATH ? 'updates'
+      : window.location.pathname === SUPPORT_PATH ? 'support'
+      : (CATALOG.find((tool) => tool.path === window.location.pathname)?.id as Tab | undefined) ?? 'home';
+  const [activeTab, setActiveTabState] = useState<Tab>(tabFromPath);
+  // Fórmula Fácil has its own address so it can be opened or shared directly.
+  const setActiveTab = (tab: Tab) => {
+    const path = tab === 'formula' ? FORMULA_PUBLIC_PATH : tab === 'formula-admin' ? FORMULA_ADMIN_PATH : tab === 'admin' ? ADMIN_PANEL_PATH : tab === 'updates' ? UPDATES_PATH : CATALOG.find((tool) => tool.id === tab)?.path ?? '/';
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    setActiveTabState(tab);
+  };
+  const [formulaSessionReady, setFormulaSessionReady] = useState(false);
+  const [userSessionReady, setUserSessionReady] = useState(false);
+  const [formulaPublic, setFormulaPublicState] = useState(false);
   const [lang, setLang] = useState<Language>('pt');
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [subscriptionType, setSubscriptionType] = useState<'free' | 'monthly'>('free');
+  const [userSubscription, setUserSubscription] = useState<Record<string, unknown> | undefined>(undefined);
+  const [plansConfig, setPlansConfig] = useState<PlansConfig>(() => normalizePlans(null));
+  const [, setPlanClock] = useState(0);
+  const [userStatus, setUserStatus] = useState<AccountStatus>('active');
+  const [userStatusReason, setUserStatusReason] = useState('');
+  const [quotaDoc, setQuotaDoc] = useState<QuotaDoc>(undefined);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileFirstName, setProfileFirstName] = useState('');
   const [profileLastName, setProfileLastName] = useState('');
+  const [publicDarkMode, setPublicDarkMode] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('shift-hours-dark-mode') === 'true');
   const [bootThemeColor] = useState(() => localStorage.getItem('shift-hours-theme-color') || '#000000');
   const [settings, setSettings] = useState({
@@ -48,6 +92,13 @@ export default function App() {
     footerText: 'SHIFTHOURS • Professional Edition • 2026'
   });
 
+  const goHome = () => {
+    setActiveTab('home');
+    setCurrentJobId(null);
+    setIsToolsMenuOpen(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
   // Restore the user's last visual identity immediately, before Firestore finishes loading.
   useEffect(() => {
     applyTheme(bootThemeColor);
@@ -55,12 +106,12 @@ export default function App() {
 
   // Apply dark mode class to html element
   useEffect(() => {
-    if (isDarkMode) {
+    if (user ? isDarkMode : publicDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDarkMode]);
+  }, [isDarkMode, publicDarkMode, user]);
 
   const toggleDarkMode = async () => {
     const newMode = !isDarkMode;
@@ -136,6 +187,9 @@ export default function App() {
           }
         }
 
+        // Last access feeds the admin panel's active-user numbers; blocked accounts are refused by the rules.
+        updateDoc(userRef, { lastLoginAt: Timestamp.now(), loginCount: increment(1) }).catch(() => {});
+
         // Increment total logins stat
         const statsRef = doc(db, 'stats', 'global');
         const statsSnap = await getDoc(statsRef);
@@ -170,7 +224,9 @@ export default function App() {
         setLang(userData.language || 'pt');
         setIsDarkMode(!!userData.isDarkMode);
         localStorage.setItem('shift-hours-dark-mode', String(!!userData.isDarkMode));
-        setSubscriptionType(userData.subscription?.type === 'monthly' ? 'monthly' : 'free');
+        setUserSubscription(userData.subscription);
+        setUserStatus(accountStatus(userData));
+        setUserStatusReason(typeof userData.statusReason === 'string' ? userData.statusReason : '');
         const storedName = (userData.displayName || user.displayName || '').trim().split(/\s+/);
         setProfileFirstName(userData.firstName || storedName[0] || '');
         setProfileLastName(userData.lastName || (storedName.length > 1 ? storedName[storedName.length - 1] : ''));
@@ -183,6 +239,99 @@ export default function App() {
 
     return () => unsubscribeUser();
   }, [user, settings.primaryColor]);
+
+  // Plans and limits edited in the admin panel reach every open page right away.
+  useEffect(() => onSnapshot(doc(db, 'settings', 'plans'),
+    (snap) => setPlansConfig(normalizePlans(snap.exists() ? snap.data() : null)),
+    () => setPlansConfig(normalizePlans(null))), []);
+
+  // A paid plan that expires while the page is open falls back to Grátis without a reload.
+  useEffect(() => {
+    const timer = window.setInterval(() => setPlanClock((n) => n + 1), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Free-plan allowances live in quota/{email}; the rules stamp every use with the server clock.
+  useEffect(() => {
+    const email = user?.email?.toLowerCase();
+    setQuotaDoc(undefined);
+    if (!email) return;
+    return onSnapshot(doc(db, 'quota', email), (snap) => {
+      setQuotaDoc(snap.exists() ? snap.data({ serverTimestamps: 'estimate' }) : undefined);
+    }, () => setQuotaDoc(undefined));
+  }, [user]);
+
+  // Staff powers given by the owner (staff/{email}); the owner has them all.
+  const [staffPowers, setStaffPowers] = useState<Powers>({});
+  useEffect(() => {
+    const email = user?.email?.toLowerCase();
+    setStaffPowers({});
+    if (!email || email === 'martinswilliam2004@gmail.com') return;
+    return onSnapshot(doc(db, 'staff', email), (snap) => setStaffPowers((snap.data()?.permissions || {}) as Powers), () => setStaffPowers({}));
+  }, [user]);
+  const myPowers: Powers = user?.email?.toLowerCase() === 'martinswilliam2004@gmail.com' ? ALL_POWERS : staffPowers;
+
+  // "Online" for the support chat: the page reports in every 30 s while it is visible.
+  useEffect(() => {
+    if (!user) return;
+    const beat = () => {
+      if (document.visibilityState === 'visible') setDoc(doc(db, 'presence', user.uid), { at: serverTimestamp() }).catch(() => {});
+    };
+    beat();
+    const timer = window.setInterval(beat, 30000);
+    document.addEventListener('visibilitychange', beat);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', beat); };
+  }, [user]);
+
+  // Support: red dot on the menu for the user, a count on the panel shield and the Suporte tab for
+  // the team, and a chime when the other side writes (unless muted on this device).
+  const [supportUnread, setSupportUnread] = useState(false);
+  useEffect(() => {
+    setSupportUnread(false);
+    if (!user) return;
+    const seen = new Map<string, number>();
+    let first = true;
+    return onSnapshot(query(collection(db, 'tickets'), where('uid', '==', user.uid)), (snap) => {
+      setSupportUnread(snap.docs.some((d) => d.data().userUnread === true));
+      let ring = false;
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const at = data.lastMessageAt?.toMillis?.() ?? 0;
+        if (!first && data.lastMessageBy === 'staff' && at > (seen.get(d.id) ?? 0)) ring = true;
+        seen.set(d.id, at);
+      });
+      if (ring) playChime();
+      if (!snap.metadata.fromCache) first = false;
+    }, () => setSupportUnread(false));
+  }, [user]);
+
+  const [staffPending, setStaffPending] = useState({ open: 0, mine: 0 });
+  useEffect(() => {
+    setStaffPending({ open: 0, mine: 0 });
+    const me = user?.email?.toLowerCase();
+    if (!user || !me || !myPowers.tickets) return;
+    const seen = new Map<string, number>();
+    let first = true;
+    return onSnapshot(collection(db, 'tickets'), (snap) => {
+      let open = 0, mine = 0, ring = false;
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        const at = data.lastMessageAt?.toMillis?.() ?? 0;
+        if (data.status === 'open') open++;
+        if (data.status === 'accepted' && data.assignedTo === me && data.staffUnread === true) mine++;
+        const known = seen.has(d.id);
+        // A new ticket for everyone with the power; a reply only for whoever accepted it.
+        if (!first && data.lastMessageBy === 'user' && at > (seen.get(d.id) ?? 0) &&
+            ((!known && data.status === 'open') || (known && data.assignedTo === me))) ring = true;
+        seen.set(d.id, at);
+      });
+      setStaffPending({ open, mine });
+      if (ring) playChime();
+      if (!snap.metadata.fromCache) first = false;
+    }, () => setStaffPending({ open: 0, mine: 0 }));
+  }, [user, !!myPowers.tickets]);
+  const supportWaiting = staffPending.open + staffPending.mine;
+  const [adminFocus, setAdminFocus] = useState<'support' | null>(null);
 
   useEffect(() => {
     if (!isToolsMenuOpen) return;
@@ -201,6 +350,23 @@ export default function App() {
       document.removeEventListener('keydown', closeOnEscape);
     };
   }, [isToolsMenuOpen]);
+
+  // Mirrors the Firebase login into the server cookie that guards the private Fórmula Fácil page.
+  useEffect(() => {
+    return onIdTokenChanged(auth, async (tokenUser) => {
+      const [owner, signedIn] = await Promise.all([syncFormulaSession(tokenUser), syncUserSession(tokenUser)]);
+      setFormulaSessionReady(owner);
+      setUserSessionReady(signedIn);
+    });
+  }, []);
+
+  // Off by default: the admin version only shows on the home page after the owner switches it on.
+  useEffect(() => {
+    fetchFormulaPublic().then(setFormulaPublicState);
+    const onPop = () => setActiveTabState(tabFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const handleLanguageChange = async (newLang: Language) => {
     if (!user) return;
@@ -245,6 +411,7 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      await clearFormulaSession();
       await signOut(auth);
     } catch (error) {
       console.error("Logout error:", error);
@@ -256,7 +423,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className={cn("min-h-screen flex items-center justify-center transition-colors duration-300", isDarkMode ? "bg-bg-dark" : "bg-stone-50")}>
+      <div className="aurora-home min-h-screen flex items-center justify-center">
         <div className="brand-loader flex flex-col items-center gap-4" role="status" aria-label="Shift Hours">
           <div className="brand-loader-mark relative w-20 h-20 rounded-[1.75rem] bg-primary text-white flex items-center justify-center overflow-hidden">
             <span className="brand-loader-glow absolute inset-0" />
@@ -279,20 +446,84 @@ export default function App() {
     return <PublicInvoiceView invoiceId={viewId} />;
   }
 
+  const canSeeFormulaAdmin = isOwner || formulaPublic;
+  const isPanelUser = isOwner || hasAnyPower(myPowers);
+  const planId = effectivePlanId(userSubscription as Parameters<typeof effectivePlanId>[0], plansConfig);
+  const plan = plansConfig.plans[planId];
+  const subscriptionType: 'free' | 'monthly' = planId === 'free' ? 'free' : 'monthly';
+  const access: Access = isOwner ? 'admin' : planId === 'free' ? 'free' : 'premium';
+  const allowance = (tool: ToolId) => ({ planName: plan.name[lang], limit: plan.limits[tool] });
+  const hasBiggerPlan = sortedPlans(plansConfig).some(([id, p]) => p.visible && id !== planId && p.order > plan.order);
+  const homeBadges: Partial<Record<'invoices' | 'pdf' | 'formula', HomeBadge>> = (() => {
+    const invoice = dailyQuota('invoice', access, quotaDoc, undefined, allowance('invoice'));
+    const pdf = dailyQuota('pdf', access, quotaDoc, undefined, allowance('pdf'));
+    const formula = formulaQuota(access, quotaDoc, undefined, allowance('formula'));
+    const minutes = Math.floor(formula.remainingSeconds / 60);
+    return {
+      invoices: { quota: invoice, available: availableText('invoice', invoice.remaining, invoice.limit, lang) },
+      pdf: { quota: pdf, available: availableText('pdf', pdf.remaining, pdf.limit, lang) },
+      formula: {
+        quota: { ...formula, reached: formula.lockedUntil !== null || (!formula.blocked && formula.remainingSeconds <= 0) },
+        available: `${minutes} min ${availableText('formula', 0, formula.limit, lang)}`,
+      },
+    };
+  })();
+  const writeUsage = user?.email ? (fields: Record<string, unknown>) => setDoc(
+    doc(db, 'quota', user.email!.toLowerCase()),
+    Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, value === SERVER_TIME ? serverTimestamp() : value])),
+    { merge: true },
+  ) : undefined;
+
   if (!user) {
+    if (activeTab === 'formula' || (activeTab === 'formula-admin' && formulaPublic)) {
+      return (
+        <div className={cn("min-h-screen transition-colors duration-300", isDarkMode ? "bg-bg-dark text-stone-100" : "bg-stone-50 text-stone-900")}>
+          <FormulaFacilView
+            variant={activeTab === 'formula' ? 'public' : 'admin'}
+            language={lang}
+            inApp={false}
+            onBack={() => setActiveTab('home')}
+            onLogin={activeTab === 'formula' ? handleLogin : undefined}
+            ready={activeTab === 'formula-admin'}
+          />
+        </div>
+      );
+    }
     return (
       <Intro 
+        onOpenFormulaAdmin={formulaPublic ? () => setActiveTab('formula-admin') : undefined}
         onLogin={handleLogin} 
         appName={settings.appName} 
         footerText={settings.footerText}
         t={t} 
         lang={lang}
         onLanguageChange={setLang}
-        isDarkMode={isDarkMode}
-        onThemeToggle={toggleDarkMode}
+        isDarkMode={publicDarkMode}
+        onThemeToggle={() => setPublicDarkMode((value) => !value)}
         loginLoading={loginLoading}
         loginError={loginError}
       />
+    );
+  }
+
+  if (userStatus !== 'active' && !isOwner) {
+    const banned = userStatus === 'banned';
+    return (
+      <div className={cn("min-h-screen flex items-center justify-center p-6 transition-colors duration-300", isDarkMode ? "bg-bg-dark" : "bg-stone-50")}>
+        <div className="w-full max-w-md rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-xl p-7 text-center" data-testid="account-blocked">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-300 flex items-center justify-center mb-4"><ShieldCheck size={22} /></div>
+          <h1 className="text-xl font-black text-stone-900 dark:text-white">
+            {banned
+              ? (lang === 'en' ? 'Account banned' : lang === 'es' ? 'Cuenta bloqueada permanentemente' : 'Conta banida')
+              : (lang === 'en' ? 'Account suspended' : lang === 'es' ? 'Cuenta suspendida' : 'Conta suspensa')}
+          </h1>
+          <p className="mt-2 text-sm text-stone-500 dark:text-stone-300">
+            {lang === 'en' ? 'Access to this account was restricted by the administrator.' : lang === 'es' ? 'El administrador restringió el acceso a esta cuenta.' : 'O acesso a esta conta foi restringido pelo administrador.'}
+          </p>
+          {userStatusReason && <p className="mt-3 text-sm font-semibold text-stone-700 dark:text-stone-200">{userStatusReason}</p>}
+          <button type="button" onClick={handleLogout} className="mt-6 w-full rounded-xl bg-primary hover:bg-primary-hover text-white py-3 font-black">{t.logout}</button>
+        </div>
+      </div>
     );
   }
 
@@ -307,11 +538,15 @@ export default function App() {
         isDarkMode ? "bg-bg-card-dark border-white/5" : "bg-white border-black/5"
       )}>
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3">
-          <button
-            type="button"
+          <a
+            href="/"
             className="brand-trigger group flex items-center gap-2.5 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-lg"
-            onClick={() => setCurrentJobId(null)}
-            aria-label={`${settings.appName} - Home`}
+            onClick={(event) => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              goHome();
+            }}
+            aria-label={`${settings.appName} — ${lang === 'en' ? 'Home' : lang === 'es' ? 'Inicio' : 'Início'}`}
           >
             <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm" aria-hidden="true">
               <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
@@ -325,7 +560,7 @@ export default function App() {
               <span className="brand-shift font-black text-base sm:text-xl tracking-[-0.04em] text-stone-900 dark:text-white">Shift</span>
               <span className="brand-hours ml-1 font-black text-base sm:text-xl tracking-[-0.04em] text-primary">Hours</span>
             </span>
-          </button>
+          </a>
 
           {/* Product switcher: app-specific tools live here so the global header stays clean. */}
           <div ref={toolsMenuRef} className="hidden sm:flex items-center relative mr-auto">
@@ -337,7 +572,7 @@ export default function App() {
               title={lang === 'en' ? 'Apps and tools' : lang === 'es' ? 'Aplicaciones y herramientas' : 'Aplicativos e ferramentas'}
             >
               <Grid2X2 size={18} className="transition-transform duration-200 group-hover:scale-110" />
-              <span>{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
+              <span className="hidden lg:inline">{lang === 'en' ? 'Tools' : lang === 'es' ? 'Herramientas' : 'Ferramentas'}</span>
               <ChevronDown size={13} className={cn("transition-transform duration-200", isToolsMenuOpen && "rotate-180")} />
             </button>
             <AnimatePresence>
@@ -356,23 +591,40 @@ export default function App() {
                       <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><FileText size={18}/></span>
                       <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{t.invoiceCreator}</span>
                     </button>
-                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-55">
-                      <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><ScanText size={18}/></span>
-                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'PDF Reader' : lang === 'es' ? 'Lector PDF' : 'Leitor PDF'}</span>
-                      <span className="text-[9px] font-black uppercase tracking-wide text-stone-400">{lang === 'en' ? 'Soon' : lang === 'es' ? 'Pronto' : 'Em breve'}</span>
-                    </div>
-                    <div className="flex flex-col items-center text-center gap-2 p-3 rounded-xl opacity-55">
-                      <span className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-white/10 text-stone-500 dark:text-stone-300 flex items-center justify-center"><FilePenLine size={18}/></span>
-                      <span className="text-xs font-bold leading-tight text-stone-600 dark:text-stone-300">{lang === 'en' ? 'PDF Editor' : lang === 'es' ? 'Editor PDF' : 'Editor PDF'}</span>
-                      <span className="text-[9px] font-black uppercase tracking-wide text-stone-400">{lang === 'en' ? 'Soon' : lang === 'es' ? 'Pronto' : 'Em breve'}</span>
-                    </div>
+                    <button type="button" onClick={() => { setActiveTab('pdf'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><ScanText size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">PDF Studio</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-primary">{lang === 'en' ? 'New' : lang === 'es' ? 'Nuevo' : 'Novo'}</span>
+                    </button>
+                    <a href={FORMULA_PUBLIC_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('formula'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><Sheet size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
+                      <span className="text-[9px] font-black uppercase tracking-wide text-primary">Excel + IA</span>
+                    </a>
+                    {canSeeFormulaAdmin && (
+                      <a href={FORMULA_ADMIN_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('formula-admin'); setIsToolsMenuOpen(false); }} className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                        <span className="w-10 h-10 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-900 flex items-center justify-center"><ShieldCheck size={18}/></span>
+                        <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">Fórmula Fácil</span>
+                        <span className="text-[9px] font-black uppercase tracking-wide text-primary">Admin</span>
+                      </a>
+                    )}
+                    <a href={UPDATES_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('updates'); setIsToolsMenuOpen(false); }} data-testid="tools-updates" className="group flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><Megaphone size={18}/></span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{lang === 'en' ? 'Updates' : lang === 'es' ? 'Novedades' : 'Atualizações'}</span>
+                    </a>
+                    <a href={SUPPORT_PATH} onClick={(event) => { event.preventDefault(); setActiveTab('support'); setIsToolsMenuOpen(false); }} data-testid="tools-support" className="group relative flex flex-col items-center text-center gap-2 p-3 rounded-xl hover:bg-primary-light dark:hover:bg-white/10">
+                      <span className="relative w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"><MessageCircleQuestion size={18}/>
+                        {supportUnread && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 ring-2 ring-white dark:ring-stone-900" data-testid="tools-support-unread" />}
+                      </span>
+                      <span className="text-xs font-bold leading-tight text-stone-800 dark:text-stone-100">{lang === 'en' ? 'Questions and suggestions' : lang === 'es' ? 'Dudas y sugerencias' : 'Dúvidas e sugestões'}</span>
+                    </a>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 shrink-0 lg:ml-auto">
+          <div className="flex items-center gap-0.5 md:gap-2.5 lg:gap-3 shrink-0 ml-auto">
             <button
               onClick={() => setActiveTab('invoices')}
               className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 sm:hidden"
@@ -390,19 +642,21 @@ export default function App() {
 
             <button 
               onClick={() => setIsThemeModalOpen(true)}
-              className="w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:inline-flex"
+              className="w-10 h-10 shrink-0 items-center justify-center rounded-full text-stone-400 hover:text-primary hover:bg-primary-light dark:hover:bg-white/10 transition-all duration-200 hidden sm:inline-flex"
               title={t.theme}
             >
               <Palette className="w-5 h-5" />
             </button>
 
-            {isOwner && (
+            {isPanelUser && (
               <button 
-                onClick={() => setIsAdminModalOpen(true)}
-                className="p-2 text-stone-400 hover:text-primary transition-colors"
-                title="Admin Settings"
+                onClick={() => { setAdminFocus(supportWaiting > 0 ? 'support' : null); setActiveTab('admin'); }}
+                data-testid="admin-shield"
+                className={cn("relative p-2 transition-colors", activeTab === 'admin' ? "text-primary" : "text-stone-400 hover:text-primary")}
+                title={lang === 'en' ? 'Admin panel' : lang === 'es' ? 'Panel de administración' : 'Painel Admin'}
               >
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                {supportWaiting > 0 && <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-black leading-4 text-center" title={lang === 'en' ? 'Support needs attention' : lang === 'es' ? 'Soporte necesita atención' : 'Suporte precisa de atenção'}>{supportWaiting}</span>}
               </button>
             )}
 
@@ -433,12 +687,12 @@ export default function App() {
             </div>
 
             {!isOwner && (
-              <div className="hidden sm:flex items-center gap-1.5 ml-3 lg:ml-5 pl-3 lg:pl-5 border-l border-stone-200 dark:border-white/10">
+              <div className="hidden sm:flex items-center gap-1.5 ml-1.5 pl-2 md:ml-3 md:pl-3 lg:ml-5 lg:pl-5 border-l border-stone-200 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsUpgradeModalOpen(true)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black shadow-sm",
+                    "hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-black shadow-sm",
                     subscriptionType === 'monthly'
                       ? "bg-primary-light text-primary border-primary/25"
                       : "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-700"
@@ -446,10 +700,10 @@ export default function App() {
                   title={lang === 'en' ? 'Current plan' : lang === 'es' ? 'Plan actual' : 'Plano atual'}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
-                  {subscriptionType === 'monthly' ? 'Premium' : t.free}
+                  {plan.name[lang]}
                   <span className="hidden lg:inline text-[9px] uppercase tracking-wider opacity-60">{lang === 'en' ? 'Current' : lang === 'es' ? 'Actual' : 'Atual'}</span>
                 </button>
-                {subscriptionType === 'free' && (
+                {hasBiggerPlan && (
                   <button
                     type="button"
                     onClick={() => setIsUpgradeModalOpen(true)}
@@ -468,7 +722,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-3 lg:ml-5 pl-3 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
+              className="profile-trigger group/profile flex items-center gap-2 min-w-0 ml-1 pl-2 md:ml-3 md:pl-3 lg:ml-5 lg:pl-5 py-1 border-l border-stone-200 dark:border-white/10 transition-all duration-200 bg-transparent hover:bg-transparent shadow-none hover:shadow-none"
               title={lang === 'en' ? 'Edit profile' : lang === 'es' ? 'Editar perfil' : 'Editar perfil'}
             >
               {user.photoURL ? (
@@ -476,7 +730,7 @@ export default function App() {
               ) : (
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-stone-100 dark:bg-white/10 flex items-center justify-center border border-black/10 dark:border-white/15 shrink-0"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4 text-stone-500 dark:text-stone-300" /></div>
               )}
-              <span className="hidden md:flex flex-col items-start leading-tight whitespace-nowrap">
+              <span className="hidden lg:flex flex-col items-start leading-tight whitespace-nowrap">
                 <span className="text-sm font-semibold text-stone-700 dark:text-stone-200 group-hover/profile:text-primary transition-colors duration-200">
                   {[profileFirstName, profileLastName].filter(Boolean).join(' ') || user.displayName || user.email?.split('@')[0]}
                 </span>
@@ -488,7 +742,7 @@ export default function App() {
             </button>
             <button 
               onClick={handleLogout}
-              className="account-logout h-10 flex items-center gap-1.5 ml-1 px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent"
+              className="account-logout h-10 flex items-center gap-1.5 sm:ml-1 px-1.5 sm:px-2 text-stone-400 hover:text-red-500 transition-colors whitespace-nowrap shrink-0 bg-transparent"
               title={t.logout}
             >
               <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -498,12 +752,65 @@ export default function App() {
         </div>
       </header>
 
-      {activeTab === 'invoices' ? (
+      {activeTab === 'admin' && isPanelUser ? (
+        <main className="flex-1 w-full">
+          <AdminDashboard
+            language={lang} onBack={goHome} settings={settings} t={t} powers={myPowers} isOwner={isOwner} supportWaiting={staffPending} focus={adminFocus} onFocused={() => setAdminFocus(null)}
+            formulaPublic={{ enabled: formulaPublic, onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user!, enabled)) }}
+          />
+        </main>
+      ) : activeTab === 'formula' || (activeTab === 'formula-admin' && canSeeFormulaAdmin) ? (
+        <main className="flex-1 w-full">
+          <FormulaFacilView
+            variant={activeTab === 'formula' ? 'public' : 'admin'}
+            language={lang}
+            inApp
+            onBack={goHome}
+            quota={activeTab === 'formula' ? formulaQuota(access, quotaDoc, writeUsage, allowance('formula')) : undefined}
+            ready={activeTab === 'formula' ? userSessionReady : formulaSessionReady || (!isOwner && formulaPublic)}
+            publicSwitch={activeTab === 'formula-admin' && isOwner && user ? {
+              enabled: formulaPublic,
+              onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user, enabled)),
+            } : undefined}
+          />
+        </main>
+      ) : activeTab === 'support' && user ? (
+        <main className="flex-1 w-full">
+          <SupportView user={user} language={lang} onBack={goHome} />
+        </main>
+      ) : activeTab === 'updates' ? (
+        <main className="flex-1 w-full">
+          <UpdatesView language={lang} onBack={goHome} />
+        </main>
+      ) : activeTab === 'pdf' ? (
+        <main className="flex-1 w-full overflow-visible custom-scrollbar">
+          <PDFStudio language={lang} toolbarTop={64} onBack={goHome} quota={dailyQuota('pdf', access, quotaDoc, writeUsage, allowance('pdf'))} />
+        </main>
+      ) : activeTab === 'invoices' ? (
         <main className="flex-1 w-full overflow-y-auto custom-scrollbar">
-          <InvoiceCreator language={lang} onBack={() => setActiveTab('hours')} isAdmin={isOwner} embedded />
+          <InvoiceCreator language={lang} onBack={goHome} isAdmin={isOwner} embedded quota={dailyQuota('invoice', access, quotaDoc, writeUsage, allowance('invoice'))} />
+        </main>
+      ) : activeTab === 'home' ? (
+        <main className="flex-1 w-full">
+          <HomeView
+            userId={user.uid} firstName={profileFirstName || (user.displayName || '').split(' ')[0]} language={lang}
+            planName={access === 'admin' ? 'Admin' : plan.name[lang]}
+            badges={homeBadges} jobsAllowance={{ access, ...allowance('jobs') }}
+            onOpen={(tab) => setActiveTab(tab)}
+            onOpenJob={(jobId) => { setActiveTab('hours'); setCurrentJobId(jobId); }}
+            onUpgrade={hasBiggerPlan && !isOwner ? () => setIsUpgradeModalOpen(true) : undefined}
+            onOpenUpdates={() => setActiveTab('updates')}
+            onOpenFormulaAdmin={canSeeFormulaAdmin ? () => setActiveTab('formula-admin') : undefined}
+          />
         </main>
       ) : (
-      <main className="max-w-3xl mx-auto p-4 pb-24 flex-1 w-full overflow-y-auto custom-scrollbar">
+      <main className="flex-1 w-full">
+      <div className="bg-white/95 dark:bg-bg-card-dark border-b border-stone-200 dark:border-white/10 shadow-sm">
+        <div className="h-12 w-full max-w-7xl mx-auto flex items-center gap-3 px-4">
+          <ToolIdentity title={lang === 'en' ? 'Hours worked' : lang === 'es' ? 'Horas trabajadas' : 'Horas trabalhadas'} language={lang} backLabel={t.back} onBack={goHome} />
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto p-4 pb-24 w-full">
         <AnimatePresence mode="wait">
           {!currentJobId ? (
             <motion.div
@@ -531,15 +838,10 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
       </main>
       )}
 
-      <AdminSettings 
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        currentSettings={settings}
-        t={t}
-      />
 
       <ThemeModal
         isOpen={isThemeModalOpen}
@@ -548,56 +850,7 @@ export default function App() {
         t={t}
       />
 
-      <AnimatePresence>
-        {isUpgradeModalOpen && (
-          <motion.div
-            className="fixed inset-0 z-[100] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsUpgradeModalOpen(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg rounded-3xl border border-black/10 dark:border-white/10 bg-white dark:bg-stone-900 shadow-2xl overflow-hidden"
-            >
-              <div className="p-5 sm:p-6 border-b border-black/5 dark:border-white/10 flex items-start justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 text-primary font-black text-xs uppercase tracking-wider mb-2"><Crown size={15} /> Shift Hours Premium</div>
-                  <h2 className="text-xl sm:text-2xl font-black text-stone-900 dark:text-white">Faça mais com o Shift Hours</h2>
-                  <p className="mt-1 text-sm text-stone-500 dark:text-stone-300">Compare seu plano gratuito com os recursos Premium.</p>
-                </div>
-                <button type="button" onClick={() => setIsUpgradeModalOpen(false)} className="p-2 rounded-xl text-stone-500 dark:text-stone-300 hover:bg-primary hover:text-white"><X size={19} /></button>
-              </div>
-              <div className="p-5 sm:p-6 grid sm:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-stone-200 dark:border-white/10 p-4">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-300">{t.free}</span>
-                  <div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">€0</div>
-                  <div className="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
-                    <div className="flex gap-2"><Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />1 trabalho/empresa</div>
-                    <div className="flex gap-2"><Check size={16} className="text-emerald-500 shrink-0 mt-0.5" />1 fatura por dia</div>
-                  </div>
-                </div>
-                <div className="rounded-2xl border-2 border-primary p-4 shadow-lg shadow-primary/10 relative">
-                  <span className="text-xs font-black uppercase tracking-wider text-primary">Premium</span>
-                  <div className="mt-2 text-2xl font-black text-stone-900 dark:text-white">Em breve</div>
-                  <div className="mt-4 space-y-3 text-sm text-stone-600 dark:text-stone-300">
-                    <div className="flex gap-2"><Check size={16} className="text-primary shrink-0 mt-0.5" />Múltiplos trabalhos/empresas</div>
-                    <div className="flex gap-2"><Check size={16} className="text-primary shrink-0 mt-0.5" />Mais faturas e recursos Premium</div>
-                  </div>
-                </div>
-              </div>
-              <div className="px-5 sm:px-6 pb-6">
-                <button type="button" disabled className="w-full rounded-xl bg-primary text-white px-4 py-3 font-black disabled:opacity-60 disabled:cursor-not-allowed">Upgrade Premium · Em breve</button>
-                <p className="text-center mt-3 text-xs text-stone-400 dark:text-stone-500">Nenhuma cobrança será feita nesta etapa.</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PlansModal open={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} config={plansConfig} currentPlanId={planId} language={lang} />
 
       <AnimatePresence>
         {isProfileModalOpen && (
@@ -615,12 +868,12 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <footer className={cn(
+      {activeTab !== 'formula' && activeTab !== 'formula-admin' && activeTab !== 'admin' && <footer className={cn(
         "pt-48 pb-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30",
         isDarkMode ? "text-white" : "text-stone-900"
       )}>
         {settings.footerText.replace(/WORKHOURS/gi, 'SHIFTHOURS')}
-      </footer>
+      </footer>}
     </div>
   );
 }
