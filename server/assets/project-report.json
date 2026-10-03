@@ -205,6 +205,12 @@
       "kind": "fixed",
       "title": "Validação do vínculo Telegram",
       "details": "Ajuste da transação que consome o código de vínculo para usar a operação update do Firestore ao remover campos. Testes do adaptador verificam essa restrição. Ativação real continua pendente da configuração do proprietário."
+    },
+    {
+      "at": "2026-10-03T11:29:00Z",
+      "kind": "fixed",
+      "title": "Inicialização da API Telegram na Vercel",
+      "details": "Smoke test no domínio oficial detectou erro ao iniciar a nova rota. Imports relativos do servidor ajustados para extensões .js exigidas pelo runtime ESM. Adicionado teste de compilação e importação real da API, sem o resolvedor de desenvolvimento."
     }
   ]
 }

@@ -1,8 +1,8 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
-import { verifyUserToken, FORMULA_OWNER_EMAIL, type UserSession } from './formula-auth';
-import { supportDb } from './support-admin-db';
-import { BOT_NAME, DEFAULT_PREFS, SETTINGS_PATH, preferences, ownerSession, validId, ms, canReply, eventAllowed, notice, botReply } from './support-telegram-policy';
+import { verifyUserToken, FORMULA_OWNER_EMAIL, type UserSession } from './formula-auth.js';
+import { supportDb } from './support-admin-db.js';
+import { BOT_NAME, DEFAULT_PREFS, SETTINGS_PATH, preferences, ownerSession, validId, ms, canReply, eventAllowed, notice, botReply } from './support-telegram-policy.js';
 
 const headers = { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow', 'Content-Type': 'application/json', 'X-Content-Type-Options': 'nosniff' };
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers });

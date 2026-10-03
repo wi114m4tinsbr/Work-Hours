@@ -1,6 +1,6 @@
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { FIREBASE_PROJECT_ID } from './formula-auth';
+import { FIREBASE_PROJECT_ID } from './formula-auth.js';
 
 export function supportDb() {
   let app = getApps().find(a => a.name === 'support');
