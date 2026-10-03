@@ -169,6 +169,12 @@
       "kind": "new",
       "title": "Nova página inicial do app (hub de ferramentas)",
       "details": "Depois do login, a página inicial virou um hub: saudação, busca de ferramentas, cartões de cada ferramenta com o que ainda resta no plano, trabalhos recentes, dicas rápidas que mudam sozinhas e as últimas novidades. As horas trabalhadas viraram uma ferramenta em /horas, e as faturas e o PDF Studio ganharam endereço próprio (/faturas, /pdf-studio). Tudo vem de src/lib/toolCatalog.ts: ferramenta nova entra ali e aparece sozinha. Topo do site ajustado para tablet."
+    },
+    {
+      "at": "2026-10-03T10:30:00+00:00",
+      "kind": "new",
+      "title": "Nova página oficial do site (home pública)",
+      "details": "A home pública deixou de ser só sobre horas: mostra todas as ferramentas, o selo da ferramenta mais nova, como funciona, os planos ao vivo (settings/plans) e chamadas para entrar com Google. Ferramentas, selo Novo e planos vêm do catálogo e do painel, então se atualizam sozinhos. Sem fotos nem vídeos (só ícones e CSS), removidas as fotos externas de usuários fictícios; responsiva, 3 idiomas e modo escuro."
     }
   ]
 }

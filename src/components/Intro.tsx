@@ -1,8 +1,12 @@
-import React from 'react';
-import { LogIn, Clock, CheckCircle2, BarChart3, Shield, Zap, Moon, Sun, Languages, Loader2, Sheet } from 'lucide-react';
-import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { ArrowRight, CheckCircle2, Cloud, Languages, Loader2, LogIn, Moon, MousePointerClick, ShieldCheck, Sparkles, Sun, Smartphone } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 import { Language } from '../lib/i18n';
 import { cn } from '../lib/utils';
+import { CATALOG, isNewTool, toolText } from '../lib/toolCatalog';
+import { normalizePlans, type PlansConfig } from '../lib/plans';
+import { PlanCards } from './PlansModal';
 
 interface IntroProps {
   onLogin: () => void;
@@ -19,303 +23,237 @@ interface IntroProps {
   loginError?: string | null;
 }
 
-export function Intro({ 
-  onLogin, 
-  onOpenFormulaAdmin,
-  appName, 
-  footerText, 
-  t, 
-  lang, 
-  onLanguageChange, 
-  isDarkMode, 
-  onThemeToggle,
-  loginLoading = false,
-  loginError = null
-}: IntroProps) {
-  const features = [
-    {
-      icon: <Clock className="w-6 h-6 text-emerald-500" />,
-      title: t.feature1Title,
-      desc: t.feature1Desc,
-      color: "bg-emerald-500/10"
-    },
-    {
-      icon: <BarChart3 className="w-6 h-6 text-blue-500" />,
-      title: t.feature2Title,
-      desc: t.feature2Desc,
-      color: "bg-blue-500/10"
-    },
-    {
-      icon: <Shield className="w-6 h-6 text-purple-500" />,
-      title: t.feature3Title,
-      desc: t.feature3Desc,
-      color: "bg-purple-500/10"
-    },
-    {
-      icon: <Zap className="w-6 h-6 text-amber-500" />,
-      title: t.feature4Title,
-      desc: t.feature4Desc,
-      color: "bg-amber-500/10"
-    }
-  ];
+const C = {
+  pt: {
+    newTool: 'Novo', heroA: 'Suas ferramentas de trabalho,', heroB: 'num só lugar.',
+    sub: 'Registre horas, crie faturas, edite PDFs e monte fórmulas de Excel com IA. Tudo no navegador, no celular ou no computador, sem instalar nada.',
+    login: 'Começar grátis com Google', entering: 'Entrando…', seeTools: 'Ver ferramentas', signIn: 'Entrar',
+    trust: ['Grátis para começar', 'Sem instalar nada', 'Salvo na nuvem'],
+    toolsTitle: 'Ferramentas', toolsSub: 'Cada ferramenta resolve uma tarefa do dia a dia. Novas chegam com frequência.', use: 'Usar grátis',
+    howTitle: 'Como funciona',
+    how: [
+      { title: 'Entre com Google', body: 'Um clique, sem senha nova para lembrar.' },
+      { title: 'Escolha a ferramenta', body: 'Todas ficam na página inicial, com dicas para começar.' },
+      { title: 'Pronto, está salvo', body: 'Seus dados ficam na nuvem e aparecem em qualquer aparelho.' },
+    ],
+    plansTitle: 'Planos', plansSub: 'Comece grátis e mude de plano quando precisar de mais.',
+    ctaTitle: 'Pronto para ganhar tempo?', ctaSub: 'Crie sua conta em segundos com o Google.',
+    formula: 'Fórmula Fácil: Excel com IA', mock: 'O que vamos fazer hoje?', theme: 'Mudar tema', language: 'Idioma',
+  },
+  en: {
+    newTool: 'New', heroA: 'Your work tools,', heroB: 'all in one place.',
+    sub: 'Log hours, create invoices, edit PDFs and build Excel formulas with AI. All in the browser, on phone or computer, nothing to install.',
+    login: 'Start free with Google', entering: 'Signing in…', seeTools: 'See tools', signIn: 'Sign in',
+    trust: ['Free to start', 'Nothing to install', 'Saved in the cloud'],
+    toolsTitle: 'Tools', toolsSub: 'Each tool solves an everyday task. New ones arrive often.', use: 'Use for free',
+    howTitle: 'How it works',
+    how: [
+      { title: 'Sign in with Google', body: 'One click, no new password to remember.' },
+      { title: 'Pick a tool', body: 'They all live on the home page, with tips to get started.' },
+      { title: "Done, it's saved", body: 'Your data stays in the cloud and shows up on any device.' },
+    ],
+    plansTitle: 'Plans', plansSub: 'Start free and change plans when you need more.',
+    ctaTitle: 'Ready to save time?', ctaSub: 'Create your account in seconds with Google.',
+    formula: 'Fórmula Fácil: Excel with AI', mock: 'What are we doing today?', theme: 'Change theme', language: 'Language',
+  },
+  es: {
+    newTool: 'Nuevo', heroA: 'Tus herramientas de trabajo,', heroB: 'en un solo lugar.',
+    sub: 'Registra horas, crea facturas, edita PDFs y arma fórmulas de Excel con IA. Todo en el navegador, en el móvil o el ordenador, sin instalar nada.',
+    login: 'Empieza gratis con Google', entering: 'Entrando…', seeTools: 'Ver herramientas', signIn: 'Entrar',
+    trust: ['Gratis para empezar', 'Sin instalar nada', 'Guardado en la nube'],
+    toolsTitle: 'Herramientas', toolsSub: 'Cada herramienta resuelve una tarea del día a día. Llegan nuevas a menudo.', use: 'Usar gratis',
+    howTitle: 'Cómo funciona',
+    how: [
+      { title: 'Entra con Google', body: 'Un clic, sin contraseña nueva que recordar.' },
+      { title: 'Elige la herramienta', body: 'Todas están en la página de inicio, con consejos para empezar.' },
+      { title: 'Listo, está guardado', body: 'Tus datos quedan en la nube y aparecen en cualquier dispositivo.' },
+    ],
+    plansTitle: 'Planes', plansSub: 'Empieza gratis y cambia de plan cuando necesites más.',
+    ctaTitle: '¿Listo para ganar tiempo?', ctaSub: 'Crea tu cuenta en segundos con Google.',
+    formula: 'Fórmula Fácil: Excel con IA', mock: '¿Qué hacemos hoy?', theme: 'Cambiar tema', language: 'Idioma',
+  },
+};
+
+const HOW_ICONS = [MousePointerClick, Sparkles, Cloud];
+const TRUST_ICONS = [CheckCircle2, Smartphone, ShieldCheck];
+
+/**
+ * Public home page. The tool list, the "new" badge and the plans all come from live data
+ * (toolCatalog.ts and settings/plans), so new tools and plan changes appear here on their own.
+ * No photos or videos: icons and CSS only, to stay light on any connection.
+ */
+export function Intro({ onLogin, onOpenFormulaAdmin, appName, footerText, lang, onLanguageChange, isDarkMode, onThemeToggle, loginLoading = false, loginError = null }: IntroProps) {
+  const t = C[lang] || C.pt;
+  const tools = CATALOG.filter((tool) => !tool.helper);
+  const newest = tools.find((tool) => isNewTool(tool));
+  const [plans, setPlans] = useState<PlansConfig | null>(null);
+  const [spot, setSpot] = useState(0);
+
+  useEffect(() => onSnapshot(doc(db, 'settings', 'plans'), (snap) => setPlans(normalizePlans(snap.exists() ? snap.data() : null)), () => setPlans(normalizePlans(null))), []);
+  // The mock window highlights one tool after another.
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => setSpot((i) => (i + 1) % tools.length), 2600);
+    return () => window.clearInterval(timer);
+  }, [tools.length]);
+
+  const login = (
+    <button type="button" disabled={loginLoading} onClick={(e) => { e.preventDefault(); onLogin(); }} data-testid="intro-login"
+      className={cn('group inline-flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl bg-primary px-7 py-4 text-base font-black text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary-hover hover:-translate-y-0.5 active:translate-y-0 dark:bg-white dark:text-stone-900 dark:shadow-none',
+        loginLoading && 'opacity-70 cursor-not-allowed')}>
+      {loginLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />}
+      {loginLoading ? t.entering : t.login}
+    </button>
+  );
 
   return (
-    <div className={cn(
-      "min-h-screen font-sans relative flex flex-col transition-colors duration-500 custom-scrollbar",
-      isDarkMode ? "bg-bg-dark text-white" : "bg-white text-stone-900"
-    )}>
-      {/* Background elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className={cn(
-          "absolute top-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-40 transition-colors duration-700",
-          isDarkMode ? "bg-emerald-900/30" : "bg-emerald-200/60"
-        )} />
-        <div className={cn(
-          "absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[120px] opacity-40 transition-colors duration-700",
-          isDarkMode ? "bg-blue-900/30" : "bg-blue-200/60"
-        )} />
-        <div className={cn(
-          "absolute top-[20%] left-[10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-20 transition-colors duration-700",
-          isDarkMode ? "bg-purple-900/30" : "bg-purple-200/60"
-        )} />
-      </div>
-
-      {/* Top Controls */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center gap-2 sm:gap-4">
-        <div className="flex items-center gap-1 sm:gap-2 bg-white/10 backdrop-blur-md p-1 rounded-full border border-white/20 shadow-xl">
-          {(['pt', 'en', 'es'] as Language[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => onLanguageChange(l)}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-full text-[10px] font-bold uppercase transition-all",
-                lang === l 
-                  ? "bg-white text-stone-900 shadow-sm" 
-                  : "text-stone-400 hover:text-white"
-              )}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        
-        <button
-          onClick={onThemeToggle}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-xl hover:scale-110 transition-all"
-        >
-          {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-blue-400" />}
-        </button>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-24 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center flex-1">
-        {/* Left Side: Hero Content */}
-        <div className="space-y-6 lg:space-y-8 text-center lg:text-left">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className={cn(
-              "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-6 lg:mb-8 shadow-sm border mx-auto lg:mx-0",
-              isDarkMode ? "bg-bg-card-dark border-white/10 text-emerald-400" : "bg-emerald-50 border-emerald-100 text-emerald-600"
-            )}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+    <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 dark:bg-bg-dark dark:text-white" data-testid="intro">
+      <header className="sticky top-0 z-40 border-b border-black/5 dark:border-white/5 bg-white/85 dark:bg-bg-dark/85 backdrop-blur">
+        <div className="max-w-6xl mx-auto h-16 px-4 flex items-center gap-2">
+          <a href="/" className="brand-trigger flex items-center gap-2.5 shrink-0 mr-auto rounded-lg" aria-label={appName}>
+            <span className="brand-mark relative w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm" aria-hidden="true">
+              <span className="brand-glow absolute inset-0 rounded-2xl pointer-events-none" />
+              <span className="brand-clock-face relative z-10 w-6 h-6 rounded-full border-[1.7px] border-white/95">
+                <span className="brand-hour-hand absolute left-1/2 top-1/2 w-[1.7px] h-[6px] bg-white rounded-full origin-bottom" />
+                <span className="brand-minute-hand absolute left-1/2 top-1/2 w-[1.5px] h-[8px] bg-white rounded-full origin-bottom" />
+                <span className="brand-clock-pin absolute left-1/2 top-1/2 w-[3px] h-[3px] bg-white rounded-full" />
               </span>
-              {t.newReport}
-            </div>
-            
-            <h1 className={cn(
-              "text-5xl sm:text-7xl lg:text-9xl font-black tracking-tighter leading-[0.9] lg:leading-[0.85] mb-6 lg:mb-8",
-              isDarkMode ? "text-white" : "text-stone-900"
-            )}>
-              {t.heroTitle1} <br />
-              <span className="bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-600 bg-clip-text text-transparent">{t.heroTitle2}</span>
-            </h1>
-            
-            <p className={cn(
-              "text-lg sm:text-xl max-w-lg leading-relaxed font-medium mx-auto lg:mx-0",
-              isDarkMode ? "text-stone-400" : "text-stone-500"
-            )}>
-              {t.heroSubtitle}
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center lg:justify-start gap-6"
-          >
-            <button
-              type="button"
-              disabled={loginLoading}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log("Login button clicked");
-                onLogin();
-              }}
-              className={cn(
-                "w-full sm:w-auto group relative inline-flex items-center justify-center gap-4 bg-gradient-to-r from-emerald-600 to-blue-600 text-white px-8 lg:px-10 py-5 lg:py-6 rounded-[1.5rem] lg:rounded-[2rem] font-black text-lg lg:text-xl transition-all hover:scale-[1.05] active:scale-[0.98] shadow-[0_20px_50px_rgba(16,185,129,0.3)] cursor-pointer z-40",
-                loginLoading && "opacity-70 cursor-not-allowed"
-              )}
-            >
-              {loginLoading ? (
-                <Loader2 className="w-6 h-6 lg:w-7 lg:h-7 animate-spin" />
-              ) : (
-                <LogIn className="w-6 h-6 lg:w-7 lg:h-7 transition-transform group-hover:translate-x-1" />
-              )}
-              {loginLoading ? "Entrando..." : t.loginGoogle}
-            </button>
-
-            {onOpenFormulaAdmin && (
-              <a
-                href="/admin/formula-facil"
-                onClick={(event) => {
-                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                  event.preventDefault();
-                  onOpenFormulaAdmin();
-                }}
-                className={cn(
-                  "w-full sm:w-auto inline-flex items-center justify-center gap-2 whitespace-nowrap px-6 py-4 rounded-[1.5rem] border font-black text-sm transition-all hover:scale-[1.03]",
-                  isDarkMode ? "border-white/15 text-white hover:bg-white/10" : "border-stone-200 text-stone-800 bg-white hover:bg-stone-50"
-                )}
-              >
-                <Sheet className="w-5 h-5 text-emerald-500" />
-                {lang === 'en' ? 'Fórmula Fácil: Excel with AI' : lang === 'es' ? 'Fórmula Fácil: Excel con IA' : 'Fórmula Fácil: Excel com IA'}
-              </a>
-            )}
-
-            {loginError && (
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-500 text-sm font-medium mt-2 text-center lg:text-left"
-              >
-                {loginError}
-              </motion.p>
-            )}
-            
-            <div className="flex items-center gap-4 px-2">
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <img
-                    key={i}
-                    src={`https://picsum.photos/seed/user${i+10}/100/100`}
-                    className="w-10 h-10 rounded-full border-4 border-white dark:border-stone-900 shadow-lg"
-                    alt="User"
-                    referrerPolicy="no-referrer"
-                  />
-                ))}
-              </div>
-              <div className="flex flex-col">
-                <span className={cn("text-sm font-black", isDarkMode ? "text-white" : "text-stone-900")}>{t.activeUsers}</span>
-                <span className="text-[10px] text-stone-400 uppercase font-bold tracking-widest">{t.realUsers}</span>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.4 }}
-            className={cn(
-              "grid grid-cols-2 gap-8 lg:gap-12 pt-10 border-t",
-              isDarkMode ? "border-stone-800" : "border-stone-100"
-            )}
-          >
-            <div>
-              <div className="text-3xl lg:text-4xl font-black text-emerald-500">100%</div>
-              <div className="text-[10px] lg:text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">{t.free}</div>
-            </div>
-            <div>
-              <div className="text-3xl lg:text-4xl font-black text-blue-500">Cloud</div>
-              <div className="text-[10px] lg:text-xs text-stone-400 uppercase tracking-[0.2em] font-bold mt-1">{t.synced}</div>
-            </div>
-          </motion.div>
+            </span>
+            <span className="brand-wordmark hidden min-[380px]:flex items-baseline whitespace-nowrap font-black text-lg sm:text-xl tracking-[-0.04em]">
+              <span className="text-stone-900 dark:text-white">Shift</span><span className="ml-1 text-primary dark:text-stone-300">Hours</span>
+            </span>
+          </a>
+          <label className="relative inline-flex items-center h-10 rounded-full text-stone-500 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10" title={t.language}>
+            <Languages className="w-4 h-4 absolute left-2.5 pointer-events-none" />
+            <select value={lang} onChange={(e) => onLanguageChange(e.target.value as Language)} aria-label={t.language} data-testid="intro-lang"
+              className="appearance-none bg-transparent h-10 pl-8 pr-2.5 text-xs font-black uppercase cursor-pointer outline-none">
+              {(['pt', 'en', 'es'] as Language[]).map((l) => <option key={l} value={l} className="text-stone-900">{l.toUpperCase()}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={onThemeToggle} aria-label={t.theme} title={t.theme}
+            className="w-10 h-10 inline-flex items-center justify-center rounded-full text-stone-500 dark:text-stone-300 hover:bg-black/5 dark:hover:bg-white/10">
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+          <button type="button" onClick={onLogin} disabled={loginLoading}
+            className="h-10 px-4 rounded-full text-sm font-black bg-stone-900 text-white dark:bg-white dark:text-stone-900 hover:opacity-90">{t.signIn}</button>
         </div>
+      </header>
 
-        {/* Right Side: Visual/Features */}
-        <div className="relative lg:pl-10 pb-20 lg:pb-0">
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-tr from-emerald-500/20 to-blue-500/20 blur-[100px] rounded-full",
-            isDarkMode ? "opacity-30" : "opacity-50"
-          )} />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10"
-          >
-            {features.map((feature, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + (idx * 0.1), ease: "easeOut" }}
-                whileHover={{ 
-                  y: -12,
-                  transition: { duration: 0.3 }
-                }}
-                className={cn(
-                  "group p-8 rounded-[3rem] border transition-all duration-300 space-y-5",
-                  isDarkMode 
-                    ? "bg-bg-card-dark border-white/10 hover:border-emerald-500/50 shadow-2xl shadow-black/50" 
-                    : "bg-white/90 border-stone-100 hover:border-emerald-500/30 shadow-2xl shadow-stone-200/50"
-                )}
-              >
-                <div className={cn(
-                  "w-16 h-16 rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500",
-                  feature.color
-                )}>
-                  {feature.icon}
+      <main className="flex-1">
+        <section className="relative overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_80%_0%,var(--primary-color-light),transparent)] dark:bg-[radial-gradient(60%_50%_at_80%_0%,rgba(255,255,255,0.06),transparent)]" />
+          <div className="relative max-w-6xl mx-auto px-4 pt-12 pb-16 sm:pt-20 lg:pb-24 grid lg:grid-cols-[1.1fr_1fr] gap-12 items-center">
+            <div className="text-center lg:text-left">
+              {newest && (
+                <a href="#ferramentas" className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200 mb-6" data-testid="intro-new">
+                  <Sparkles className="w-3.5 h-3.5" />{t.newTool}: {toolText(newest.name, lang)}<ArrowRight className="w-3.5 h-3.5" />
+                </a>
+              )}
+              <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.02]">
+                {t.heroA} <span className="text-primary dark:text-stone-300">{t.heroB}</span>
+              </h1>
+              <p className="mt-5 text-base sm:text-lg text-stone-600 dark:text-stone-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">{t.sub}</p>
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+                {login}
+                <a href="#ferramentas" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border border-stone-200 dark:border-white/15 px-6 py-4 text-sm font-black hover:bg-white dark:hover:bg-white/5">
+                  {t.seeTools}<ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+              {onOpenFormulaAdmin && (
+                <a href="/admin/formula-facil" data-testid="intro-formula-admin"
+                  onClick={(event) => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); onOpenFormulaAdmin(); }}
+                  className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-stone-200 dark:border-white/15 bg-white dark:bg-white/5 px-5 py-3 text-sm font-black hover:border-primary/40">
+                  {(() => { const Icon = CATALOG.find((x) => x.id === 'formula')!.icon; return <Icon className="w-4 h-4 text-primary dark:text-white" />; })()}{t.formula}
+                </a>
+              )}
+              {loginError && <p className="mt-3 text-sm font-semibold text-red-600 dark:text-red-400">{loginError}</p>}
+              <ul className="mt-8 flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 text-sm font-semibold text-stone-500 dark:text-stone-400">
+                {t.trust.map((item, i) => { const Icon = TRUST_ICONS[i]; return <li key={item} className="inline-flex items-center gap-1.5"><Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />{item}</li>; })}
+              </ul>
+            </div>
+
+            <div aria-hidden="true" className="relative mx-auto w-full max-w-md lg:max-w-none">
+              <div className="rounded-3xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark shadow-2xl shadow-stone-300/40 dark:shadow-black/40 overflow-hidden">
+                <div className="flex items-center gap-1.5 px-4 h-9 border-b border-stone-100 dark:border-white/5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-300" /><span className="w-2.5 h-2.5 rounded-full bg-amber-300" /><span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
                 </div>
-                <h3 className="font-black text-2xl tracking-tight">{feature.title}</h3>
-                <p className={cn(
-                  "text-sm leading-relaxed font-medium",
-                  isDarkMode ? "text-stone-400" : "text-stone-500"
-                )}>{feature.desc}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Floating Badge */}
-          <motion.div
-            animate={{ 
-              y: [0, -15, 0],
-              rotate: [0, 3, 0]
-            }}
-            transition={{ 
-              duration: 5, 
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className={cn(
-              "absolute -top-24 -right-12 p-8 rounded-[2.5rem] shadow-2xl border hidden lg:block z-20",
-              isDarkMode ? "bg-bg-card-dark border-white/10" : "bg-white border-stone-100"
-            )}
-          >
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <CheckCircle2 className="w-7 h-7 text-emerald-500" />
-              </div>
-              <div>
-                <div className="text-lg font-black tracking-tight">{t.productivity}</div>
-                <div className="text-xs text-emerald-500 font-bold uppercase tracking-widest">{t.thisMonth}</div>
+                <div className="p-5 space-y-4">
+                  <p className="text-lg font-black">{t.mock}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {tools.map((tool, i) => (
+                      <div key={tool.id} className={cn('rounded-2xl border p-3 transition-all duration-500',
+                        i === spot % tools.length ? 'border-primary/40 bg-primary-light dark:border-white/30 dark:bg-white/10 -translate-y-0.5 shadow-md' : 'border-stone-100 dark:border-white/5')}>
+                        <span className="w-9 h-9 rounded-xl bg-primary text-white dark:bg-white dark:text-stone-900 flex items-center justify-center"><tool.icon className="w-4 h-4" /></span>
+                        <p className="mt-2 text-sm font-black leading-tight">{toolText(tool.name, lang)}</p>
+                        <p className="mt-0.5 text-[11px] text-stone-500 dark:text-stone-400 leading-snug line-clamp-2">{toolText(tool.tagline, lang)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-          </motion.div>
-        </div>
-      </div>
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className={cn(
-        "mt-auto py-12 text-center text-[10px] font-black uppercase tracking-[0.4em] opacity-30 z-10 select-none pointer-events-none",
-        isDarkMode ? "text-white" : "text-stone-900"
-      )}>
+        <section id="ferramentas" className="scroll-mt-20 max-w-6xl mx-auto px-4 py-16">
+          <div className="max-w-2xl mb-8">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight">{t.toolsTitle}</h2>
+            <p className="mt-2 text-stone-600 dark:text-stone-400">{t.toolsSub}</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2" data-testid="intro-tools">
+            {tools.map((tool) => (
+              <article key={tool.id} className="rounded-3xl border border-stone-200 dark:border-white/10 bg-white dark:bg-bg-card-dark p-6 flex flex-col">
+                <div className="flex items-center gap-3">
+                  <span className="w-12 h-12 rounded-2xl bg-primary text-white dark:bg-white dark:text-stone-900 flex items-center justify-center shrink-0"><tool.icon className="w-5 h-5" /></span>
+                  <h3 className="text-xl font-black">{toolText(tool.name, lang)}</h3>
+                  {isNewTool(tool) && <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 px-2 py-0.5 text-[10px] font-black uppercase">{t.newTool}</span>}
+                </div>
+                <p className="mt-4 text-sm text-stone-600 dark:text-stone-300 leading-relaxed flex-1">{toolText(tool.description, lang)}</p>
+                <p className="mt-4 rounded-2xl bg-stone-50 dark:bg-white/5 px-4 py-3 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">{toolText(tool.tips[tool.tips.length - 1], lang)}</p>
+                <button type="button" onClick={onLogin} className="mt-5 self-start inline-flex items-center gap-1.5 text-sm font-black text-primary dark:text-white hover:gap-2.5 transition-all">
+                  {t.use}<ArrowRight className="w-4 h-4" />
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-y border-stone-200 dark:border-white/5 bg-white dark:bg-bg-card-dark/40">
+          <div className="max-w-6xl mx-auto px-4 py-16">
+            <h2 className="text-3xl font-black tracking-tight mb-8">{t.howTitle}</h2>
+            <ol className="grid gap-4 md:grid-cols-3">
+              {t.how.map((step, i) => { const Icon = HOW_ICONS[i]; return (
+                <li key={step.title} className="rounded-3xl border border-stone-200 dark:border-white/10 p-6">
+                  <span className="inline-flex items-center gap-2 text-xs font-black text-stone-400"><span className="w-7 h-7 rounded-full bg-primary-light dark:bg-white/10 text-primary dark:text-white inline-flex items-center justify-center">{i + 1}</span><Icon className="w-4 h-4" /></span>
+                  <h3 className="mt-3 text-lg font-black">{step.title}</h3>
+                  <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{step.body}</p>
+                </li>
+              ); })}
+            </ol>
+          </div>
+        </section>
+
+        <section id="planos" className="max-w-6xl mx-auto px-4 py-16">
+          <div className="max-w-2xl mb-8">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight">{t.plansTitle}</h2>
+            <p className="mt-2 text-stone-600 dark:text-stone-400">{t.plansSub}</p>
+          </div>
+          {plans ? <PlanCards config={plans} language={lang} /> : <div className="h-48 rounded-3xl bg-stone-100 dark:bg-white/5 animate-pulse" />}
+        </section>
+
+        <section className="max-w-6xl mx-auto px-4 pb-20">
+          <div className="rounded-3xl bg-primary text-white dark:bg-white/[0.06] dark:border dark:border-white/10 px-6 py-12 sm:px-12 text-center">
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight">{t.ctaTitle}</h2>
+            <p className="mt-2 text-white/75">{t.ctaSub}</p>
+            <button type="button" disabled={loginLoading} onClick={onLogin}
+              className="mt-7 inline-flex items-center justify-center gap-3 rounded-2xl bg-white text-stone-900 px-7 py-4 font-black hover:-translate-y-0.5 transition-transform">
+              <LogIn className="w-5 h-5" />{t.login}
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer className="py-10 text-center text-[10px] font-black uppercase tracking-[0.4em] text-stone-400 select-none">
         {footerText.replace(/WORKHOURS/gi, 'SHIFTHOURS')}
       </footer>
     </div>
