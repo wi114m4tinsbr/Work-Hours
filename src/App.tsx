@@ -362,7 +362,8 @@ export default function App() {
             language={lang}
             inApp={false}
             onBack={() => setActiveTab('hours')}
-            onLogin={handleLogin}
+            onLogin={activeTab === 'formula' ? handleLogin : undefined}
+            ready={activeTab === 'formula-admin'}
           />
         </div>
       );
@@ -632,8 +633,8 @@ export default function App() {
             language={lang}
             inApp
             onBack={goHome}
-            quota={formulaQuota(access, quotaDoc, writeUsage)}
-            ready={isOwner && activeTab === 'formula-admin' ? formulaSessionReady : userSessionReady}
+            quota={activeTab === 'formula' ? formulaQuota(access, quotaDoc, writeUsage) : undefined}
+            ready={activeTab === 'formula' ? userSessionReady : formulaSessionReady || (!isOwner && formulaPublic)}
             publicSwitch={activeTab === 'formula-admin' && isOwner && user ? {
               enabled: formulaPublic,
               onChange: async (enabled) => setFormulaPublicState(await setFormulaPublic(user, enabled)),

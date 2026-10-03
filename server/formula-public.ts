@@ -97,19 +97,6 @@ export function formulaLocked(state: AccountState, now = Date.now()): boolean {
   return start !== null && now < start + LOCK_MS && used >= FREE_SECONDS;
 }
 
-/** Signed-in, active account whose Fórmula Fácil time is not used up (Premium and the owner always). */
-export async function visitorAllowed(request: Request, deps: PublicDeps = defaultDeps): Promise<boolean> {
-  const token = readCookie(request.headers.get('cookie'), USER_COOKIE);
-  const session = token ? await deps.verify(token) : null;
-  if (!session) return false;
-  try {
-    const state = await deps.loadAccount(session, token!);
-    return !!state && state.access !== 'blocked' && !formulaLocked(state);
-  } catch {
-    return false;
-  }
-}
-
 function json(status: number, body: unknown, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,

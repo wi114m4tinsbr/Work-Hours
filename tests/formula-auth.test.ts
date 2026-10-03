@@ -32,12 +32,11 @@ async function token(overrides: JWTPayload = {}, options: { key?: CryptoKey; kid
     .sign(options.key ?? trusted.privateKey);
 }
 
-const deps = (html: Uint8Array | null = ADMIN_HTML, state = { public: false }, visitor = false): FormulaDeps => ({
+const deps = (html: Uint8Array | null = ADMIN_HTML, state = { public: false }): FormulaDeps => ({
   verify: (value) => verifyOwnerToken(value, keys),
   loadAdminHtml: async () => html,
   isPublic: async () => state.public,
   setPublic: async (enabled) => { state.public = enabled; },
-  visitorAllowed: async () => visitor,
 });
 
 const page = (cookie?: string, method = 'GET') =>
@@ -91,15 +90,14 @@ test('only the owner switches the admin version on for everyone, and it starts o
 
   assert.equal((await post({ public: true }, await token())).status, 200);
   assert.deepEqual(await read(), { public: true });
-  // Open to everyone still means signed in and within the free allowance.
-  assert.equal((await handleAdminPage(page(), deps(ADMIN_HTML, state))).status, 404, 'no login or no time left');
-  const visitor = await handleAdminPage(page(), deps(ADMIN_HTML, state, true));
+  // Switched on: anyone, without login and without limit.
+  const visitor = await handleAdminPage(page(), deps(ADMIN_HTML, state));
   assert.equal(visitor.status, 200);
   assert.deepEqual(new Uint8Array(await visitor.arrayBuffer()), ADMIN_HTML);
   assert.equal(visitor.headers.get('cache-control'), 'private, no-store');
 
   assert.equal((await post({ public: false }, await token())).status, 200);
-  assert.equal((await handleAdminPage(page(), deps(ADMIN_HTML, state, true))).status, 404);
+  assert.equal((await handleAdminPage(page(), deps(ADMIN_HTML, state))).status, 404);
 });
 
 test('another account, fake or expired cookie gets 404 and the cookie is cleared', async () => {
@@ -225,14 +223,6 @@ test('common Fórmula Fácil is served only to signed-in accounts with time left
   assert.match(login.headers.get('set-cookie') ?? '', /^__Host-shift-user=.+HttpOnly; Secure; SameSite=Strict$/);
   const crossSite = await handleUserSession(new Request(`${ORIGIN}/api/user-session`, { method: 'POST', headers: { origin: 'https://evil.example', authorization: `Bearer ${user}` } }), publicDeps);
   assert.equal(crossSite.status, 404);
-
-  const { visitorAllowed } = await import('../server/formula-public.ts');
-  const asVisitor = (cookie?: string) => new Request(`${ORIGIN}/api/formula-admin`, { headers: cookie ? { cookie: `${USER_COOKIE}=${cookie}` } : {} });
-  state = { access: 'free', formula: { start: now - 600e3, used: 300, exhaustedAt: null } };
-  assert.equal(await visitorAllowed(asVisitor(), publicDeps), false);
-  assert.equal(await visitorAllowed(asVisitor(user), publicDeps), true);
-  state = { access: 'free', formula: { start: now - 3600e3, used: 900, exhaustedAt: now - 60e3 } };
-  assert.equal(await visitorAllowed(asVisitor(user), publicDeps), false);
 
   // The raw file is no longer a public static file.
   assert.equal(existsSync('public/formula-facil.html'), false);

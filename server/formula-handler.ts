@@ -36,8 +36,6 @@ export interface FormulaDeps {
   /** Whether the owner opened the admin version to every visitor (off unless switched on). */
   isPublic: () => Promise<boolean>;
   setPublic: (enabled: boolean) => Promise<void>;
-  /** When open to everyone: a signed-in account that is active and still has free time today. */
-  visitorAllowed: (request: Request) => Promise<boolean>;
 }
 
 export const ADMIN_BLOB_PATH = process.env.FORMULA_ADMIN_BLOB_PATH || 'formula-facil-admin.html';
@@ -83,7 +81,6 @@ const defaultDeps: FormulaDeps = {
   loadAdminHtml: loadFromPrivateBlob,
   isPublic: readPublicFlag,
   setPublic: writePublicFlag,
-  visitorAllowed: async (request) => (await import('./formula-public.js')).visitorAllowed(request),
 };
 
 export function notFound(): Response {
@@ -147,15 +144,15 @@ export async function handleSession(request: Request, deps: FormulaDeps = defaul
 }
 
 /**
- * GET/HEAD: the private HTML, for the verified owner, or, after the owner opened it to everyone,
- * for signed-in accounts within the free-plan allowance (shared with the common version).
+ * GET/HEAD: the private HTML, for the verified owner, or for anyone (no login, no limit)
+ * while the owner keeps it switched on in the admin panel.
  */
 export async function handleAdminPage(request: Request, deps: FormulaDeps = defaultDeps): Promise<Response> {
   if (request.method !== 'GET' && request.method !== 'HEAD') return notFound();
 
   const token = readCookie(request.headers.get('cookie'), FORMULA_COOKIE);
   const session = token ? await deps.verify(token) : null;
-  if (!session && !((await deps.isPublic()) && (await deps.visitorAllowed(request)))) {
+  if (!session && !(await deps.isPublic())) {
     const response = notFound();
     if (token) response.headers.set('Set-Cookie', clearedSessionCookie());
     return response;
