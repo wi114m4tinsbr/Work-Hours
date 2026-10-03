@@ -223,6 +223,12 @@
       "kind": "improved",
       "title": "Conferência e regra de alinhamento entre oficial e teste",
       "details": "Arquivos idênticos nas duas branches e mesmo arquivo principal de interface nos dois endereços; publicações e checks anteriores aprovados. Check completo passa a executar também na main. Contexto corrigido para refletir Telegram validado. Registrada rotina permanente de publicação e conferência dos dois ambientes, sem sincronização automática de branches nem cópia de segredos."
+    },
+    {
+      "at": "2026-10-03T12:08:55.120941+00:00",
+      "kind": "improved",
+      "title": "Relatório copiável completo e contexto de continuidade",
+      "details": "Texto copiado e arquivo .md passam a incluir todos os marcos registrados, além do contexto e últimos envios. Contexto consolidado com arquivos originais, testes, limitações do PDF/Telegram, estado de publicação e regra permanente de atualização a cada entrega. Nenhuma credencial incluída."
     }
   ]
 }

@@ -259,3 +259,14 @@ test('project report and prompt are for the owner only and end with the latest p
     assert.doesNotMatch(readFileSync(file, 'utf8'), /AIza[0-9A-Za-z_-]{30,}|CHAVE_FIXA\s*=|ghp_|sk-/, file);
   }
 });
+
+test('copied report retains every milestone chronologically even when GitHub is unavailable', async () => {
+  const { buildPrompt } = await import('../server/admin-report.ts');
+  const milestones = Array.from({ length: 40 }, (_, i) => ({ at: new Date(Date.UTC(2026, 0, i + 1)).toISOString(), kind: 'new', title: `Marco ${i}`, details: `Detalhe ${i}` })).reverse();
+  for (const commits of [null, [{ sha: 'abc1234', at: '2026-03-01T00:00:00Z', author: 'Owner', message: 'Latest' }]]) {
+    const copied = buildPrompt('# Contexto', 'main', commits, milestones);
+    assert.equal((copied.match(/### 2026/g) || []).length, 40);
+    assert.ok(copied.indexOf('Marco 0') < copied.indexOf('Marco 39'));
+    assert.ok(copied.includes('Detalhe 39'));
+  }
+});
